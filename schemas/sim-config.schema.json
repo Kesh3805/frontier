@@ -51,7 +51,11 @@
         "cost_log_sd": { "type": "number", "minimum": 0 },
         "attempt_cost_sd": { "type": "number", "minimum": 0 },
         "failure_cost_mult": { "type": "number", "minimum": 1, "description": "Cost multiplier for unsuccessful attempts." },
-        "hint_noise": { "type": "number", "minimum": 0 }
+        "hint_noise": { "type": "number", "minimum": 0 },
+        "failure_stickiness": { "type": "number", "minimum": 0, "exclusiveMaximum": 1, "description": "Lag-1 correlation of attempt outcomes; omitted when 0." },
+        "verifier_fnr": { "type": "number", "minimum": 0, "maximum": 1, "description": "Verifier false-negative rate; omitted when 0." },
+        "verifier_fpr": { "type": "number", "minimum": 0, "maximum": 1, "description": "Verifier false-positive rate; omitted when 0." },
+        "distinct_solutions": { "type": "boolean", "description": "Each attempt yields distinct artifact content; omitted when false." }
       }
     },
     "RunConfig": {
