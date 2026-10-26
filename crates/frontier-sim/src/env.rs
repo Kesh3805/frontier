@@ -133,6 +133,10 @@ pub struct Campaign {
     /// Keyed by task id (aliases of merged tasks map to the same truth).
     pub truth: BTreeMap<String, TaskTruth>,
     pub hints: BTreeMap<String, f64>,
+    /// Real dependency-structured tasks only: task id -> name under which a
+    /// verified artifact of that task is offered to its dependents' worker
+    /// attempts as a library helper. Empty in simulation.
+    pub helpers: BTreeMap<String, String>,
 }
 
 fn logit(p: f64) -> f64 {
@@ -233,7 +237,7 @@ pub fn generate(cfg: &EnvConfig, seed: u64, budget_hint: f64) -> Result<Campaign
         };
         specs.push(SealedSpec::seal(spec).map_err(|e| e.to_string())?);
     }
-    Ok(Campaign { specs, tasks, truth, hints })
+    Ok(Campaign { specs, tasks, truth, hints, helpers: BTreeMap::new() })
 }
 
 #[cfg(test)]

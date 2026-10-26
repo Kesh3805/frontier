@@ -18,8 +18,16 @@ pub const EVENT_SCHEMA_VERSION: &str = "0.2";
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AttemptOutcome {
-    /// Worker produced an artifact.
-    Artifact { digest: Digest, duplicate: bool },
+    /// Worker produced an artifact. `parents` are the accepted artifacts of
+    /// the task's prerequisites that the artifact builds on (the library of
+    /// a dependent real task); the artifact digest commits to them. Omitted
+    /// when empty, so logs without dependencies are unchanged.
+    Artifact {
+        digest: Digest,
+        duplicate: bool,
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        parents: Vec<Digest>,
+    },
     /// Worker failed for infrastructure reasons; no artifact.
     Crashed,
     /// Attempt hit its compute limit and was killed; no artifact.

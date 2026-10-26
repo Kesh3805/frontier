@@ -161,6 +161,15 @@ real verifier:
 target/release/frontier real-run --config research/realtasks/dev.json --seed 1 --policy-index 1 --out runs/real
 ```
 
+Dependency-structured real tasks (catalog v3) work the same way. Each
+problem can be solved directly or through lemma tasks; verified lemmas are
+passed to dependent attempts as helper functions, and the artifact commits
+to them (`python/frontier_py/realtasks/deps.py` describes the design):
+
+```bash
+target/release/frontier real-run --config research/realtasks/dev-v3.json --seed 1 --policy-index 1 --out runs/real-v3
+```
+
 **Reproduce a preregistered experiment and its analysis:**
 
 ```bash
@@ -200,7 +209,7 @@ python research/preregistration/exp-004/evaluate_primary.py runs/exp-004
 | `crates/frontier-cli` | The `frontier` binary |
 | `python/frontier_py` | Verifier, real-task suite and worker, worker service, statistics, model adapters |
 | `research/preregistration/` | Frozen protocols, configs and scoring scripts (exp-000 to exp-006) |
-| `research/realtasks/` | Task catalogs (v1, v2) with hashed hidden-suite commitments |
+| `research/realtasks/` | Task catalogs (v1, v2; v3 = dependency-structured problems with lemma routes) with hashed hidden-suite commitments |
 | `results/` | Executed results, scorecards, per-run data, manifests |
 | `docs/research/` | Scope, source audit, literature review, simulator calibration |
 | `docs/decisions/` | Architecture decision records |

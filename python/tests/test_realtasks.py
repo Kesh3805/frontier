@@ -78,7 +78,7 @@ def test_server_protocol():
     p = subprocess.run([sys.executable, "-m", "frontier_py.realtasks.server"], input="\n".join(map(json.dumps, reqs)) + "\n",
                        capture_output=True, text=True, cwd=PYTHON_DIR, timeout=120)
     replies = [json.loads(line) for line in p.stdout.splitlines()]
-    assert replies[0]["protocol"] == 1
+    assert replies[0]["protocol"] == 2  # v2 adds libraries; requests without one are unchanged
     assert replies[1]["ok"] and replies[1]["gen_units"] > 0
     assert replies[2]["receipt"]["verdict"] == "PASS" and replies[2]["extended_ok"]
     assert replies[2]["receipt"]["cost_units"] == 0.215  # deterministic charge: 43 cases x 0.005

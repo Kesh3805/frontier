@@ -1,0 +1,2480 @@
+{
+ "catalog_version": "3",
+ "suite_version": "2",
+ "hidden_seed": 20261026,
+ "worker": {
+  "max_samples": 256,
+  "calibration_seed": 999000001,
+  "calibration_attempts": 200
+ },
+ "problems": [
+  {
+   "problem_id": "dep.span_pos",
+   "statement": "Largest minus smallest positive element (0 if none).",
+   "label": "lemma_useful",
+   "dead": false,
+   "criterion_sha256": "4ed58272b4b1cc9caee002427ef0339e4f8e68b55a9551cfe06f0a6b1c2143d1",
+   "routes": [
+    {
+     "approach": "direct",
+     "tasks": [
+      "span_pos/direct"
+     ],
+     "expected_gen_units": null,
+     "live": true
+    },
+    {
+     "approach": "a1",
+     "tasks": [
+      "span_pos/maxpos",
+      "span_pos/minpos",
+      "span_pos/via_maxpos+minpos"
+     ],
+     "expected_gen_units": 17.2766,
+     "live": true
+    },
+    {
+     "approach": "a2",
+     "tasks": [
+      "span_pos/positives",
+      "span_pos/via_positives"
+     ],
+     "expected_gen_units": 36.5455,
+     "live": true
+    }
+   ],
+   "tasks": [
+    {
+     "id": "direct",
+     "name": "span_pos/direct",
+     "role": "direct",
+     "signature": "goal direct",
+     "depends_on": [],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Largest minus smallest positive element (0 if none).",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.001,
+     "p_hat": 0.0,
+     "p_hat_hidden_only": 0.0,
+     "mean_gen_units": 2.61,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.maxpos",
+     "name": "span_pos/maxpos",
+     "role": "lemma",
+     "signature": "lemma maxpos",
+     "depends_on": [],
+     "terminal": false,
+     "helper": "h_maxpos",
+     "kind": "int",
+     "statement": "Largest positive element, or 0 if none.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.999,
+     "p_hat": 0.025,
+     "p_hat_hidden_only": 0.025,
+     "mean_gen_units": 0.21665,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.minpos",
+     "name": "span_pos/minpos",
+     "role": "lemma",
+     "signature": "lemma minpos",
+     "depends_on": [],
+     "terminal": false,
+     "helper": "h_minpos",
+     "kind": "int",
+     "statement": "Smallest positive element, or 0 if none.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.401011,
+     "p_hat": 0.445,
+     "p_hat_hidden_only": 0.445,
+     "mean_gen_units": 1.91645,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.goal",
+     "name": "span_pos/via_maxpos+minpos",
+     "role": "via",
+     "signature": "goal via_maxpos+minpos",
+     "depends_on": [
+      "a1.maxpos",
+      "a1.minpos"
+     ],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Largest minus smallest positive element (0 if none).",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.722854,
+     "p_hat": 0.425,
+     "p_hat_hidden_only": 0.425,
+     "mean_gen_units": 1.8292,
+     "expressible": true,
+     "library_source": "calibration"
+    },
+    {
+     "id": "a2.positives",
+     "name": "span_pos/positives",
+     "role": "lemma",
+     "signature": "lemma positives",
+     "depends_on": [],
+     "terminal": false,
+     "helper": "h_positives",
+     "kind": "list",
+     "statement": "The positive elements, in order.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.785753,
+     "p_hat": 0.85,
+     "p_hat_hidden_only": 0.85,
+     "mean_gen_units": 1.20315,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a2.goal",
+     "name": "span_pos/via_positives",
+     "role": "via",
+     "signature": "goal via_positives",
+     "depends_on": [
+      "a2.positives"
+     ],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Largest minus smallest positive element (0 if none).",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.001,
+     "p_hat": 0.07,
+     "p_hat_hidden_only": 0.07,
+     "mean_gen_units": 2.4591,
+     "expressible": true,
+     "library_source": "calibration"
+    }
+   ]
+  },
+  {
+   "problem_id": "dep.span_neg",
+   "statement": "Largest minus smallest negative element (0 if none).",
+   "label": "lemma_useful",
+   "dead": false,
+   "criterion_sha256": "3ca5e9ae0966791f740a11967d29c9000e1a5913cd0f3d0fd66a1b9553521956",
+   "routes": [
+    {
+     "approach": "direct",
+     "tasks": [
+      "span_neg/direct"
+     ],
+     "expected_gen_units": null,
+     "live": true
+    },
+    {
+     "approach": "a1",
+     "tasks": [
+      "span_neg/negatives",
+      "span_neg/via_negatives"
+     ],
+     "expected_gen_units": 40.2148,
+     "live": true
+    }
+   ],
+   "tasks": [
+    {
+     "id": "direct",
+     "name": "span_neg/direct",
+     "role": "direct",
+     "signature": "goal direct",
+     "depends_on": [],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Largest minus smallest negative element (0 if none).",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.001,
+     "p_hat": 0.0,
+     "p_hat_hidden_only": 0.0,
+     "mean_gen_units": 2.5879,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.negatives",
+     "name": "span_neg/negatives",
+     "role": "lemma",
+     "signature": "lemma negatives",
+     "depends_on": [],
+     "terminal": false,
+     "helper": "h_negatives",
+     "kind": "list",
+     "statement": "The negative elements, in order.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.872065,
+     "p_hat": 0.57,
+     "p_hat_hidden_only": 0.57,
+     "mean_gen_units": 0.99025,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.goal",
+     "name": "span_neg/via_negatives",
+     "role": "via",
+     "signature": "goal via_negatives",
+     "depends_on": [
+      "a1.negatives"
+     ],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Largest minus smallest negative element (0 if none).",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.225957,
+     "p_hat": 0.06,
+     "p_hat_hidden_only": 0.06,
+     "mean_gen_units": 2.30865,
+     "expressible": true,
+     "library_source": "calibration"
+    }
+   ]
+  },
+  {
+   "problem_id": "dep.span_abs",
+   "statement": "Largest minus smallest absolute value (0 if empty).",
+   "label": "lemma_useful",
+   "dead": false,
+   "criterion_sha256": "6d75811d04eef91f1b406399326cf6402966b96f0d34ac525942299bb5ef4886",
+   "routes": [
+    {
+     "approach": "direct",
+     "tasks": [
+      "span_abs/direct"
+     ],
+     "expected_gen_units": null,
+     "live": true
+    },
+    {
+     "approach": "a1",
+     "tasks": [
+      "span_abs/abs_all",
+      "span_abs/via_abs_all"
+     ],
+     "expected_gen_units": 38.3941,
+     "live": true
+    }
+   ],
+   "tasks": [
+    {
+     "id": "direct",
+     "name": "span_abs/direct",
+     "role": "direct",
+     "signature": "goal direct",
+     "depends_on": [],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Largest minus smallest absolute value (0 if empty).",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.001,
+     "p_hat": 0.0,
+     "p_hat_hidden_only": 0.0,
+     "mean_gen_units": 2.61,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.abs_all",
+     "name": "span_abs/abs_all",
+     "role": "lemma",
+     "signature": "lemma abs_all",
+     "depends_on": [],
+     "terminal": false,
+     "helper": "h_abs_all",
+     "kind": "list",
+     "statement": "Absolute value of every element.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.641581,
+     "p_hat": 0.65,
+     "p_hat_hidden_only": 0.65,
+     "mean_gen_units": 1.623,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.goal",
+     "name": "span_abs/via_abs_all",
+     "role": "via",
+     "signature": "goal via_abs_all",
+     "depends_on": [
+      "a1.abs_all"
+     ],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Largest minus smallest absolute value (0 if empty).",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.001,
+     "p_hat": 0.07,
+     "p_hat_hidden_only": 0.07,
+     "mean_gen_units": 2.5128,
+     "expressible": true,
+     "library_source": "calibration"
+    }
+   ]
+  },
+  {
+   "problem_id": "dep.trimmed_sum",
+   "statement": "Sum of the elements without one smallest and one largest (0 if fewer than 3).",
+   "label": "lemma_useful",
+   "dead": false,
+   "criterion_sha256": "95cae7ab8fc3abfc2fe5e6b376cc96d96a4fa75a7de7803fb51593169ba040b3",
+   "routes": [
+    {
+     "approach": "direct",
+     "tasks": [
+      "trimmed_sum/direct"
+     ],
+     "expected_gen_units": null,
+     "live": false
+    },
+    {
+     "approach": "a1",
+     "tasks": [
+      "trimmed_sum/trim",
+      "trimmed_sum/via_trim"
+     ],
+     "expected_gen_units": 5.5688,
+     "live": true
+    }
+   ],
+   "tasks": [
+    {
+     "id": "direct",
+     "name": "trimmed_sum/direct",
+     "role": "direct",
+     "signature": "goal direct",
+     "depends_on": [],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Sum of the elements without one smallest and one largest (0 if fewer than 3).",
+     "status": "inexpressible",
+     "dead": true,
+     "hint": 0.001,
+     "p_hat": 0.0,
+     "p_hat_hidden_only": 0.0,
+     "mean_gen_units": 2.5884,
+     "expressible": false,
+     "library_source": null
+    },
+    {
+     "id": "a1.trim",
+     "name": "trimmed_sum/trim",
+     "role": "lemma",
+     "signature": "lemma trim",
+     "depends_on": [],
+     "terminal": false,
+     "helper": "h_trim",
+     "kind": "list",
+     "statement": "The sorted list without its smallest and largest element.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.641581,
+     "p_hat": 0.4,
+     "p_hat_hidden_only": 0.4,
+     "mean_gen_units": 2.07125,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.goal",
+     "name": "trimmed_sum/via_trim",
+     "role": "via",
+     "signature": "goal via_trim",
+     "depends_on": [
+      "a1.trim"
+     ],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Sum of the elements without one smallest and one largest (0 if fewer than 3).",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.994326,
+     "p_hat": 0.985,
+     "p_hat_hidden_only": 0.985,
+     "mean_gen_units": 0.3848,
+     "expressible": true,
+     "library_source": "calibration"
+    }
+   ]
+  },
+  {
+   "problem_id": "dep.max_times_min",
+   "statement": "Largest element times smallest element (0 if empty).",
+   "label": "lemma_useful",
+   "dead": false,
+   "criterion_sha256": "c59ee8aedebeb70b4d0414a990a9558c64da36076632972bc1e646e5660b052b",
+   "routes": [
+    {
+     "approach": "direct",
+     "tasks": [
+      "max_times_min/direct"
+     ],
+     "expected_gen_units": 7.3626,
+     "live": true
+    },
+    {
+     "approach": "a1",
+     "tasks": [
+      "max_times_min/max0",
+      "max_times_min/min0",
+      "max_times_min/via_max0+min0"
+     ],
+     "expected_gen_units": 2.2508,
+     "live": true
+    }
+   ],
+   "tasks": [
+    {
+     "id": "direct",
+     "name": "max_times_min/direct",
+     "role": "direct",
+     "signature": "goal direct",
+     "depends_on": [],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Largest element times smallest element (0 if empty).",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.225957,
+     "p_hat": 0.29,
+     "p_hat_hidden_only": 0.29,
+     "mean_gen_units": 2.13515,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.max0",
+     "name": "max_times_min/max0",
+     "role": "lemma",
+     "signature": "lemma max0",
+     "depends_on": [],
+     "terminal": false,
+     "helper": "h_max0",
+     "kind": "int",
+     "statement": "Largest element, or 0 if empty.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.999,
+     "p_hat": 0.85,
+     "p_hat_hidden_only": 0.85,
+     "mean_gen_units": 0.25785,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.min0",
+     "name": "max_times_min/min0",
+     "role": "lemma",
+     "signature": "lemma min0",
+     "depends_on": [],
+     "terminal": false,
+     "helper": "h_min0",
+     "kind": "int",
+     "statement": "Smallest element, or 0 if empty.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.999,
+     "p_hat": 0.825,
+     "p_hat_hidden_only": 0.825,
+     "mean_gen_units": 0.1956,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.goal",
+     "name": "max_times_min/via_max0+min0",
+     "role": "via",
+     "signature": "goal via_max0+min0",
+     "depends_on": [
+      "a1.max0",
+      "a1.min0"
+     ],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Largest element times smallest element (0 if empty).",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.785753,
+     "p_hat": 0.74,
+     "p_hat_hidden_only": 0.74,
+     "mean_gen_units": 1.26565,
+     "expressible": true,
+     "library_source": "calibration"
+    }
+   ]
+  },
+  {
+   "problem_id": "dep.sign_balance",
+   "statement": "Number of positive minus number of negative elements.",
+   "label": "lemma_useful",
+   "dead": false,
+   "criterion_sha256": "52ee2d9f049120191aad93a8836f22fc606cb8eb6ee97124946cf896bfc0a09f",
+   "routes": [
+    {
+     "approach": "direct",
+     "tasks": [
+      "sign_balance/direct"
+     ],
+     "expected_gen_units": null,
+     "live": true
+    },
+    {
+     "approach": "a1",
+     "tasks": [
+      "sign_balance/count_neg",
+      "sign_balance/count_pos",
+      "sign_balance/via_count_neg+count_pos"
+     ],
+     "expected_gen_units": 10.083,
+     "live": true
+    }
+   ],
+   "tasks": [
+    {
+     "id": "direct",
+     "name": "sign_balance/direct",
+     "role": "direct",
+     "signature": "goal direct",
+     "depends_on": [],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Number of positive minus number of negative elements.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.001,
+     "p_hat": 0.0,
+     "p_hat_hidden_only": 0.0,
+     "mean_gen_units": 2.61,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.count_neg",
+     "name": "sign_balance/count_neg",
+     "role": "lemma",
+     "signature": "lemma count_neg",
+     "depends_on": [],
+     "terminal": false,
+     "helper": "h_count_neg",
+     "kind": "int",
+     "statement": "Number of negative elements.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.722854,
+     "p_hat": 0.565,
+     "p_hat_hidden_only": 0.565,
+     "mean_gen_units": 1.67085,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.count_pos",
+     "name": "sign_balance/count_pos",
+     "role": "lemma",
+     "signature": "lemma count_pos",
+     "depends_on": [],
+     "terminal": false,
+     "helper": "h_count_pos",
+     "kind": "int",
+     "statement": "Number of positive elements.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.785753,
+     "p_hat": 0.605,
+     "p_hat_hidden_only": 0.605,
+     "mean_gen_units": 1.71255,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.goal",
+     "name": "sign_balance/via_count_neg+count_pos",
+     "role": "via",
+     "signature": "goal via_count_neg+count_pos",
+     "depends_on": [
+      "a1.count_neg",
+      "a1.count_pos"
+     ],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Number of positive minus number of negative elements.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.536595,
+     "p_hat": 0.46,
+     "p_hat_hidden_only": 0.46,
+     "mean_gen_units": 1.97575,
+     "expressible": true,
+     "library_source": "calibration"
+    }
+   ]
+  },
+  {
+   "problem_id": "dep.parity_gap",
+   "statement": "Sum of the even elements minus sum of the odd elements.",
+   "label": "lemma_useful",
+   "dead": false,
+   "criterion_sha256": "e231930dfbe34c286b13affeaa76fd643b231daee505b6ce09a1d957155910c8",
+   "routes": [
+    {
+     "approach": "direct",
+     "tasks": [
+      "parity_gap/direct"
+     ],
+     "expected_gen_units": 520.28,
+     "live": true
+    },
+    {
+     "approach": "a1",
+     "tasks": [
+      "parity_gap/sum_even",
+      "parity_gap/sum_odd",
+      "parity_gap/via_sum_even+sum_odd"
+     ],
+     "expected_gen_units": 17.7636,
+     "live": true
+    }
+   ],
+   "tasks": [
+    {
+     "id": "direct",
+     "name": "parity_gap/direct",
+     "role": "direct",
+     "signature": "goal direct",
+     "depends_on": [],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Sum of the even elements minus sum of the odd elements.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.001,
+     "p_hat": 0.005,
+     "p_hat_hidden_only": 0.005,
+     "mean_gen_units": 2.6014,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.sum_even",
+     "name": "parity_gap/sum_even",
+     "role": "lemma",
+     "signature": "lemma sum_even",
+     "depends_on": [],
+     "terminal": false,
+     "helper": "h_sum_even",
+     "kind": "int",
+     "statement": "Sum of the even elements.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.225957,
+     "p_hat": 0.305,
+     "p_hat_hidden_only": 0.305,
+     "mean_gen_units": 2.21755,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.sum_odd",
+     "name": "parity_gap/sum_odd",
+     "role": "lemma",
+     "signature": "lemma sum_odd",
+     "depends_on": [],
+     "terminal": false,
+     "helper": "h_sum_odd",
+     "kind": "int",
+     "statement": "Sum of the odd elements.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.401011,
+     "p_hat": 0.32,
+     "p_hat_hidden_only": 0.32,
+     "mean_gen_units": 2.18195,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.goal",
+     "name": "parity_gap/via_sum_even+sum_odd",
+     "role": "via",
+     "signature": "goal via_sum_even+sum_odd",
+     "depends_on": [
+      "a1.sum_even",
+      "a1.sum_odd"
+     ],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Sum of the even elements minus sum of the odd elements.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.001,
+     "p_hat": 0.515,
+     "p_hat_hidden_only": 0.515,
+     "mean_gen_units": 1.8923,
+     "expressible": true,
+     "library_source": "calibration"
+    }
+   ]
+  },
+  {
+   "problem_id": "dep.energy_gap",
+   "statement": "Sum of squares minus sum of absolute values.",
+   "label": "lemma_useful",
+   "dead": false,
+   "criterion_sha256": "e77397b309f7a593cca2720a1318f7445341c55f24b101fc944c40226b8250b7",
+   "routes": [
+    {
+     "approach": "direct",
+     "tasks": [
+      "energy_gap/direct"
+     ],
+     "expected_gen_units": null,
+     "live": true
+    },
+    {
+     "approach": "a1",
+     "tasks": [
+      "energy_gap/sum_abs",
+      "energy_gap/sum_squares",
+      "energy_gap/via_sum_abs+sum_squares"
+     ],
+     "expected_gen_units": 21.6228,
+     "live": true
+    }
+   ],
+   "tasks": [
+    {
+     "id": "direct",
+     "name": "energy_gap/direct",
+     "role": "direct",
+     "signature": "goal direct",
+     "depends_on": [],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Sum of squares minus sum of absolute values.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.001,
+     "p_hat": 0.0,
+     "p_hat_hidden_only": 0.0,
+     "mean_gen_units": 2.61,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.sum_abs",
+     "name": "energy_gap/sum_abs",
+     "role": "lemma",
+     "signature": "lemma sum_abs",
+     "depends_on": [],
+     "terminal": false,
+     "helper": "h_sum_abs",
+     "kind": "int",
+     "statement": "Sum of absolute values.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.401011,
+     "p_hat": 0.255,
+     "p_hat_hidden_only": 0.255,
+     "mean_gen_units": 2.2752,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.sum_squares",
+     "name": "energy_gap/sum_squares",
+     "role": "lemma",
+     "signature": "lemma sum_squares",
+     "depends_on": [],
+     "terminal": false,
+     "helper": "h_sum_squares",
+     "kind": "int",
+     "statement": "Sum of squares.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.225957,
+     "p_hat": 0.27,
+     "p_hat_hidden_only": 0.27,
+     "mean_gen_units": 2.2772,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.goal",
+     "name": "energy_gap/via_sum_abs+sum_squares",
+     "role": "via",
+     "signature": "goal via_sum_abs+sum_squares",
+     "depends_on": [
+      "a1.sum_abs",
+      "a1.sum_squares"
+     ],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Sum of squares minus sum of absolute values.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.536595,
+     "p_hat": 0.46,
+     "p_hat_hidden_only": 0.46,
+     "mean_gen_units": 1.96255,
+     "expressible": true,
+     "library_source": "calibration"
+    }
+   ]
+  },
+  {
+   "problem_id": "dep.extremes_pos_neg",
+   "statement": "Largest positive plus smallest negative element (each 0 if none).",
+   "label": "lemma_useful",
+   "dead": false,
+   "criterion_sha256": "a5dd122e0649f4ee89dfd433fe5731cc44a8d000cc130e9b536baf65dd6a6cdd",
+   "routes": [
+    {
+     "approach": "direct",
+     "tasks": [
+      "extremes_pos_neg/direct"
+     ],
+     "expected_gen_units": null,
+     "live": true
+    },
+    {
+     "approach": "a1",
+     "tasks": [
+      "extremes_pos_neg/maxpos",
+      "extremes_pos_neg/minneg",
+      "extremes_pos_neg/via_maxpos+minneg"
+     ],
+     "expected_gen_units": 15.0865,
+     "live": true
+    }
+   ],
+   "tasks": [
+    {
+     "id": "direct",
+     "name": "extremes_pos_neg/direct",
+     "role": "direct",
+     "signature": "goal direct",
+     "depends_on": [],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Largest positive plus smallest negative element (each 0 if none).",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.641581,
+     "p_hat": 0.0,
+     "p_hat_hidden_only": 0.0,
+     "mean_gen_units": 2.08365,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.maxpos",
+     "name": "extremes_pos_neg/maxpos",
+     "role": "lemma",
+     "signature": "lemma maxpos",
+     "depends_on": [],
+     "terminal": false,
+     "helper": "h_maxpos",
+     "kind": "int",
+     "statement": "Largest positive element, or 0 if none.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.999,
+     "p_hat": 0.035,
+     "p_hat_hidden_only": 0.035,
+     "mean_gen_units": 0.22755,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.minneg",
+     "name": "extremes_pos_neg/minneg",
+     "role": "lemma",
+     "signature": "lemma minneg",
+     "depends_on": [],
+     "terminal": false,
+     "helper": "h_minneg",
+     "kind": "int",
+     "statement": "Smallest negative element, or 0 if none.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.999,
+     "p_hat": 0.03,
+     "p_hat_hidden_only": 0.03,
+     "mean_gen_units": 0.19825,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.goal",
+     "name": "extremes_pos_neg/via_maxpos+minneg",
+     "role": "via",
+     "signature": "goal via_maxpos+minneg",
+     "depends_on": [
+      "a1.maxpos",
+      "a1.minneg"
+     ],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Largest positive plus smallest negative element (each 0 if none).",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.872065,
+     "p_hat": 0.595,
+     "p_hat_hidden_only": 0.595,
+     "mean_gen_units": 1.17615,
+     "expressible": true,
+     "library_source": "calibration"
+    }
+   ]
+  },
+  {
+   "problem_id": "dep.top_two_sum",
+   "statement": "Largest element plus the largest of the rest (0 for missing ones).",
+   "label": "lemma_useful",
+   "dead": false,
+   "criterion_sha256": "19bcbdc51cf88b193ee8a9e92191226c2238a0bcd84157b30907afa988481481",
+   "routes": [
+    {
+     "approach": "direct",
+     "tasks": [
+      "top_two_sum/direct"
+     ],
+     "expected_gen_units": null,
+     "live": false
+    },
+    {
+     "approach": "a1",
+     "tasks": [
+      "top_two_sum/max0",
+      "top_two_sum/second_max",
+      "top_two_sum/via_max0+second_max"
+     ],
+     "expected_gen_units": 10.1286,
+     "live": true
+    },
+    {
+     "approach": "a2",
+     "tasks": [
+      "top_two_sum/drop_max",
+      "top_two_sum/max0",
+      "top_two_sum/via_drop_max+max0"
+     ],
+     "expected_gen_units": 4.4354,
+     "live": true
+    }
+   ],
+   "tasks": [
+    {
+     "id": "direct",
+     "name": "top_two_sum/direct",
+     "role": "direct",
+     "signature": "goal direct",
+     "depends_on": [],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Largest element plus the largest of the rest (0 for missing ones).",
+     "status": "inexpressible",
+     "dead": true,
+     "hint": 0.001,
+     "p_hat": 0.0,
+     "p_hat_hidden_only": 0.0,
+     "mean_gen_units": 2.61,
+     "expressible": false,
+     "library_source": null
+    },
+    {
+     "id": "a1.max0",
+     "name": "top_two_sum/max0",
+     "role": "lemma",
+     "signature": "lemma max0",
+     "depends_on": [],
+     "terminal": false,
+     "helper": "h_max0",
+     "kind": "int",
+     "statement": "Largest element, or 0 if empty.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.999,
+     "p_hat": 0.86,
+     "p_hat_hidden_only": 0.86,
+     "mean_gen_units": 0.22775,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.second_max",
+     "name": "top_two_sum/second_max",
+     "role": "lemma",
+     "signature": "lemma second_max",
+     "depends_on": [],
+     "terminal": false,
+     "helper": "h_second_max",
+     "kind": "int",
+     "statement": "Largest element after removing one copy of the maximum (0 if fewer than 2).",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.001,
+     "p_hat": 0.28,
+     "p_hat_hidden_only": 0.28,
+     "mean_gen_units": 2.21145,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.goal",
+     "name": "top_two_sum/via_max0+second_max",
+     "role": "via",
+     "signature": "goal via_max0+second_max",
+     "depends_on": [
+      "a1.max0",
+      "a1.second_max"
+     ],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Largest element plus the largest of the rest (0 for missing ones).",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.722854,
+     "p_hat": 0.725,
+     "p_hat_hidden_only": 0.725,
+     "mean_gen_units": 1.42515,
+     "expressible": true,
+     "library_source": "calibration"
+    },
+    {
+     "id": "a2.drop_max",
+     "name": "top_two_sum/drop_max",
+     "role": "lemma",
+     "signature": "lemma drop_max",
+     "depends_on": [],
+     "terminal": false,
+     "helper": "h_drop_max",
+     "kind": "list",
+     "statement": "The sorted list without its largest element.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.785753,
+     "p_hat": 0.77,
+     "p_hat_hidden_only": 0.77,
+     "mean_gen_units": 1.34015,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a2.max0",
+     "name": "top_two_sum/max0",
+     "role": "lemma",
+     "signature": "lemma max0",
+     "depends_on": [],
+     "terminal": false,
+     "helper": "h_max0",
+     "kind": "int",
+     "statement": "Largest element, or 0 if empty.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.999,
+     "p_hat": 0.86,
+     "p_hat_hidden_only": 0.86,
+     "mean_gen_units": 0.22775,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a2.goal",
+     "name": "top_two_sum/via_drop_max+max0",
+     "role": "via",
+     "signature": "goal via_drop_max+max0",
+     "depends_on": [
+      "a2.drop_max",
+      "a2.max0"
+     ],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Largest element plus the largest of the rest (0 for missing ones).",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.401011,
+     "p_hat": 0.6,
+     "p_hat_hidden_only": 0.6,
+     "mean_gen_units": 1.45805,
+     "expressible": true,
+     "library_source": "calibration"
+    }
+   ]
+  },
+  {
+   "problem_id": "dep.trimmed_pos_sum",
+   "statement": "Sum of the positive elements without the smallest and largest positive.",
+   "label": "lemma_useful",
+   "dead": false,
+   "criterion_sha256": "4935cd6884235a20c739450f54e81ce109a41018f46c258c62d0077444951032",
+   "routes": [
+    {
+     "approach": "direct",
+     "tasks": [
+      "trimmed_pos_sum/direct"
+     ],
+     "expected_gen_units": null,
+     "live": false
+    },
+    {
+     "approach": "a1",
+     "tasks": [
+      "trimmed_pos_sum/positives",
+      "trimmed_pos_sum/pos_drop_min",
+      "trimmed_pos_sum/via_pos_drop_min"
+     ],
+     "expected_gen_units": 7.382,
+     "live": true
+    },
+    {
+     "approach": "a2",
+     "tasks": [
+      "trimmed_pos_sum/positives",
+      "trimmed_pos_sum/via_positives"
+     ],
+     "expected_gen_units": null,
+     "live": false
+    }
+   ],
+   "tasks": [
+    {
+     "id": "direct",
+     "name": "trimmed_pos_sum/direct",
+     "role": "direct",
+     "signature": "goal direct",
+     "depends_on": [],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Sum of the positive elements without the smallest and largest positive.",
+     "status": "inexpressible",
+     "dead": true,
+     "hint": 0.001,
+     "p_hat": 0.0,
+     "p_hat_hidden_only": 0.0,
+     "mean_gen_units": 2.59265,
+     "expressible": false,
+     "library_source": null
+    },
+    {
+     "id": "a1.positives",
+     "name": "trimmed_pos_sum/positives",
+     "role": "lemma",
+     "signature": "lemma positives",
+     "depends_on": [],
+     "terminal": false,
+     "helper": "h_positives",
+     "kind": "list",
+     "statement": "The positive elements, in order.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.901178,
+     "p_hat": 0.855,
+     "p_hat_hidden_only": 0.855,
+     "mean_gen_units": 1.1659,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.pos_drop_min",
+     "name": "trimmed_pos_sum/pos_drop_min",
+     "role": "lemma",
+     "signature": "lemma pos_drop_min",
+     "depends_on": [
+      "a1.positives"
+     ],
+     "terminal": false,
+     "helper": "h_pos_drop_min",
+     "kind": "list",
+     "statement": "The positive elements sorted ascending, without the smallest.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.536595,
+     "p_hat": 0.605,
+     "p_hat_hidden_only": 0.605,
+     "mean_gen_units": 1.63825,
+     "expressible": true,
+     "library_source": "calibration"
+    },
+    {
+     "id": "a1.goal",
+     "name": "trimmed_pos_sum/via_pos_drop_min",
+     "role": "via",
+     "signature": "goal via_pos_drop_min",
+     "depends_on": [
+      "a1.pos_drop_min"
+     ],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Sum of the positive elements without the smallest and largest positive.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.987592,
+     "p_hat": 0.205,
+     "p_hat_hidden_only": 0.205,
+     "mean_gen_units": 0.67865,
+     "expressible": true,
+     "library_source": "calibration"
+    },
+    {
+     "id": "a2.positives",
+     "name": "trimmed_pos_sum/positives",
+     "role": "lemma",
+     "signature": "lemma positives",
+     "depends_on": [],
+     "terminal": false,
+     "helper": "h_positives",
+     "kind": "list",
+     "statement": "The positive elements, in order.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.901178,
+     "p_hat": 0.855,
+     "p_hat_hidden_only": 0.855,
+     "mean_gen_units": 1.1659,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a2.goal",
+     "name": "trimmed_pos_sum/via_positives",
+     "role": "via",
+     "signature": "goal via_positives",
+     "depends_on": [
+      "a2.positives"
+     ],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Sum of the positive elements without the smallest and largest positive.",
+     "status": "inexpressible",
+     "dead": true,
+     "hint": 0.225957,
+     "p_hat": 0.0,
+     "p_hat_hidden_only": 0.0,
+     "mean_gen_units": 2.12825,
+     "expressible": false,
+     "library_source": "calibration"
+    }
+   ]
+  },
+  {
+   "problem_id": "dep.span_sq_pos",
+   "statement": "Largest minus smallest square of a positive element (0 if none).",
+   "label": "lemma_useful",
+   "dead": false,
+   "criterion_sha256": "830daf6f7fba4a15a8734b0aed8d7dfb04aa5ffd462f1d20b932bd40c1750c9c",
+   "routes": [
+    {
+     "approach": "direct",
+     "tasks": [
+      "span_sq_pos/direct"
+     ],
+     "expected_gen_units": null,
+     "live": true
+    },
+    {
+     "approach": "a1",
+     "tasks": [
+      "span_sq_pos/positives",
+      "span_sq_pos/sq_pos",
+      "span_sq_pos/via_sq_pos"
+     ],
+     "expected_gen_units": 43.3964,
+     "live": true
+    }
+   ],
+   "tasks": [
+    {
+     "id": "direct",
+     "name": "span_sq_pos/direct",
+     "role": "direct",
+     "signature": "goal direct",
+     "depends_on": [],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Largest minus smallest square of a positive element (0 if none).",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.001,
+     "p_hat": 0.0,
+     "p_hat_hidden_only": 0.0,
+     "mean_gen_units": 2.61,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.positives",
+     "name": "span_sq_pos/positives",
+     "role": "lemma",
+     "signature": "lemma positives",
+     "depends_on": [],
+     "terminal": false,
+     "helper": "h_positives",
+     "kind": "list",
+     "statement": "The positive elements, in order.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.941082,
+     "p_hat": 0.895,
+     "p_hat_hidden_only": 0.895,
+     "mean_gen_units": 1.1685,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.sq_pos",
+     "name": "span_sq_pos/sq_pos",
+     "role": "lemma",
+     "signature": "lemma sq_pos",
+     "depends_on": [
+      "a1.positives"
+     ],
+     "terminal": false,
+     "helper": "h_sq_pos",
+     "kind": "list",
+     "statement": "Squares of the positive elements, in order.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.641581,
+     "p_hat": 0.535,
+     "p_hat_hidden_only": 0.535,
+     "mean_gen_units": 1.8137,
+     "expressible": true,
+     "library_source": "calibration"
+    },
+    {
+     "id": "a1.goal",
+     "name": "span_sq_pos/via_sq_pos",
+     "role": "via",
+     "signature": "goal via_sq_pos",
+     "depends_on": [
+      "a1.sq_pos"
+     ],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Largest minus smallest square of a positive element (0 if none).",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.001,
+     "p_hat": 0.065,
+     "p_hat_hidden_only": 0.065,
+     "mean_gen_units": 2.51555,
+     "expressible": true,
+     "library_source": "calibration"
+    }
+   ]
+  },
+  {
+   "problem_id": "dep.sum_pos",
+   "statement": "Sum of the positive elements.",
+   "label": "direct_easy",
+   "dead": false,
+   "criterion_sha256": "96be6178f316d204bbc80f55e2ede4edbcf0d4ada3ccc90bd1a65a6d1b2c8c10",
+   "routes": [
+    {
+     "approach": "direct",
+     "tasks": [
+      "sum_pos/direct"
+     ],
+     "expected_gen_units": 5.0585,
+     "live": true
+    },
+    {
+     "approach": "a1",
+     "tasks": [
+      "sum_pos/positives",
+      "sum_pos/via_positives"
+     ],
+     "expected_gen_units": 1.6656,
+     "live": true
+    }
+   ],
+   "tasks": [
+    {
+     "id": "direct",
+     "name": "sum_pos/direct",
+     "role": "direct",
+     "signature": "goal direct",
+     "depends_on": [],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Sum of the positive elements.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.83442,
+     "p_hat": 0.41,
+     "p_hat_hidden_only": 0.41,
+     "mean_gen_units": 2.074,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.positives",
+     "name": "sum_pos/positives",
+     "role": "lemma",
+     "signature": "lemma positives",
+     "depends_on": [],
+     "terminal": false,
+     "helper": "h_positives",
+     "kind": "list",
+     "statement": "The positive elements, in order.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.83442,
+     "p_hat": 0.865,
+     "p_hat_hidden_only": 0.865,
+     "mean_gen_units": 1.1439,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.goal",
+     "name": "sum_pos/via_positives",
+     "role": "via",
+     "signature": "goal via_positives",
+     "depends_on": [
+      "a1.positives"
+     ],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Sum of the positive elements.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.999,
+     "p_hat": 1.0,
+     "p_hat_hidden_only": 1.0,
+     "mean_gen_units": 0.3432,
+     "expressible": true,
+     "library_source": "calibration"
+    }
+   ]
+  },
+  {
+   "problem_id": "dep.count_even",
+   "statement": "Number of even elements.",
+   "label": "direct_easy",
+   "dead": false,
+   "criterion_sha256": "3f8ab24286834573463f6d07c0e17fc3694ad91990bf94a7bb8946fbfbe9b47c",
+   "routes": [
+    {
+     "approach": "direct",
+     "tasks": [
+      "count_even/direct"
+     ],
+     "expected_gen_units": 2.8725,
+     "live": true
+    },
+    {
+     "approach": "a1",
+     "tasks": [
+      "count_even/evens",
+      "count_even/via_evens"
+     ],
+     "expected_gen_units": 1.9845,
+     "live": true
+    }
+   ],
+   "tasks": [
+    {
+     "id": "direct",
+     "name": "count_even/direct",
+     "role": "direct",
+     "signature": "goal direct",
+     "depends_on": [],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Number of even elements.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.641581,
+     "p_hat": 0.61,
+     "p_hat_hidden_only": 0.61,
+     "mean_gen_units": 1.7522,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.evens",
+     "name": "count_even/evens",
+     "role": "lemma",
+     "signature": "lemma evens",
+     "depends_on": [],
+     "terminal": false,
+     "helper": "h_evens",
+     "kind": "list",
+     "statement": "The even elements, in order.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.225957,
+     "p_hat": 0.79,
+     "p_hat_hidden_only": 0.79,
+     "mean_gen_units": 1.31015,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.goal",
+     "name": "count_even/via_evens",
+     "role": "via",
+     "signature": "goal via_evens",
+     "depends_on": [
+      "a1.evens"
+     ],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Number of even elements.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.999,
+     "p_hat": 1.0,
+     "p_hat_hidden_only": 1.0,
+     "mean_gen_units": 0.32605,
+     "expressible": true,
+     "library_source": "calibration"
+    }
+   ]
+  },
+  {
+   "problem_id": "dep.second_smallest",
+   "statement": "Smallest element after removing one copy of the minimum (0 if fewer than 2).",
+   "label": "direct_easy",
+   "dead": false,
+   "criterion_sha256": "9f1595157abb4873528b41351339eda1beee48832d65afaacad57a90971a1ce5",
+   "routes": [
+    {
+     "approach": "direct",
+     "tasks": [
+      "second_smallest/direct"
+     ],
+     "expected_gen_units": 5.1756,
+     "live": true
+    },
+    {
+     "approach": "a1",
+     "tasks": [
+      "second_smallest/drop_min",
+      "second_smallest/via_drop_min"
+     ],
+     "expected_gen_units": 2.0497,
+     "live": true
+    }
+   ],
+   "tasks": [
+    {
+     "id": "direct",
+     "name": "second_smallest/direct",
+     "role": "direct",
+     "signature": "goal direct",
+     "depends_on": [],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Smallest element after removing one copy of the minimum (0 if fewer than 2).",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.001,
+     "p_hat": 0.395,
+     "p_hat_hidden_only": 0.395,
+     "mean_gen_units": 2.04435,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.drop_min",
+     "name": "second_smallest/drop_min",
+     "role": "lemma",
+     "signature": "lemma drop_min",
+     "depends_on": [],
+     "terminal": false,
+     "helper": "h_drop_min",
+     "kind": "list",
+     "statement": "The sorted list without its smallest element.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.83442,
+     "p_hat": 0.765,
+     "p_hat_hidden_only": 0.765,
+     "mean_gen_units": 1.3834,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.goal",
+     "name": "second_smallest/via_drop_min",
+     "role": "via",
+     "signature": "goal via_drop_min",
+     "depends_on": [
+      "a1.drop_min"
+     ],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Smallest element after removing one copy of the minimum (0 if fewer than 2).",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.999,
+     "p_hat": 0.985,
+     "p_hat_hidden_only": 0.985,
+     "mean_gen_units": 0.2377,
+     "expressible": true,
+     "library_source": "calibration"
+    }
+   ]
+  },
+  {
+   "problem_id": "dep.second_max",
+   "statement": "Largest element after removing one copy of the maximum (0 if fewer than 2).",
+   "label": "direct_easy",
+   "dead": false,
+   "criterion_sha256": "d7ea757adf0baeef0dee95cd8447d06ee65a50adcf86f893d0b3278238f3505b",
+   "routes": [
+    {
+     "approach": "direct",
+     "tasks": [
+      "second_max/direct"
+     ],
+     "expected_gen_units": 11.0979,
+     "live": true
+    },
+    {
+     "approach": "a1",
+     "tasks": [
+      "second_max/drop_max",
+      "second_max/via_drop_max"
+     ],
+     "expected_gen_units": 1.9609,
+     "live": true
+    }
+   ],
+   "tasks": [
+    {
+     "id": "direct",
+     "name": "second_max/direct",
+     "role": "direct",
+     "signature": "goal direct",
+     "depends_on": [],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Largest element after removing one copy of the maximum (0 if fewer than 2).",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.401011,
+     "p_hat": 0.21,
+     "p_hat_hidden_only": 0.21,
+     "mean_gen_units": 2.33055,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.drop_max",
+     "name": "second_max/drop_max",
+     "role": "lemma",
+     "signature": "lemma drop_max",
+     "depends_on": [],
+     "terminal": false,
+     "helper": "h_drop_max",
+     "kind": "list",
+     "statement": "The sorted list without its largest element.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.722854,
+     "p_hat": 0.84,
+     "p_hat_hidden_only": 0.84,
+     "mean_gen_units": 1.2694,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.goal",
+     "name": "second_max/via_drop_max",
+     "role": "via",
+     "signature": "goal via_drop_max",
+     "depends_on": [
+      "a1.drop_max"
+     ],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Largest element after removing one copy of the maximum (0 if fewer than 2).",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.999,
+     "p_hat": 0.795,
+     "p_hat_hidden_only": 0.795,
+     "mean_gen_units": 0.3575,
+     "expressible": true,
+     "library_source": "calibration"
+    }
+   ]
+  },
+  {
+   "problem_id": "dep.sum_even_trap",
+   "statement": "Sum of the even elements.",
+   "label": "trap",
+   "dead": false,
+   "criterion_sha256": "acf949f4154a6ca7b39dc33670c649d7bf9c9077ae1f0f2a07d98e32cc9247ca",
+   "routes": [
+    {
+     "approach": "direct",
+     "tasks": [
+      "sum_even_trap/direct"
+     ],
+     "expected_gen_units": 6.1751,
+     "live": true
+    },
+    {
+     "approach": "a1",
+     "tasks": [
+      "sum_even_trap/count_pos",
+      "sum_even_trap/via_count_pos"
+     ],
+     "expected_gen_units": null,
+     "live": true
+    }
+   ],
+   "tasks": [
+    {
+     "id": "direct",
+     "name": "sum_even_trap/direct",
+     "role": "direct",
+     "signature": "goal direct",
+     "depends_on": [],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Sum of the even elements.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.001,
+     "p_hat": 0.34,
+     "p_hat_hidden_only": 0.34,
+     "mean_gen_units": 2.09955,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.count_pos",
+     "name": "sum_even_trap/count_pos",
+     "role": "lemma",
+     "signature": "lemma count_pos",
+     "depends_on": [],
+     "terminal": false,
+     "helper": "h_count_pos",
+     "kind": "int",
+     "statement": "Number of positive elements.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.225957,
+     "p_hat": 0.59,
+     "p_hat_hidden_only": 0.59,
+     "mean_gen_units": 1.78745,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.goal",
+     "name": "sum_even_trap/via_count_pos",
+     "role": "via",
+     "signature": "goal via_count_pos",
+     "depends_on": [
+      "a1.count_pos"
+     ],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Sum of the even elements.",
+     "status": "trap",
+     "dead": false,
+     "hint": 0.001,
+     "p_hat": 0.0,
+     "p_hat_hidden_only": 0.0,
+     "mean_gen_units": 2.61,
+     "expressible": true,
+     "library_source": "calibration"
+    }
+   ]
+  },
+  {
+   "problem_id": "dep.span_trap",
+   "statement": "Largest minus smallest element (0 if empty).",
+   "label": "trap",
+   "dead": false,
+   "criterion_sha256": "f04c69f32aee7f5f5a58da8c50ad98ec6a9dcc6668a9ac13d56e41ad90c5dcae",
+   "routes": [
+    {
+     "approach": "direct",
+     "tasks": [
+      "span_trap/direct"
+     ],
+     "expected_gen_units": 15.4297,
+     "live": true
+    },
+    {
+     "approach": "a1",
+     "tasks": [
+      "span_trap/sum",
+      "span_trap/via_sum"
+     ],
+     "expected_gen_units": 520.5571,
+     "live": true
+    }
+   ],
+   "tasks": [
+    {
+     "id": "direct",
+     "name": "span_trap/direct",
+     "role": "direct",
+     "signature": "goal direct",
+     "depends_on": [],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Largest minus smallest element (0 if empty).",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.225957,
+     "p_hat": 0.15,
+     "p_hat_hidden_only": 0.15,
+     "mean_gen_units": 2.31445,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.sum",
+     "name": "span_trap/sum",
+     "role": "lemma",
+     "signature": "lemma sum",
+     "depends_on": [],
+     "terminal": false,
+     "helper": "h_sum",
+     "kind": "int",
+     "statement": "Sum of the elements.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.999,
+     "p_hat": 1.0,
+     "p_hat_hidden_only": 1.0,
+     "mean_gen_units": 0.25705,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.goal",
+     "name": "span_trap/via_sum",
+     "role": "via",
+     "signature": "goal via_sum",
+     "depends_on": [
+      "a1.sum"
+     ],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Largest minus smallest element (0 if empty).",
+     "status": "trap",
+     "dead": false,
+     "hint": 0.001,
+     "p_hat": 0.005,
+     "p_hat_hidden_only": 0.005,
+     "mean_gen_units": 2.6015,
+     "expressible": true,
+     "library_source": "calibration"
+    }
+   ]
+  },
+  {
+   "problem_id": "dep.sort_desc_trap",
+   "statement": "The list sorted descending.",
+   "label": "trap",
+   "dead": false,
+   "criterion_sha256": "cd892e539fb78ecaa6da49cbcaa2dbc5433067e1119a089f135d46f9ec0342d6",
+   "routes": [
+    {
+     "approach": "direct",
+     "tasks": [
+      "sort_desc_trap/direct"
+     ],
+     "expected_gen_units": 1.9241,
+     "live": true
+    },
+    {
+     "approach": "a1",
+     "tasks": [
+      "sort_desc_trap/count",
+      "sort_desc_trap/via_count"
+     ],
+     "expected_gen_units": null,
+     "live": false
+    }
+   ],
+   "tasks": [
+    {
+     "id": "direct",
+     "name": "sort_desc_trap/direct",
+     "role": "direct",
+     "signature": "goal direct",
+     "depends_on": [],
+     "terminal": true,
+     "helper": null,
+     "kind": "list",
+     "statement": "The list sorted descending.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.536595,
+     "p_hat": 0.76,
+     "p_hat_hidden_only": 0.76,
+     "mean_gen_units": 1.4623,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.count",
+     "name": "sort_desc_trap/count",
+     "role": "lemma",
+     "signature": "lemma count",
+     "depends_on": [],
+     "terminal": false,
+     "helper": "h_count",
+     "kind": "int",
+     "statement": "Number of elements.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.999,
+     "p_hat": 1.0,
+     "p_hat_hidden_only": 1.0,
+     "mean_gen_units": 0.24765,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.goal",
+     "name": "sort_desc_trap/via_count",
+     "role": "via",
+     "signature": "goal via_count",
+     "depends_on": [
+      "a1.count"
+     ],
+     "terminal": true,
+     "helper": null,
+     "kind": "list",
+     "statement": "The list sorted descending.",
+     "status": "inexpressible",
+     "dead": true,
+     "hint": 0.001,
+     "p_hat": 0.0,
+     "p_hat_hidden_only": 0.0,
+     "mean_gen_units": 2.61,
+     "expressible": false,
+     "library_source": "calibration"
+    }
+   ]
+  },
+  {
+   "problem_id": "dep.product_abs",
+   "statement": "Product of the elements (1 if empty).",
+   "label": "dead",
+   "dead": true,
+   "criterion_sha256": "ea911ad6fcbd2e2e2fddd1cc06c984263167c7eac16bb0830eb99744fdf71a3f",
+   "routes": [
+    {
+     "approach": "direct",
+     "tasks": [
+      "product_abs/direct"
+     ],
+     "expected_gen_units": null,
+     "live": false
+    },
+    {
+     "approach": "a1",
+     "tasks": [
+      "product_abs/abs_all",
+      "product_abs/via_abs_all"
+     ],
+     "expected_gen_units": null,
+     "live": false
+    }
+   ],
+   "tasks": [
+    {
+     "id": "direct",
+     "name": "product_abs/direct",
+     "role": "direct",
+     "signature": "goal direct",
+     "depends_on": [],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Product of the elements (1 if empty).",
+     "status": "inexpressible",
+     "dead": true,
+     "hint": 0.001,
+     "p_hat": 0.0,
+     "p_hat_hidden_only": 0.0,
+     "mean_gen_units": 2.61,
+     "expressible": false,
+     "library_source": null
+    },
+    {
+     "id": "a1.abs_all",
+     "name": "product_abs/abs_all",
+     "role": "lemma",
+     "signature": "lemma abs_all",
+     "depends_on": [],
+     "terminal": false,
+     "helper": "h_abs_all",
+     "kind": "list",
+     "statement": "Absolute value of every element.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.785753,
+     "p_hat": 0.64,
+     "p_hat_hidden_only": 0.64,
+     "mean_gen_units": 1.69795,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.goal",
+     "name": "product_abs/via_abs_all",
+     "role": "via",
+     "signature": "goal via_abs_all",
+     "depends_on": [
+      "a1.abs_all"
+     ],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Product of the elements (1 if empty).",
+     "status": "inexpressible",
+     "dead": true,
+     "hint": 0.001,
+     "p_hat": 0.0,
+     "p_hat_hidden_only": 0.0,
+     "mean_gen_units": 2.61,
+     "expressible": false,
+     "library_source": "calibration"
+    }
+   ]
+  },
+  {
+   "problem_id": "dep.second_distinct",
+   "statement": "Second largest distinct element, or 0.",
+   "label": "dead",
+   "dead": true,
+   "criterion_sha256": "c96567db61810890e32c0a00cc57e5c70dd5c2c015e7c0a6137e5e1323148c85",
+   "routes": [
+    {
+     "approach": "direct",
+     "tasks": [
+      "second_distinct/direct"
+     ],
+     "expected_gen_units": null,
+     "live": false
+    },
+    {
+     "approach": "a1",
+     "tasks": [
+      "second_distinct/dedupe_sorted",
+      "second_distinct/via_dedupe_sorted"
+     ],
+     "expected_gen_units": null,
+     "live": false
+    }
+   ],
+   "tasks": [
+    {
+     "id": "direct",
+     "name": "second_distinct/direct",
+     "role": "direct",
+     "signature": "goal direct",
+     "depends_on": [],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Second largest distinct element, or 0.",
+     "status": "inexpressible",
+     "dead": true,
+     "hint": 0.001,
+     "p_hat": 0.0,
+     "p_hat_hidden_only": 0.0,
+     "mean_gen_units": 2.61,
+     "expressible": false,
+     "library_source": null
+    },
+    {
+     "id": "a1.dedupe_sorted",
+     "name": "second_distinct/dedupe_sorted",
+     "role": "lemma",
+     "signature": "lemma dedupe_sorted",
+     "depends_on": [],
+     "terminal": false,
+     "helper": "h_dedupe_sorted",
+     "kind": "list",
+     "statement": "Distinct elements, ascending.",
+     "status": "inexpressible",
+     "dead": true,
+     "hint": 0.001,
+     "p_hat": 0.0,
+     "p_hat_hidden_only": 0.0,
+     "mean_gen_units": 2.61,
+     "expressible": false,
+     "library_source": null
+    },
+    {
+     "id": "a1.goal",
+     "name": "second_distinct/via_dedupe_sorted",
+     "role": "via",
+     "signature": "goal via_dedupe_sorted",
+     "depends_on": [
+      "a1.dedupe_sorted"
+     ],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Second largest distinct element, or 0.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.901178,
+     "p_hat": 0.615,
+     "p_hat_hidden_only": 0.615,
+     "mean_gen_units": 1.415,
+     "expressible": true,
+     "library_source": "reference"
+    }
+   ]
+  },
+  {
+   "problem_id": "dep.mode_sorted",
+   "statement": "Most frequent element (smallest on ties), or 0.",
+   "label": "dead",
+   "dead": true,
+   "criterion_sha256": "b2f5b6c3c231b5d8c92b1b2558c64be3c55d2a332925afe49013dba661c0739b",
+   "routes": [
+    {
+     "approach": "direct",
+     "tasks": [
+      "mode_sorted/direct"
+     ],
+     "expected_gen_units": null,
+     "live": false
+    },
+    {
+     "approach": "a1",
+     "tasks": [
+      "mode_sorted/sort",
+      "mode_sorted/via_sort"
+     ],
+     "expected_gen_units": null,
+     "live": false
+    }
+   ],
+   "tasks": [
+    {
+     "id": "direct",
+     "name": "mode_sorted/direct",
+     "role": "direct",
+     "signature": "goal direct",
+     "depends_on": [],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Most frequent element (smallest on ties), or 0.",
+     "status": "inexpressible",
+     "dead": true,
+     "hint": 0.001,
+     "p_hat": 0.0,
+     "p_hat_hidden_only": 0.0,
+     "mean_gen_units": 2.61,
+     "expressible": false,
+     "library_source": null
+    },
+    {
+     "id": "a1.sort",
+     "name": "mode_sorted/sort",
+     "role": "lemma",
+     "signature": "lemma sort",
+     "depends_on": [],
+     "terminal": false,
+     "helper": "h_sort",
+     "kind": "list",
+     "statement": "The list sorted ascending.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.999,
+     "p_hat": 1.0,
+     "p_hat_hidden_only": 1.0,
+     "mean_gen_units": 0.275,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.goal",
+     "name": "mode_sorted/via_sort",
+     "role": "via",
+     "signature": "goal via_sort",
+     "depends_on": [
+      "a1.sort"
+     ],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Most frequent element (smallest on ties), or 0.",
+     "status": "inexpressible",
+     "dead": true,
+     "hint": 0.001,
+     "p_hat": 0.0,
+     "p_hat_hidden_only": 0.0,
+     "mean_gen_units": 2.61,
+     "expressible": false,
+     "library_source": "calibration"
+    }
+   ]
+  },
+  {
+   "problem_id": "dep.prefix_pos",
+   "statement": "Running sums.",
+   "label": "dead",
+   "dead": true,
+   "criterion_sha256": "7915c681c8300840275fd7dd273994286fa5d4f2433f4af104173cfbdcc383f0",
+   "routes": [
+    {
+     "approach": "direct",
+     "tasks": [
+      "prefix_pos/direct"
+     ],
+     "expected_gen_units": null,
+     "live": false
+    },
+    {
+     "approach": "a1",
+     "tasks": [
+      "prefix_pos/positives",
+      "prefix_pos/via_positives"
+     ],
+     "expected_gen_units": null,
+     "live": false
+    }
+   ],
+   "tasks": [
+    {
+     "id": "direct",
+     "name": "prefix_pos/direct",
+     "role": "direct",
+     "signature": "goal direct",
+     "depends_on": [],
+     "terminal": true,
+     "helper": null,
+     "kind": "list",
+     "statement": "Running sums.",
+     "status": "inexpressible",
+     "dead": true,
+     "hint": 0.001,
+     "p_hat": 0.0,
+     "p_hat_hidden_only": 0.0,
+     "mean_gen_units": 2.61,
+     "expressible": false,
+     "library_source": null
+    },
+    {
+     "id": "a1.positives",
+     "name": "prefix_pos/positives",
+     "role": "lemma",
+     "signature": "lemma positives",
+     "depends_on": [],
+     "terminal": false,
+     "helper": "h_positives",
+     "kind": "list",
+     "statement": "The positive elements, in order.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.923685,
+     "p_hat": 0.89,
+     "p_hat_hidden_only": 0.89,
+     "mean_gen_units": 1.0914,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.goal",
+     "name": "prefix_pos/via_positives",
+     "role": "via",
+     "signature": "goal via_positives",
+     "depends_on": [
+      "a1.positives"
+     ],
+     "terminal": true,
+     "helper": null,
+     "kind": "list",
+     "statement": "Running sums.",
+     "status": "inexpressible",
+     "dead": true,
+     "hint": 0.001,
+     "p_hat": 0.0,
+     "p_hat_hidden_only": 0.0,
+     "mean_gen_units": 2.61,
+     "expressible": false,
+     "library_source": "calibration"
+    }
+   ]
+  },
+  {
+   "problem_id": "dep.noisy_span",
+   "statement": "Largest minus smallest element (0 if empty).",
+   "label": "dead",
+   "dead": true,
+   "criterion_sha256": "3a386442bff2361784902cf6565363968be486c8e6c785772f748ef536dc4322",
+   "routes": [
+    {
+     "approach": "direct",
+     "tasks": [
+      "noisy_span/direct"
+     ],
+     "expected_gen_units": null,
+     "live": false
+    },
+    {
+     "approach": "a1",
+     "tasks": [
+      "noisy_span/max0",
+      "noisy_span/min0",
+      "noisy_span/via_max0+min0"
+     ],
+     "expected_gen_units": null,
+     "live": false
+    }
+   ],
+   "tasks": [
+    {
+     "id": "direct",
+     "name": "noisy_span/direct",
+     "role": "direct",
+     "signature": "goal direct",
+     "depends_on": [],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Largest minus smallest element (0 if empty).",
+     "status": "misspecified",
+     "dead": true,
+     "hint": 0.401011,
+     "p_hat": 0.0,
+     "p_hat_hidden_only": 0.0,
+     "mean_gen_units": 2.33255,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.max0",
+     "name": "noisy_span/max0",
+     "role": "lemma",
+     "signature": "lemma max0",
+     "depends_on": [],
+     "terminal": false,
+     "helper": "h_max0",
+     "kind": "int",
+     "statement": "Largest element, or 0 if empty.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.999,
+     "p_hat": 0.875,
+     "p_hat_hidden_only": 0.875,
+     "mean_gen_units": 0.25525,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.min0",
+     "name": "noisy_span/min0",
+     "role": "lemma",
+     "signature": "lemma min0",
+     "depends_on": [],
+     "terminal": false,
+     "helper": "h_min0",
+     "kind": "int",
+     "statement": "Smallest element, or 0 if empty.",
+     "status": "solvable",
+     "dead": false,
+     "hint": 0.999,
+     "p_hat": 0.78,
+     "p_hat_hidden_only": 0.78,
+     "mean_gen_units": 0.1997,
+     "expressible": true,
+     "library_source": null
+    },
+    {
+     "id": "a1.goal",
+     "name": "noisy_span/via_max0+min0",
+     "role": "via",
+     "signature": "goal via_max0+min0",
+     "depends_on": [
+      "a1.max0",
+      "a1.min0"
+     ],
+     "terminal": true,
+     "helper": null,
+     "kind": "int",
+     "statement": "Largest minus smallest element (0 if empty).",
+     "status": "misspecified",
+     "dead": true,
+     "hint": 0.722854,
+     "p_hat": 0.0,
+     "p_hat_hidden_only": 0.0,
+     "mean_gen_units": 1.76955,
+     "expressible": true,
+     "library_source": "calibration"
+    }
+   ]
+  }
+ ]
+}

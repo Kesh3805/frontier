@@ -19,7 +19,7 @@ use serde::{Deserialize, Serialize};
 use crate::audit::summarize;
 use crate::env::{Campaign, EnvConfig, TaskTruth};
 use crate::experiment::ResultRecord;
-use crate::external::{ExternalWorker, ServerCommand};
+use crate::external::{ExternalWorker, LIBRARY_PROTOCOL, LibraryEntry, ServerCommand};
 use crate::runner::{RunConfig, SIM_CONFIG_VERSION, SimConfig, SimError, run_campaign_with};
 
 pub const REAL_EXPERIMENT_VERSION: &str = "0.1";
@@ -39,12 +39,94 @@ pub struct CatalogTask {
     pub mean_gen_units: f64,
 }
 
+/// One task of a catalog-v3 problem. `id` and `depends_on` are local to the
+/// problem; a lemma shared by two approaches is listed once per approach
+/// with the same `signature` and `name`, and the task graph merges it.
+#[derive(Clone, Debug, Deserialize)]
+pub struct CatalogDepTask {
+    pub id: String,
+    /// Task name understood by the worker service.
+    pub name: String,
+    pub signature: String,
+    #[serde(default)]
+    pub depends_on: Vec<String>,
+    pub terminal: bool,
+    /// Call name under which a verified artifact of this task is offered to
+    /// its dependents (lemmas only).
+    #[serde(default)]
+    pub helper: Option<String>,
+    pub status: String,
+    pub dead: bool,
+    pub hint: f64,
+    /// Calibrated success rate, conditional on the task's lemmas being verified.
+    pub p_hat: f64,
+    pub mean_gen_units: f64,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct CatalogProblem {
+    pub problem_id: String,
+    pub statement: String,
+    pub label: String,
+    pub criterion_sha256: Digest,
+    pub tasks: Vec<CatalogDepTask>,
+}
+
+/// Catalog v1/v2 (`tasks`: one single-task problem each) or v3 (`problems`:
+/// dependency-structured problems with alternative approaches).
 #[derive(Clone, Debug, Deserialize)]
 pub struct Catalog {
     pub catalog_version: String,
     pub suite_version: String,
     pub hidden_seed: u64,
+    #[serde(default)]
     pub tasks: Vec<CatalogTask>,
+    #[serde(default)]
+    pub problems: Vec<CatalogProblem>,
+}
+
+pub const DEPENDENCY_CATALOG_VERSION: &str = "3";
+
+impl Catalog {
+    pub fn is_dependency_structured(&self) -> bool {
+        self.catalog_version == DEPENDENCY_CATALOG_VERSION
+    }
+
+    fn check_shape(&self) -> Result<(), SimError> {
+        let ok = if self.is_dependency_structured() {
+            self.tasks.is_empty() && !self.problems.is_empty()
+        } else {
+            self.problems.is_empty() && !self.tasks.is_empty()
+        };
+        if ok {
+            Ok(())
+        } else {
+            Err(SimError::Config(format!(
+                "catalog version {} must list {}",
+                self.catalog_version,
+                if self.is_dependency_structured() { "problems only" } else { "tasks only" }
+            )))
+        }
+    }
+}
+
+/// The program the verifier runs for a dependent task's candidate: every
+/// library helper's source (sorted by name), with its `f` bound to the
+/// helper name, then the candidate. Mirrors `frontier_py.realtasks.dsl.compose`.
+pub fn compose_program(library: &[LibraryEntry], candidate: &str) -> String {
+    let mut lib: Vec<&LibraryEntry> = library.iter().collect();
+    lib.sort_by(|a, b| a.name.cmp(&b.name).then_with(|| a.source.cmp(&b.source)));
+    let mut out = String::new();
+    for e in lib {
+        out.push_str(&e.source);
+        if !e.source.ends_with('\n') {
+            out.push('\n');
+        }
+        out.push_str(&e.name);
+        out.push_str(" = f\n");
+    }
+    out.push_str(candidate);
+    out
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -67,15 +149,20 @@ pub struct RealExperimentConfig {
     pub shuffle_problem_order: bool,
 }
 
-/// The catalog's tasks, optionally permuted by a stream keyed only by seed.
+/// The catalog's problems, optionally permuted by a stream keyed only by
+/// seed (v1/v2: its tasks; v3: its problems, each keeping its task order).
 pub fn ordered_catalog(cat: &Catalog, shuffle_seed: Option<u64>) -> Catalog {
+    fn shuffle<T>(xs: &mut [T], seed: u64) {
+        let mut rng = frontier_core::SplitMix64::derive(seed, "problem-order");
+        for i in (1..xs.len()).rev() {
+            let j = rng.below(i as u64 + 1) as usize;
+            xs.swap(i, j);
+        }
+    }
     let mut out = cat.clone();
     if let Some(seed) = shuffle_seed {
-        let mut rng = frontier_core::SplitMix64::derive(seed, "problem-order");
-        for i in (1..out.tasks.len()).rev() {
-            let j = rng.below(i as u64 + 1) as usize;
-            out.tasks.swap(i, j);
-        }
+        shuffle(&mut out.tasks, seed);
+        shuffle(&mut out.problems, seed);
     }
     out
 }
@@ -86,43 +173,96 @@ pub fn load_catalog(path: &Path, expected: Digest) -> Result<Catalog, SimError> 
     if actual != expected {
         return Err(SimError::Config(format!("catalog digest {actual} does not match frozen {expected}")));
     }
-    serde_json::from_slice(&bytes).map_err(|e| SimError::Config(format!("catalog: {e}")))
+    let cat: Catalog = serde_json::from_slice(&bytes).map_err(|e| SimError::Config(format!("catalog: {e}")))?;
+    cat.check_shape()?;
+    Ok(cat)
 }
 
-/// Problems, single-task graphs, hints and ground truth from a catalog.
+fn problem_spec(problem_id: &str, statement: &str, criterion: Digest, cat: &Catalog, budget_hint: f64) -> Result<SealedSpec, SimError> {
+    let spec = ProblemSpec {
+        schema_version: SPEC_SCHEMA_VERSION.into(),
+        problem_id: problem_id.to_owned(),
+        objective: statement.to_owned(),
+        category: ProblemCategory::Algorithm,
+        inputs: vec![],
+        allowed_tools: vec![],
+        budget: Budget { compute_units: budget_hint, ..Budget::default() },
+        verification: VerificationSpec {
+            method: VerificationMethod::PropertyTests,
+            verifier_id: PROPERTY_TESTS_ID.into(),
+            verifier_version: PROPERTY_TESTS_VERSION.into(),
+            criterion_sha256: criterion,
+            required_trust: TrustClass::V1,
+        },
+        success_criteria: "Every visible and frozen hidden case matches the reference output exactly".into(),
+        depends_on: vec![],
+        provenance: Provenance {
+            source: format!("frontier_py.realtasks suite v{} (catalog v{})", cat.suite_version, cat.catalog_version),
+            created_by: "frontier".into(),
+            license: None,
+        },
+        difficulty: None,
+    };
+    SealedSpec::seal(spec).map_err(|e| SimError::Config(e.to_string()))
+}
+
+/// Dependency-structured problems (catalog v3). Task ids are
+/// `<problem_id>.<local id>`; each lemma task gets a helper name; truth and
+/// hints are per task (aliases of merged lemmas get the same values). The
+/// criterion digest of a problem commits to the hidden suites of all its
+/// tasks. `p_hat` is calibrated with the task's lemmas verified.
+fn dependency_campaign(cat: &Catalog, budget_hint: f64) -> Result<Campaign, SimError> {
+    let mut campaign = Campaign { specs: vec![], tasks: vec![], truth: BTreeMap::new(), hints: BTreeMap::new(), helpers: BTreeMap::new() };
+    for p in &cat.problems {
+        campaign.specs.push(problem_spec(&p.problem_id, &p.statement, p.criterion_sha256, cat, budget_hint)?);
+        let local: BTreeMap<&str, &CatalogDepTask> = p.tasks.iter().map(|t| (t.id.as_str(), t)).collect();
+        let tid = |id: &str| format!("{}.{id}", p.problem_id);
+        for t in &p.tasks {
+            for d in &t.depends_on {
+                let dep = local
+                    .get(d.as_str())
+                    .ok_or_else(|| SimError::Config(format!("{}: task {} depends on unknown {d}", p.problem_id, t.id)))?;
+                if dep.helper.is_none() {
+                    return Err(SimError::Config(format!("{}: prerequisite {d} of {} has no helper name", p.problem_id, t.id)));
+                }
+            }
+            campaign.tasks.push(TaskDef {
+                task_id: tid(&t.id),
+                problem_id: p.problem_id.clone(),
+                kind: if t.terminal { TaskKind::Goal } else { TaskKind::ProofObligation },
+                depends_on: t.depends_on.iter().map(|d| tid(d)).collect(),
+                signature: t.signature.clone(),
+                terminal: t.terminal,
+            });
+            let p_success = if t.dead { 0.0 } else { t.p_hat };
+            campaign.truth.insert(
+                tid(&t.id),
+                TaskTruth { name: t.name.clone(), dead: t.dead, p_success, mean_cost: t.mean_gen_units, secret: String::new() },
+            );
+            campaign.hints.insert(tid(&t.id), t.hint);
+            if let Some(h) = &t.helper {
+                campaign.helpers.insert(tid(&t.id), h.clone());
+            }
+        }
+    }
+    Ok(campaign)
+}
+
+/// Problems, task graphs, hints and ground truth from a catalog: single-task
+/// problems for v1/v2, dependency-structured problems for v3.
 /// `p_hat` and `mean_gen_units` are calibration estimates used only by the
 /// diagnostic oracle; dead-by-construction tasks get p = 0.
 pub fn campaign_from_catalog(cat: &Catalog, budget_hint: f64) -> Result<Campaign, SimError> {
+    cat.check_shape()?;
+    if cat.is_dependency_structured() {
+        return dependency_campaign(cat, budget_hint);
+    }
     let mut specs = Vec::new();
     let mut tasks = Vec::new();
     let mut truth = BTreeMap::new();
     let mut hints = BTreeMap::new();
     for t in &cat.tasks {
-        let spec = ProblemSpec {
-            schema_version: SPEC_SCHEMA_VERSION.into(),
-            problem_id: t.problem_id.clone(),
-            objective: t.statement.clone(),
-            category: ProblemCategory::Algorithm,
-            inputs: vec![],
-            allowed_tools: vec![],
-            budget: Budget { compute_units: budget_hint, ..Budget::default() },
-            verification: VerificationSpec {
-                method: VerificationMethod::PropertyTests,
-                verifier_id: PROPERTY_TESTS_ID.into(),
-                verifier_version: PROPERTY_TESTS_VERSION.into(),
-                criterion_sha256: t.criterion_sha256,
-                required_trust: TrustClass::V1,
-            },
-            success_criteria: "Every visible and frozen hidden case matches the reference output exactly".into(),
-            depends_on: vec![],
-            provenance: Provenance {
-                source: format!("frontier_py.realtasks suite v{} (catalog v{})", cat.suite_version, cat.catalog_version),
-                created_by: "frontier".into(),
-                license: None,
-            },
-            difficulty: None,
-        };
-        specs.push(SealedSpec::seal(spec).map_err(|e| SimError::Config(e.to_string()))?);
+        specs.push(problem_spec(&t.problem_id, &t.statement, t.criterion_sha256, cat, budget_hint)?);
         let task_id = format!("{}.goal", t.problem_id);
         tasks.push(TaskDef {
             task_id: task_id.clone(),
@@ -139,7 +279,7 @@ pub fn campaign_from_catalog(cat: &Catalog, budget_hint: f64) -> Result<Campaign
         );
         hints.insert(task_id, t.hint);
     }
-    Ok(Campaign { specs, tasks, truth, hints })
+    Ok(Campaign { specs, tasks, truth, hints, helpers: BTreeMap::new() })
 }
 
 /// A neutral environment block for external-backend runs: nothing in it is
@@ -186,6 +326,12 @@ pub fn check_service_matches(worker: &ExternalWorker, cat: &Catalog) -> Result<(
         return Err(SimError::Config(format!(
             "worker service serves suite {suite:?} seed {seed:?}, catalog needs suite {:?} seed {}",
             cat.suite_version, cat.hidden_seed
+        )));
+    }
+    if cat.is_dependency_structured() && worker.protocol < LIBRARY_PROTOCOL {
+        return Err(SimError::Config(format!(
+            "catalog v{} needs worker protocol {LIBRARY_PROTOCOL} (libraries), service speaks {}",
+            cat.catalog_version, worker.protocol
         )));
     }
     Ok(())

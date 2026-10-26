@@ -65,6 +65,10 @@ pub enum AuditError {
     DoubleSolve(String),
     #[error("problem {0} solved without a verified terminal task")]
     UnsupportedSolve(String),
+    #[error("attempt {attempt} dispatched on task {task} before its prerequisite {dep} was verified")]
+    IneligibleDispatch { attempt: u64, task: String, dep: String },
+    #[error("attempt {attempt} on task {task} builds on {parent}, which is not a verified prerequisite artifact")]
+    UnverifiedParent { attempt: u64, task: String, parent: Digest },
 }
 
 pub fn summarize(log: &EventLog) -> Result<RunSummary, AuditError> {
@@ -117,14 +121,21 @@ pub fn summarize(log: &EventLog) -> Result<RunSummary, AuditError> {
     let mut verified_tasks: BTreeSet<String> = BTreeSet::new();
     let mut solved: BTreeSet<String> = BTreeSet::new();
     let mut failed_digests: BTreeSet<Digest> = BTreeSet::new();
+    let mut deps_of: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    let mut accepted_artifact: BTreeMap<String, Digest> = BTreeMap::new();
 
     for r in recs {
         match &r.event {
             Event::ProblemRegistered { .. } => s.problems += 1,
-            Event::TaskRegistered { task_id, problem_id, terminal: t, .. } => {
+            Event::TaskRegistered { task_id, problem_id, terminal: t, depends_on } => {
                 terminal.insert(task_id.clone(), (problem_id.clone(), *t));
+                deps_of.insert(task_id.clone(), depends_on.clone());
             }
             Event::AttemptDispatched { attempt_id, task_id, at, .. } => {
+                // A task becomes runnable only once every prerequisite is verified.
+                if let Some(dep) = deps_of.get(task_id).into_iter().flatten().find(|d| !verified_tasks.contains(*d)) {
+                    return Err(AuditError::IneligibleDispatch { attempt: *attempt_id, task: task_id.clone(), dep: dep.clone() });
+                }
                 start.insert(*attempt_id, *at);
                 task_of.insert(*attempt_id, task_id.clone());
                 s.attempts += 1;
@@ -144,7 +155,14 @@ pub fn summarize(log: &EventLog) -> Result<RunSummary, AuditError> {
                         s.timeout_units += u;
                         s.busy_worker_seconds += at - t0;
                     }
-                    AttemptOutcome::Artifact { digest, duplicate } => {
+                    AttemptOutcome::Artifact { digest, duplicate, parents } => {
+                        // A library may only contain artifacts accepted for the
+                        // task's own prerequisites (no unverified source).
+                        let task = &task_of[attempt_id];
+                        let deps = deps_of.get(task).map(Vec::as_slice).unwrap_or_default();
+                        if let Some(p) = parents.iter().find(|p| !deps.iter().any(|d| accepted_artifact.get(d) == Some(*p))) {
+                            return Err(AuditError::UnverifiedParent { attempt: *attempt_id, task: task.clone(), parent: *p });
+                        }
                         if *duplicate {
                             s.duplicates += 1;
                         }
@@ -175,6 +193,7 @@ pub fn summarize(log: &EventLog) -> Result<RunSummary, AuditError> {
                     return Err(AuditError::UnsupportedVerification(task_id.clone()));
                 }
                 verified_tasks.insert(task_id.clone());
+                accepted_artifact.insert(task_id.clone(), *artifact);
             }
             Event::ProblemSolved { problem_id, at } => {
                 if !solved.insert(problem_id.clone()) {

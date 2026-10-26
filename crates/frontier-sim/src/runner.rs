@@ -22,7 +22,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 use crate::env::{Campaign, EnvConfig, SIM_VERIFIER_ID, SIM_VERIFIER_VERSION, TaskTruth, generate};
-use crate::external::ExternalWorker;
+use crate::external::{ExternalWorker, LibraryEntry};
+use crate::real::compose_program;
 
 pub const SIM_CONFIG_VERSION: &str = "0.1";
 
@@ -120,7 +121,31 @@ pub struct SimTruth {
 enum Planned {
     Crash { gen_units: f64 },
     Timeout,
-    Candidate { gen_units: f64, body: serde_json::Value, confidence: Option<f64> },
+    Candidate { gen_units: f64, body: serde_json::Value, confidence: Option<f64>, parents: Vec<Digest> },
+}
+
+/// A prerequisite's accepted artifact offered to a dependent task's attempt.
+#[derive(Clone, Debug)]
+pub struct LibraryUse {
+    pub entry: LibraryEntry,
+    pub task_id: String,
+    pub artifact: Digest,
+}
+
+/// Artifact body and parents for an external candidate. Without a library
+/// the body is `{"source": candidate}` exactly as before (catalog v1/v2).
+/// With one, `source` is the composed program the verifier runs (library
+/// sources, then the candidate), and `parents` lists the library's accepted
+/// artifacts, so the artifact digest commits to every helper it calls.
+pub fn candidate_artifact(candidate: &str, library: &[LibraryUse]) -> (serde_json::Value, Vec<Digest>) {
+    if library.is_empty() {
+        return (json!({ "source": candidate }), vec![]);
+    }
+    let entries: Vec<LibraryEntry> = library.iter().map(|l| l.entry.clone()).collect();
+    let refs: Vec<serde_json::Value> =
+        library.iter().map(|l| json!({ "helper": l.entry.name, "task_id": l.task_id, "artifact": l.artifact })).collect();
+    let body = json!({ "source": compose_program(&entries, candidate), "candidate": candidate, "library": refs });
+    (body, library.iter().map(|l| l.artifact).collect())
 }
 
 struct InFlight {
@@ -395,15 +420,39 @@ impl<'a> Sim<'a> {
         Ok(())
     }
 
+    /// The library for an attempt on `task`: for each direct prerequisite,
+    /// the source of the artifact the evidence store accepted for it, sorted
+    /// by helper name. Nothing else can enter: a prerequisite without an
+    /// accepted artifact is an invariant violation (the task would not be
+    /// eligible), and the service only ever receives what this returns.
+    pub(crate) fn library_for(&self, task: usize) -> Result<Vec<LibraryUse>, SimError> {
+        let mut lib = Vec::new();
+        for &d in &self.graph.node(task).deps {
+            let dep = &self.graph.node(d).def.task_id;
+            let missing = |what: &str| SimError::Invariant(format!("prerequisite {dep} of {}: {what}", self.graph.node(task).def.task_id));
+            let artifact = self.store.accepted_for(dep).ok_or_else(|| missing("no accepted artifact"))?;
+            let stored = self.store.get(&artifact).ok_or_else(|| missing("accepted artifact not stored"))?;
+            let source = stored.artifact.body.get("source").and_then(|v| v.as_str()).ok_or_else(|| missing("artifact has no source"))?;
+            let name = self.campaign.helpers.get(dep).ok_or_else(|| missing("no helper name"))?;
+            lib.push(LibraryUse { entry: LibraryEntry { name: name.clone(), source: source.to_owned() }, task_id: dep.clone(), artifact });
+        }
+        lib.sort_by(|a, b| a.entry.name.cmp(&b.entry.name));
+        Ok(lib)
+    }
+
     fn plan_attempt(&mut self, task: usize, k: u32) -> Result<Planned, SimError> {
         let r = &self.cfg.run;
         let id = self.graph.node(task).def.task_id.clone();
-        if let Some(ext) = self.external.as_deref_mut() {
-            let a = ext.attempt(&self.campaign.truth[&id].name, r.seed, k)?;
+        if self.external.is_some() {
+            let library = self.library_for(task)?;
+            let entries: Vec<LibraryEntry> = library.iter().map(|l| l.entry.clone()).collect();
+            let ext = self.external.as_deref_mut().expect("checked");
+            let a = ext.attempt(&self.campaign.truth[&id].name, r.seed, k, &entries)?;
             return Ok(if a.gen_units > r.attempt_cap_units {
                 Planned::Timeout
             } else {
-                Planned::Candidate { gen_units: a.gen_units, body: json!({ "source": a.source }), confidence: None }
+                let (body, parents) = candidate_artifact(&a.source, &library);
+                Planned::Candidate { gen_units: a.gen_units, body, confidence: None, parents }
             });
         }
         let env = &self.cfg.env;
@@ -424,7 +473,7 @@ impl<'a> Sim<'a> {
         } else if cost > r.attempt_cap_units {
             Planned::Timeout
         } else {
-            Planned::Candidate { gen_units: cost, body, confidence: Some(d.confidence) }
+            Planned::Candidate { gen_units: cost, body, confidence: Some(d.confidence), parents: vec![] }
         })
     }
 
@@ -478,7 +527,7 @@ impl<'a> Sim<'a> {
                 fl.attempt.advance(AttemptState::TimedOut).map_err(|e| SimError::Invariant(e.to_string()))?;
                 AttemptOutcome::TimedOut
             }
-            Planned::Candidate { body, confidence, .. } => {
+            Planned::Candidate { body, confidence, parents, .. } => {
                 fl.attempt.advance(AttemptState::ArtifactSubmitted).map_err(|e| SimError::Invariant(e.to_string()))?;
                 let node = self.graph.node(task);
                 let spec = &self.campaign.specs[self.stats[task].problem];
@@ -486,7 +535,7 @@ impl<'a> Sim<'a> {
                     kind: ArtifactKind::Candidate,
                     spec_digest: spec.digest(),
                     task_id: node.def.task_id.clone(),
-                    parents: vec![],
+                    parents: parents.clone(),
                     body,
                 };
                 let sub = Submission {
@@ -497,7 +546,7 @@ impl<'a> Sim<'a> {
                 };
                 let out = self.store.submit(artifact, sub).map_err(|e| SimError::Invariant(e.to_string()))?;
                 fl.artifact = Some(out.digest);
-                AttemptOutcome::Artifact { digest: out.digest, duplicate: out.duplicate }
+                AttemptOutcome::Artifact { digest: out.digest, duplicate: out.duplicate, parents }
             }
         };
         self.log.append(Event::AttemptFinished { attempt_id: id, at: self.now, outcome: outcome.clone(), usage });
