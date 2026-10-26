@@ -19,6 +19,7 @@ reasoning, add to that?
 | Scheduling policies (9) and synthetic simulator with audit and replay | Implemented and tested |
 | Python property-test verifier (V1, not sandboxed), analysis, adapters | Implemented and tested; HybridAgent and hosted adapters are interface-only |
 | **exp-000** (simulation, preregistered) | **Done. H1-sim rejected under the frozen rule**: adaptive allocation beat round-robin in 5 of 6 primary cells but was worse in one. See [`results/exp-000/`](results/exp-000/README.md) |
+| **exp-001** (simulation, preregistered) | **Done.** The R2-moderate loss replicates; the misleading-hints explanation is refuted under the frozen rule (with a disclosed confound). Where the adaptive advantage exists, it survives correlated failures and verifier noise. A 2% per-check false-positive rate makes 8–25% of accepted results false. See [`results/exp-001/`](results/exp-001/README.md) |
 | H1 (real workers) | Untested: needs real verifier-backed tasks and inference |
 | H2/H3 (hybrid reasoning) | Untested and blocked: no GPU, and no released matched text-only checkpoint |
 

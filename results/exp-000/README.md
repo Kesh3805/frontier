@@ -19,6 +19,16 @@ i5-1135G7, 8 threads, 16 GB RAM. Wall time was 39 s (scarce) and 96 s
 Reproducibility: re-running `scarce` with 3 threads instead of 8 produced
 identical per-run log heads for all 12,000 runs.
 
+> **Erratum (2026-10-26, found during exp-001).** That check covered only
+> the *same binary*. Kernel 0.1.0 used the platform's `ln`/`exp`/`cos`,
+> which are not correctly rounded, and two executables built from the same
+> source on this machine disagreed in the last bit. exp-000's per-run log
+> heads therefore reproduce exactly only with the Windows release binary
+> built from commit `3906794`. Its statistical conclusions do not depend on
+> this. The core result (the R2-moderate loss) was replicated with new
+> random streams on the portable kernel 0.2.0 in
+> [exp-001](../exp-001/README.md): Δ = −0.26 [−0.38, −0.14].
+
 ## Primary result (preregistered)
 
 `solved` out of 50 problems. Paired difference thompson(k=2, hints) −
