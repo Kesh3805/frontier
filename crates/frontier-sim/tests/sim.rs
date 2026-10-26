@@ -260,3 +260,22 @@ fn real_catalog_builds_a_campaign_bound_to_its_digest() {
     }
     assert!(c.hints.values().all(|h| (0.0..=1.0).contains(h)));
 }
+
+#[test]
+fn problem_order_shuffle_is_a_seeded_permutation() {
+    use frontier_core::Digest;
+    use frontier_sim::real::{load_catalog, ordered_catalog};
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../research/realtasks/catalog-v1.json");
+    let cat = load_catalog(&path, Digest::from_hex("80bdd82bec3e249b17d7938dab3e28786989dae55edd0650875c0c6c440b9585").unwrap()).unwrap();
+    let names = |c: &frontier_sim::real::Catalog| c.tasks.iter().map(|t| t.name.clone()).collect::<Vec<_>>();
+    assert_eq!(names(&ordered_catalog(&cat, None)), names(&cat));
+    let a = names(&ordered_catalog(&cat, Some(7)));
+    assert_eq!(a, names(&ordered_catalog(&cat, Some(7))));
+    assert_ne!(a, names(&cat));
+    assert_ne!(a, names(&ordered_catalog(&cat, Some(8))));
+    let mut sorted_a = a.clone();
+    sorted_a.sort();
+    let mut sorted = names(&cat);
+    sorted.sort();
+    assert_eq!(sorted_a, sorted, "a permutation, nothing added or lost");
+}

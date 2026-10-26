@@ -60,6 +60,23 @@ pub struct RealExperimentConfig {
     pub seeds: u64,
     /// `seed` and `policy` are overridden per cell; `crash_prob` must be 0.
     pub run: RunConfig,
+    /// Permute problem order per seed (stream "problem-order"), so that no
+    /// policy can exploit the order in which the catalog lists tasks.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub shuffle_problem_order: bool,
+}
+
+/// The catalog's tasks, optionally permuted by a stream keyed only by seed.
+pub fn ordered_catalog(cat: &Catalog, shuffle_seed: Option<u64>) -> Catalog {
+    let mut out = cat.clone();
+    if let Some(seed) = shuffle_seed {
+        let mut rng = frontier_core::SplitMix64::derive(seed, "problem-order");
+        for i in (1..out.tasks.len()).rev() {
+            let j = rng.below(i as u64 + 1) as usize;
+            out.tasks.swap(i, j);
+        }
+    }
+    out
 }
 
 pub fn load_catalog(path: &Path, expected: Digest) -> Result<Catalog, SimError> {
@@ -171,7 +188,7 @@ pub fn run_real_experiment(cfg: &RealExperimentConfig, base: &Path, threads: usi
         return Err(SimError::Config("crash_prob must be 0 for real campaigns".into()));
     }
     let catalog = load_catalog(&base.join(&cfg.catalog), cfg.catalog_sha256)?;
-    let campaign = campaign_from_catalog(&catalog, cfg.run.budget_units)?;
+    let fixed_campaign = campaign_from_catalog(&catalog, cfg.run.budget_units)?;
     let seeds: Vec<u64> = (cfg.seed_start..cfg.seed_start + cfg.seeds).collect();
     let threads = threads.max(1).min(seeds.len().max(1));
     let chunks: Vec<Vec<u64>> = (0..threads).map(|i| seeds.iter().copied().skip(i).step_by(threads).collect()).collect();
@@ -181,11 +198,18 @@ pub fn run_real_experiment(cfg: &RealExperimentConfig, base: &Path, threads: usi
         let handles: Vec<_> = chunks
             .into_iter()
             .map(|chunk| {
-                let campaign = &campaign;
+                let (fixed_campaign, catalog) = (&fixed_campaign, &catalog);
                 scope.spawn(move || -> Result<ThreadOutput, SimError> {
                     let mut worker = ExternalWorker::spawn(&cfg.server, base)?;
                     let mut local = vec![];
                     for seed in chunk {
+                        let shuffled;
+                        let campaign = if cfg.shuffle_problem_order {
+                            shuffled = campaign_from_catalog(&ordered_catalog(catalog, Some(seed)), cfg.run.budget_units)?;
+                            &shuffled
+                        } else {
+                            fixed_campaign
+                        };
                         let mut recs = vec![];
                         for (pi, policy) in cfg.policies.iter().enumerate() {
                             let sim = cell_config(cfg, policy, seed, campaign.specs.len());
