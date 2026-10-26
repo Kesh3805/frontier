@@ -2,6 +2,9 @@
 
     python -m frontier_py.realtasks.catalog --out ../research/realtasks/catalog-v1.json
     python -m frontier_py.realtasks.catalog --suite-version 2 --out ../research/realtasks/catalog-v2.json
+    python -m frontier_py.realtasks.catalog --catalog-version 3 --out ../research/realtasks/catalog-v3.json
+
+(Catalog v3, dependency-structured problems, is built by `catalog_v3.py`.)
 
 Per task it records the statement, the probe hint, the ground-truth status
 label, a commitment to the frozen hidden test suite (inputs and expected
@@ -96,12 +99,22 @@ def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--out", required=True, type=Path)
     p.add_argument("--suite-version", default=SUITE_VERSION, choices=SUITE_VERSIONS)
+    p.add_argument("--catalog-version", default=CATALOG_VERSION, choices=(CATALOG_VERSION, "3"),
+                   help="3 = dependency-structured problems (suite v2 hidden suites; --suite-version is ignored)")
     a = p.parse_args()
-    cat = build(a.suite_version)
+    if a.catalog_version == "3":
+        from . import catalog_v3
+
+        cat = catalog_v3.build()
+    else:
+        cat = build(a.suite_version)
     a.out.parent.mkdir(parents=True, exist_ok=True)
     with open(a.out, "w", encoding="utf-8", newline="\n") as f:
         json.dump(cat, f, indent=1)
         f.write("\n")
+    if a.catalog_version == "3":
+        print(catalog_v3.report(cat))
+        return
     for e in cat["tasks"]:
         print(f"{e['status']:14s} {e['name']:22s} hint={e['hint']:.3f} p_hat={e['p_hat']:.3f} "
               f"(hidden-only {e['p_hat_hidden_only']:.3f}) units={e['mean_gen_units']:.2f}")
