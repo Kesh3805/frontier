@@ -1,7 +1,42 @@
 """Independent property-test verifier for algorithm tasks.
 
-The candidate is untrusted source code. It runs in a separate interpreter
-started as `sys.executable -I -S -c <harness>`:
+Two sandbox backends share one protocol and one set of verdict semantics,
+selected by `sandbox=` on `run_candidate` / `verify`:
+
+* `"none"` (default, trust class V1): the harness runs in a local child
+  interpreter with the guarantees and gaps listed under "V1" below.
+* `"docker"` (trust class V2): the same harness runs as
+  `python -I -S -c <harness>` inside a throwaway container of a Python
+  image pinned by digest (`SANDBOX_IMAGE`), started with
+  `docker run --rm -i --pull never --network none --ipc none --read-only
+  --tmpfs /tmp --memory/--memory-swap <limit> --pids-limit 64 --cpus 1
+  --cap-drop ALL --security-opt no-new-privileges --user 65534:65534`
+  plus `--ulimit` core/nofile/fsize/cpu (see `docker_command`). No host
+  path is mounted and no host environment variable is passed in, so the
+  candidate cannot read the repository, the reference implementations or
+  parent secrets, cannot reach the network, and can write only to a 16 MiB
+  noexec tmpfs. Memory, process count and CPU are bounded by the cgroup.
+  Inputs go in on the container's stdin; the result line comes back on the
+  container's stdout, which the harness duplicates before pointing fd
+  0/1/2 at /dev/null (the same nonce/result-channel protocol as V1).
+  Expected outputs are still computed and compared in THIS process. The
+  wall timeout is enforced by the parent: on expiry it runs `docker kill`
+  on the container and kills the CLI.
+
+V2 is claimed only for a run that actually executed in the container. If
+docker is missing, the daemon is unreachable, the server is not a Linux
+engine, the pinned image is not present locally, or `docker run` itself
+fails (exit 125/126/127), the outcome is kind `"sandbox"` and the receipt is
+INCONCLUSIVE with trust class V1 and a reason saying the candidate was not
+executed. There is never a silent fallback to `"none"`. Caveats of V2: the
+isolation is a Linux container sharing the host kernel (not a VM); the image
+must be pulled ahead of time (`docker pull <SANDBOX_IMAGE>`); a candidate
+that itself exits with status 125-127 is reported INCONCLUSIVE rather than
+FAIL (never PASS); and the container user is not remapped (no user
+namespace), so a kernel escape would land as uid 65534 on the host.
+
+V1 (`sandbox="none"`): the candidate is untrusted source code. It runs in a
+separate interpreter started as `sys.executable -I -S -c <harness>`:
 
 * `-I -S`: no user site, no site-packages, no PYTHON* variables, script
   directory not on `sys.path`; the child's `sys.path` is the stdlib only, so
@@ -36,13 +71,17 @@ absolute path, including the reference sources), and protection against
 the candidate finding the nonce in its own process memory. The nonce only
 prevents accidental or naive forgery; the real defence against forged
 results is that the parent compares outputs against expected values the
-child never sees. For these reasons every receipt is trust class V1, never
-V2: V2 requires the isolated verifier image, which does not exist yet.
+child never sees. For these reasons every `sandbox="none"` receipt is
+trust class V1, never V2. (The nonce caveat also applies inside the docker
+sandbox; the parent-side comparison is the defence there too.)
 
-Verdicts: PASS iff every visible and hidden case matches exactly (canonical
-JSON equality, so 1 != 1.0 != true). FAIL on mismatch, exception, missing
-function, malformed or oversized output, or early exit. INCONCLUSIVE on
-timeout or resource exhaustion. `cost_units` is verifier wall-clock seconds.
+Verdicts (both backends): PASS iff every visible and hidden case matches
+exactly (canonical JSON equality, so 1 != 1.0 != true). FAIL on mismatch,
+exception, missing function, malformed or oversized output, or early exit.
+INCONCLUSIVE on timeout, resource exhaustion, or (docker) sandbox failure.
+`cost_units` is verifier wall-clock seconds. `VERIFIER_VERSION` is the same
+for both backends because the verification semantics are identical; the
+backend is recorded in `trust_class` and in the receipt `reason`.
 Only `body["source"]` of the artifact is read; any other field (e.g. a
 self-reported confidence) has no effect on the verdict.
 """
@@ -54,6 +93,7 @@ import json
 import os
 import re
 import secrets
+import shutil
 import signal
 import subprocess
 import sys
@@ -69,15 +109,36 @@ from ..tasks import Args, TaskDef
 
 VERIFIER_ID = "property-tests"
 VERIFIER_VERSION = "0.1.0"
-TRUST_CLASS = "V1"
+TRUST_CLASS = "V1"  # sandbox="none", and any run where the docker sandbox did not execute
+TRUST_CLASS_SANDBOXED = "V2"  # only for runs that actually executed inside the docker sandbox
 MAX_OUTPUT_BYTES = 8 << 20
 POSIX = os.name == "posix"
+
+Sandbox = Literal["none", "docker"]
+SANDBOXES: tuple[str, ...] = ("none", "docker")
+
+# Official `python:3.12-slim` (Python 3.12.15, linux/amd64 + linux/arm64),
+# pinned by its multi-arch OCI index digest. Obtained 2026-10-27 from the
+# Docker Hub registry HTTP API (anonymous pull token from auth.docker.io,
+# then `HEAD /v2/library/python/manifests/3.12-slim` with an OCI index
+# Accept header; the `docker-content-digest` response header). Refresh the
+# same way, or with `docker buildx imagetools inspect python:3.12-slim`.
+SANDBOX_IMAGE = "python@sha256:a0f57064cbdcd6285fa45f51237ab0b35ea8ebaed06a1f5973e89e19dfb86704"
+DOCKER_BIN = "docker"
+DOCKER_STARTUP_GRACE_S = 10.0  # container start/teardown allowance added to the wall timeout
+SANDBOX_TMPFS_MB = 16
+SANDBOX_PIDS = 64
 
 ISOLATION_NOTE = (
     "[V1 harness: rlimits only; network and filesystem NOT isolated]"
     if POSIX
     else "[V1 harness, unsandboxed: timeouts only, no memory/CPU/process limits; network and filesystem NOT isolated]"
 )
+DOCKER_ISOLATION_NOTE = (
+    f"[V2 docker sandbox {SANDBOX_IMAGE}: --network none, --ipc none, read-only rootfs, {SANDBOX_TMPFS_MB}m noexec tmpfs /tmp only, "
+    f"no host mounts or env, memory+swap {{memory}}m, pids {SANDBOX_PIDS}, 1 cpu, cap-drop ALL, no-new-privileges, uid 65534]"
+)
+DOCKER_NOT_RUN_NOTE = "[docker sandbox requested; candidate NOT executed, no sandbox claimed]"
 
 # Runs inside the child. Kept dependency-free (stdlib only, no site).
 HARNESS = r"""
@@ -142,8 +203,13 @@ except MemoryError:
     os._exit(86)
 """
 
-Kind = Literal["ok", "timeout", "resource", "error", "malformed"]
+Kind = Literal["ok", "timeout", "resource", "error", "malformed", "sandbox"]
 _RESOURCE_SIGNALS = {getattr(signal, s) for s in ("SIGXCPU", "SIGXFSZ", "SIGKILL") if hasattr(signal, s)}
+# `docker run` exit statuses: 125 = docker/daemon error, 126 = command cannot be
+# invoked, 127 = command not found. 128+N = container process killed by signal N
+# (9 SIGKILL, e.g. the cgroup OOM killer; 24 SIGXCPU; 25 SIGXFSZ on Linux).
+_DOCKER_INFRA_STATUSES = {125: "docker/daemon error", 126: "command not invocable", 127: "command not found"}
+_DOCKER_RESOURCE_STATUSES = {137: "SIGKILL (cgroup memory/pids limit)", 152: "SIGXCPU", 153: "SIGXFSZ"}
 _NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]{0,63}")
 
 
@@ -195,6 +261,66 @@ def _kill_tree(proc: subprocess.Popen[bytes]) -> None:
     proc.kill()
 
 
+def _check_sandbox(sandbox: str) -> None:
+    if sandbox not in SANDBOXES:
+        raise ValueError(f"unknown sandbox {sandbox!r}; expected one of {SANDBOXES}")
+
+
+def _docker(*args: str, timeout: float = 30.0) -> subprocess.CompletedProcess[str] | None:
+    try:
+        return subprocess.run([DOCKER_BIN, *args], capture_output=True, text=True, timeout=timeout, check=False)
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+
+def docker_status() -> tuple[bool, str]:
+    """Whether the docker sandbox can run here: (usable, human-readable detail).
+
+    Requires the docker CLI, a reachable Linux engine, and `SANDBOX_IMAGE`
+    already present locally (runs use `--pull never`). Not cached: the
+    daemon can come and go.
+    """
+    if shutil.which(DOCKER_BIN) is None:
+        return False, f"{DOCKER_BIN!r} CLI not found on PATH"
+    v = _docker("version", "--format", "{{.Server.Os}}")
+    if v is None or v.returncode != 0:
+        return False, "docker engine not reachable"
+    if v.stdout.strip() != "linux":
+        return False, f"docker engine OS is {v.stdout.strip()!r}, need 'linux'"
+    i = _docker("image", "inspect", "--format", "{{.Id}}", SANDBOX_IMAGE)
+    if i is None or i.returncode != 0:
+        return False, f"pinned image not present locally; run: docker pull {SANDBOX_IMAGE}"
+    return True, "ok"
+
+
+def docker_command(name: str, memory_limit_mb: int, cpu_s: int) -> list[str]:
+    """argv that runs HARNESS in a fresh, locked-down container (stdin/stdout attached)."""
+    return [
+        DOCKER_BIN, "run", "--rm", "-i", "--pull", "never", "--name", name,
+        "--network", "none",
+        "--ipc", "none",  # private IPC namespace and no world-writable /dev/shm
+        "--read-only",
+        "--tmpfs", f"/tmp:rw,noexec,nosuid,nodev,size={SANDBOX_TMPFS_MB}m",
+        "--workdir", "/tmp",
+        "--memory", f"{memory_limit_mb}m", "--memory-swap", f"{memory_limit_mb}m",
+        "--pids-limit", str(SANDBOX_PIDS),
+        "--cpus", "1",
+        "--cap-drop", "ALL",
+        "--security-opt", "no-new-privileges",
+        "--user", "65534:65534",
+        "--ulimit", "core=0:0",
+        "--ulimit", "nofile=64:64",
+        "--ulimit", "fsize=1048576:1048576",
+        "--ulimit", f"cpu={cpu_s}:{cpu_s}",
+        SANDBOX_IMAGE,
+        "python", "-I", "-S", "-c", HARNESS,
+    ]
+
+
+def _docker_kill(name: str) -> None:
+    _docker("kill", name, timeout=30.0)
+
+
 def run_candidate(
     source: str,
     function_name: str,
@@ -204,28 +330,62 @@ def run_candidate(
     wall_timeout_s: float,
     memory_limit_mb: int,
     max_output_bytes: int = MAX_OUTPUT_BYTES,
+    sandbox: Sandbox = "none",
 ) -> ChildOutcome:
-    """Run untrusted `source` on `inputs` in an isolated child; return raw outputs."""
+    """Run untrusted `source` on `inputs` in an isolated child; return raw outputs.
+
+    `sandbox="docker"` runs the child in the pinned container image; if that
+    is not possible the outcome is kind "sandbox" and nothing was executed.
+    """
+    _check_sandbox(sandbox)
+    if sandbox == "docker":
+        ok, detail = docker_status()
+        if not ok:
+            return ChildOutcome("sandbox", f"docker sandbox unavailable: {detail}")
     nonce = secrets.token_hex(16)
     payload = json.dumps(
         {"nonce": nonce, "source": source, "function": function_name, "inputs": inputs, "per_call_timeout": per_call_timeout_s}
     ).encode("utf-8")
+    container = f"frontier-verify-{secrets.token_hex(8)}"
     with tempfile.TemporaryDirectory(prefix="frontier-verify-") as cwd:
         kwargs: dict[str, Any] = {}
-        if POSIX:
-            kwargs = {"preexec_fn": _posix_limits(memory_limit_mb, int(wall_timeout_s) + 1), "start_new_session": True}
+        if sandbox == "docker":
+            # The docker CLI is trusted and needs the parent's DOCKER_*/PATH/HOME;
+            # none of it reaches the container. Limits are applied by the engine,
+            # not by rlimits on the CLI process.
+            argv = docker_command(container, memory_limit_mb, int(wall_timeout_s) + 1)
+            env: dict[str, str] | None = None
+            wall = wall_timeout_s + DOCKER_STARTUP_GRACE_S
+            kwargs = {"start_new_session": True} if POSIX else {"creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0)}
         else:
-            kwargs = {"creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0)}
-        proc = subprocess.Popen(
-            [sys.executable, "-I", "-S", "-c", HARNESS],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
-            cwd=cwd,
-            env=child_env(),
-            close_fds=True,
-            **kwargs,
-        )
+            argv = [sys.executable, "-I", "-S", "-c", HARNESS]
+            env = child_env()
+            wall = wall_timeout_s
+            if POSIX:
+                kwargs = {"preexec_fn": _posix_limits(memory_limit_mb, int(wall_timeout_s) + 1), "start_new_session": True}
+            else:
+                kwargs = {"creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0)}
+        try:
+            proc = subprocess.Popen(
+                argv,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                cwd=cwd,
+                env=env,
+                close_fds=True,
+                **kwargs,
+            )
+        except OSError as e:
+            if sandbox == "docker":
+                return ChildOutcome("sandbox", f"cannot start docker: {type(e).__name__}")
+            raise
+
+        def stop() -> None:
+            if sandbox == "docker":
+                _docker_kill(container)
+            _kill_tree(proc)
+
         assert proc.stdin is not None and proc.stdout is not None
         buf = bytearray()
         overflow = threading.Event()
@@ -241,7 +401,7 @@ def run_candidate(
             while chunk := proc.stdout.read1(65536):  # type: ignore[union-attr]
                 if len(buf) + len(chunk) > max_output_bytes:
                     overflow.set()
-                    _kill_tree(proc)
+                    stop()
                     return
                 buf.extend(chunk)
 
@@ -249,17 +409,21 @@ def run_candidate(
         for t in threads:
             t.start()
         try:
-            rc = proc.wait(timeout=wall_timeout_s)
+            rc = proc.wait(timeout=wall)
         except subprocess.TimeoutExpired:
-            _kill_tree(proc)
+            stop()
             proc.wait()
-            return ChildOutcome("timeout", f"wall timeout {wall_timeout_s:g}s exceeded")
+            return ChildOutcome("timeout", f"wall timeout {wall:g}s exceeded")
         finally:
             for t in threads:
                 t.join(timeout=2.0)
             proc.stdout.close()
     if overflow.is_set():
         return ChildOutcome("malformed", f"output exceeded {max_output_bytes} bytes")
+    if sandbox == "docker" and rc in _DOCKER_INFRA_STATUSES:
+        return ChildOutcome("sandbox", f"docker run exited {rc} ({_DOCKER_INFRA_STATUSES[rc]}) without a result")
+    if sandbox == "docker" and rc in _DOCKER_RESOURCE_STATUSES:
+        return ChildOutcome("resource", f"container process killed by {_DOCKER_RESOURCE_STATUSES[rc]}")
     if rc != 0:
         if POSIX and -rc in _RESOURCE_SIGNALS:
             return ChildOutcome("resource", f"killed by signal {signal.Signals(-rc).name}")
@@ -321,6 +485,7 @@ def verify(
     artifact_digest: str | None = None,
     task_id: str | None = None,
     charge_per_case: float | None = None,
+    sandbox: Sandbox = "none",
 ) -> VerifierReceipt:
     """Verify an artifact body {"source": str, ...} against `task`; return a receipt.
 
@@ -328,20 +493,33 @@ def verify(
     runs pass `charge_per_case`: the receipt then charges a deterministic
     `charge_per_case * number_of_cases` and the caller reports wall time
     separately.
+
+    `sandbox="docker"` executes the candidate in the pinned container and
+    yields trust class V2, but only if it actually ran there; otherwise the
+    receipt is INCONCLUSIVE, trust class V1, and says the candidate was not
+    executed. It never falls back to `sandbox="none"`.
     """
+    _check_sandbox(sandbox)
     start = time.perf_counter()
     if artifact_digest is None:
         artifact_digest = artifact_digest_for(spec_digest, task_id or task.name, body)
+    executed_in_sandbox = False
 
     def receipt(verdict: str, reason: str) -> VerifierReceipt:
+        if sandbox == "none":
+            trust, note = TRUST_CLASS, ISOLATION_NOTE
+        elif executed_in_sandbox:
+            trust, note = TRUST_CLASS_SANDBOXED, DOCKER_ISOLATION_NOTE.format(memory=task.memory_limit_mb)
+        else:
+            trust, note = TRUST_CLASS, DOCKER_NOT_RUN_NOTE
         return VerifierReceipt(
             spec_digest=spec_digest,
             artifact_digest=artifact_digest,
             verdict=verdict,  # type: ignore[arg-type]
-            trust_class=TRUST_CLASS,
+            trust_class=trust,  # type: ignore[arg-type]
             verifier_id=VERIFIER_ID,
             verifier_version=VERIFIER_VERSION,
-            reason=f"{ISOLATION_NOTE} {task.name} v{task.version}: {reason}",
+            reason=f"{note} {task.name} v{task.version}: {reason}",
             cost_units=round(time.perf_counter() - start, 6) if charge_per_case is None else charge,
         )
 
@@ -360,7 +538,11 @@ def verify(
         per_call_timeout_s=task.per_call_timeout_s,
         wall_timeout_s=task.wall_timeout_s,
         memory_limit_mb=task.memory_limit_mb,
+        sandbox=sandbox,
     )
+    if out.kind == "sandbox":
+        return receipt("INCONCLUSIVE", f"sandbox failure ({out.detail})")
+    executed_in_sandbox = sandbox == "docker"
     if out.kind == "timeout":
         return receipt("INCONCLUSIVE", f"timeout ({out.detail}) {_where(out.case, n_vis)}".rstrip())
     if out.kind == "resource":
