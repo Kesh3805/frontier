@@ -1,6 +1,7 @@
 """Build the pilot catalog consumed by the Rust runner.
 
     python -m frontier_py.realtasks.catalog --out ../research/realtasks/catalog-v1.json
+    python -m frontier_py.realtasks.catalog --suite-version 2 --out ../research/realtasks/catalog-v2.json
 
 Per task it records the statement, the probe hint, the ground-truth status
 label, a commitment to the frozen hidden test suite (inputs and expected
@@ -24,7 +25,7 @@ from pathlib import Path
 from typing import Any
 
 from ..receipt import canonical_digest
-from .suite import DEAD, HIDDEN_SEED, SUITE, SUITE_VERSION, RealTask
+from .suite import DEAD, HIDDEN_SEED, SUITE, SUITE_VERSION, SUITE_VERSIONS, RealTask
 from .worker import MAX_SAMPLES, attempt, canon, probe_hint, run_program
 
 CATALOG_VERSION = "1"
@@ -33,8 +34,8 @@ CALIBRATION_ATTEMPTS = 200
 EXTENDED_SEED = 777
 
 
-def hidden_cases(task: RealTask) -> list[tuple[list[int], Any]]:
-    td = task.task_def()
+def hidden_cases(task: RealTask, version: str = SUITE_VERSION) -> list[tuple[list[int], Any]]:
+    td = task.task_def(version)
     inputs = [list(a) for a, _ in td.visible] + td.hidden_inputs(HIDDEN_SEED)
     return [(a[0], task.reference(list(a[0]))) for a in inputs]
 
@@ -56,10 +57,10 @@ def correct_on(source: str, cases: list[tuple[list[int], Any]]) -> bool:
     return True
 
 
-def build() -> dict[str, Any]:
+def build(version: str = SUITE_VERSION) -> dict[str, Any]:
     entries = []
     for t in SUITE:
-        hidden, extended = hidden_cases(t), extended_cases(t)
+        hidden, extended = hidden_cases(t, version), extended_cases(t)
         n_ok = n_hidden_ok = 0
         units = 0.0
         for k in range(CALIBRATION_ATTEMPTS):
@@ -76,7 +77,7 @@ def build() -> dict[str, Any]:
             "status": t.status,
             "dead": t.status in DEAD,
             "hint": round(probe_hint(t), 6),
-            "criterion_sha256": canonical_digest({"suite": SUITE_VERSION, "task": t.name, "hidden_seed": HIDDEN_SEED,
+            "criterion_sha256": canonical_digest({"suite": version, "task": t.name, "hidden_seed": HIDDEN_SEED,
                                                   "cases": [[xs, want] for xs, want in hidden]}),
             "p_hat": n_ok / CALIBRATION_ATTEMPTS,
             "p_hat_hidden_only": n_hidden_ok / CALIBRATION_ATTEMPTS,
@@ -84,7 +85,7 @@ def build() -> dict[str, Any]:
         })
     return {
         "catalog_version": CATALOG_VERSION,
-        "suite_version": SUITE_VERSION,
+        "suite_version": version,
         "hidden_seed": HIDDEN_SEED,
         "worker": {"max_samples": MAX_SAMPLES, "calibration_seed": CALIBRATION_SEED, "calibration_attempts": CALIBRATION_ATTEMPTS},
         "tasks": entries,
@@ -94,8 +95,9 @@ def build() -> dict[str, Any]:
 def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--out", required=True, type=Path)
+    p.add_argument("--suite-version", default=SUITE_VERSION, choices=SUITE_VERSIONS)
     a = p.parse_args()
-    cat = build()
+    cat = build(a.suite_version)
     a.out.parent.mkdir(parents=True, exist_ok=True)
     with open(a.out, "w", encoding="utf-8", newline="\n") as f:
         json.dump(cat, f, indent=1)

@@ -57,6 +57,16 @@ def test_misspecified_task_rejects_the_stated_function():
     assert not correct_on(src, hidden_cases(t))
 
 
+def test_suite_v2_adds_exhaustive_small_inputs_and_rejects_boundary_bug():
+    from frontier_py.realtasks.catalog import hidden_cases as hc
+
+    t = BY_NAME["max0"]
+    v1, v2 = hc(t, "1"), hc(t, "2")
+    assert len(v2) == len(v1) + 156
+    bug = "def f(xs):\n    return max([x for x in xs if x!=0], default=0)\n"
+    assert correct_on(bug, v1) and not correct_on(bug, v2)
+
+
 def test_server_protocol():
     reqs = [
         {"op": "hello"},

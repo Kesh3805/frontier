@@ -20,6 +20,7 @@ ground truth by construction and are never shown to the scheduler:
 from __future__ import annotations
 
 import hashlib
+import itertools
 import random
 from collections import Counter
 from dataclasses import dataclass
@@ -30,7 +31,8 @@ from .dsl import Kind
 
 Status = Literal["solvable", "inexpressible", "misspecified", "misleading"]
 DEAD: frozenset[str] = frozenset({"inexpressible", "misspecified"})
-SUITE_VERSION = "1"
+SUITE_VERSION = "1"  # default hidden-suite version (v1 kept for reproducing exp-003/004)
+SUITE_VERSIONS = ("1", "2")
 HIDDEN_SEED = 20261026  # frozen hidden test suite
 
 
@@ -40,6 +42,16 @@ def _gen_lists(rng: random.Random) -> list[list[Any]]:
         n = rng.randint(0, 12)
         cases.append([[rng.randint(-20, 20) for _ in range(n)]])
     return cases
+
+
+def _gen_lists_v2(rng: random.Random) -> list[list[Any]]:
+    """v2 = every list over {-2..2} of length <= 3 (156 inputs), then the v1
+    random cases. Added after exp-005 found boundary bugs that v1 accepts."""
+    small = [[list(t)] for n in range(4) for t in itertools.product(range(-2, 3), repeat=n)]
+    return small + _gen_lists(rng)
+
+
+GENERATORS = {"1": _gen_lists, "2": _gen_lists_v2}
 
 
 def _stable_hash(xs: list[int]) -> int:
@@ -55,14 +67,14 @@ class RealTask:
     reference: Callable[[list[int]], Any]
     visible: tuple[tuple[list[int], Any], ...]
 
-    def task_def(self) -> TaskDef:
+    def task_def(self, version: str = SUITE_VERSION) -> TaskDef:
         return TaskDef(
             name=f"pilot/{self.name}",
-            version=SUITE_VERSION,
+            version=version,
             function_name="f",
             statement=self.statement,
             reference=self.reference,
-            generate=_gen_lists,
+            generate=GENERATORS[version],
             visible=tuple(([xs], out) for xs, out in self.visible),
             per_call_timeout_s=2.0,
             wall_timeout_s=20.0,
