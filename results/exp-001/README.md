@@ -125,11 +125,21 @@ flipped.
 ## Reproducibility
 
 This is the first experiment on kernel 0.2.0, which replaced
-platform-library `ln`/`exp` with portable fdlibm ports. The smoke log head
-is pinned in CI so that cross-platform identity is tested on Linux. If
-that check passes, these results are platform-independent. exp-000 used
-kernel 0.1.0 and reproduces exactly only with its own Windows release
-binary; see the erratum in [`results/exp-000`](../exp-000/README.md).
+platform-library `ln`/`exp` with portable fdlibm ports.
+
+The protocol made Linux CI's pinned smoke-head check an invalidation
+condition. At the freeze commit that check **failed**, but the cause was
+ours: the head had been pinned before the kernel version string (which is
+part of the first log record) changed from 0.1.0 to 0.2.0.
+
+We then verified cross-platform identity directly. A diagnostic GitHub
+Actions run on ubuntu-24.04 produced the smoke log, and it matches the
+Windows log of the same commit in all 684 events, with identical head
+`36b691cc…`. The pin was corrected afterwards. The results above are
+therefore platform-independent for this kernel.
+
+exp-000 used kernel 0.1.0 and reproduces exactly only with its own Windows
+release binary; see the erratum in [`results/exp-000`](../exp-000/README.md).
 
 ## Limitations
 

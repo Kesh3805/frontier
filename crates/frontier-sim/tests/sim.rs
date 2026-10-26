@@ -172,7 +172,7 @@ fn fixed_slice_never_exceeds_its_per_problem_share() {
 fn smoke_config_log_head_is_pinned() {
     let cfg: SimConfig = serde_json::from_str(include_str!("../../../configs/smoke.json")).unwrap();
     let out = run(&cfg).unwrap();
-    assert_eq!(out.log.head().to_hex(), "86098db37bf81423e3cc5e6d7cc2eb6b1adb792534439a241450e3759dac3fcd");
+    assert_eq!(out.log.head().to_hex(), "36b691cc3e6f8cf5faf3d9cc2038cc757d78d1a1d8e2358770e33dcdc983bbf7");
     // New environment fields default to off and are not serialised.
     let original: serde_json::Value = serde_json::from_str(include_str!("../../../configs/smoke.json")).unwrap();
     assert_eq!(serde_json::to_value(&cfg).unwrap(), original);
