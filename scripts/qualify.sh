@@ -30,4 +30,11 @@ if "$BIN" audit --events "$OUT/forged.jsonl" 2>/dev/null; then
   exit 1
 fi
 rm "$OUT/forged.jsonl"
+
+# Real verifier-backed tasks: one campaign through the Python worker/verifier
+# service, run twice to check determinism, then audited.
+"$BIN" real-run --config research/realtasks/dev.json --seed 1 --policy-index 1 --out "$OUT/real-a"
+"$BIN" real-run --config research/realtasks/dev.json --seed 1 --policy-index 1 --out "$OUT/real-b"
+"$BIN" audit --events "$OUT/real-a/events.jsonl" --summary "$OUT/real-a/summary.json"
+cmp "$OUT/real-a/events.jsonl" "$OUT/real-b/events.jsonl"
 echo "qualification passed"

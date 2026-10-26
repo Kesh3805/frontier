@@ -242,3 +242,21 @@ fn sticky_runs_are_reproducible_and_audited() {
     assert_eq!(a.log.head(), run(&cfg).unwrap().log.head());
     summarize(&a.log).unwrap();
 }
+
+#[test]
+fn real_catalog_builds_a_campaign_bound_to_its_digest() {
+    use frontier_core::Digest;
+    use frontier_sim::real::{campaign_from_catalog, load_catalog};
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../research/realtasks/catalog-v1.json");
+    let digest = Digest::from_hex("80bdd82bec3e249b17d7938dab3e28786989dae55edd0650875c0c6c440b9585").unwrap();
+    let cat = load_catalog(&path, digest).unwrap();
+    assert!(load_catalog(&path, Digest::ZERO).is_err(), "digest mismatch must be refused");
+    let c = campaign_from_catalog(&cat, 60.0).unwrap();
+    assert_eq!(c.specs.len(), 34);
+    assert_eq!(c.truth.values().filter(|t| t.dead).count(), 8);
+    for s in &c.specs {
+        assert_eq!(s.spec().verification.verifier_id, "property-tests");
+        assert_eq!(s.spec().verification.required_trust, frontier_core::TrustClass::V1);
+    }
+    assert!(c.hints.values().all(|h| (0.0..=1.0).contains(h)));
+}

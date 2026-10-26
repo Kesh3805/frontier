@@ -22,6 +22,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 use crate::env::{Campaign, EnvConfig, SIM_VERIFIER_ID, SIM_VERIFIER_VERSION, TaskTruth, generate};
+use crate::external::ExternalWorker;
 
 pub const SIM_CONFIG_VERSION: &str = "0.1";
 
@@ -119,7 +120,7 @@ pub struct SimTruth {
 enum Planned {
     Crash { gen_units: f64 },
     Timeout,
-    Candidate { gen_units: f64, answer: String, confidence: f64 },
+    Candidate { gen_units: f64, body: serde_json::Value, confidence: Option<f64> },
 }
 
 struct InFlight {
@@ -128,6 +129,9 @@ struct InFlight {
     k: u32,
     plan: Planned,
     artifact: Option<Digest>,
+    /// Receipt and ground-truth correctness, computed when generation ends
+    /// and applied when the verification interval elapses.
+    pending: Option<(VerifierReceipt, bool)>,
     gen_units: f64,
 }
 
@@ -198,6 +202,8 @@ struct Sim<'a> {
     decisions: u64,
     /// Ground-truth soundness of each accepted task (None = not accepted).
     sound: Vec<Option<bool>>,
+    /// Real worker/verifier service; `None` = simulated backend.
+    external: Option<&'a mut ExternalWorker>,
     truth: SimTruth,
 }
 
@@ -208,7 +214,13 @@ pub fn run(cfg: &SimConfig) -> Result<RunOutput, SimError> {
 }
 
 pub fn run_campaign(cfg: &SimConfig, campaign: &Campaign) -> Result<RunOutput, SimError> {
-    let mut sim = Sim::new(cfg, campaign)?;
+    run_campaign_with(cfg, campaign, None)
+}
+
+/// Run with an optional external worker/verifier service in place of the
+/// simulated outcome streams and simulated verifier.
+pub fn run_campaign_with(cfg: &SimConfig, campaign: &Campaign, external: Option<&mut ExternalWorker>) -> Result<RunOutput, SimError> {
+    let mut sim = Sim::new(cfg, campaign, external)?;
     sim.execute()?;
     Ok(RunOutput {
         policy_name: sim.policy.name(),
@@ -220,7 +232,7 @@ pub fn run_campaign(cfg: &SimConfig, campaign: &Campaign) -> Result<RunOutput, S
 }
 
 impl<'a> Sim<'a> {
-    fn new(cfg: &'a SimConfig, campaign: &'a Campaign) -> Result<Self, SimError> {
+    fn new(cfg: &'a SimConfig, campaign: &'a Campaign, external: Option<&'a mut ExternalWorker>) -> Result<Self, SimError> {
         let graph = TaskGraph::build(campaign.tasks.clone()).map_err(|e| SimError::Config(e.to_string()))?;
         let problem_index: BTreeMap<String, usize> = campaign.specs.iter().enumerate().map(|(i, s)| (s.id().to_owned(), i)).collect();
         let policy = cfg.run.policy.build();
@@ -281,6 +293,7 @@ impl<'a> Sim<'a> {
             select_nanos: 0,
             decisions: 0,
             sound: vec![None; n],
+            external,
             truth: SimTruth::default(),
         })
     }
@@ -377,22 +390,37 @@ impl<'a> Sim<'a> {
         Ok(())
     }
 
-    fn plan_attempt(&self, task: usize, k: u32) -> Planned {
+    fn plan_attempt(&mut self, task: usize, k: u32) -> Result<Planned, SimError> {
         let r = &self.cfg.run;
+        let id = self.graph.node(task).def.task_id.clone();
+        if let Some(ext) = self.external.as_deref_mut() {
+            let a = ext.attempt(&self.campaign.truth[&id].name, r.seed, k)?;
+            return Ok(if a.gen_units > r.attempt_cap_units {
+                Planned::Timeout
+            } else {
+                Planned::Candidate { gen_units: a.gen_units, body: json!({ "source": a.source }), confidence: None }
+            });
+        }
         let env = &self.cfg.env;
-        let id = &self.graph.node(task).def.task_id;
-        let truth = &self.campaign.truth[id];
-        let d = fresh_draws(r.seed, id, truth.p_success, truth.mean_cost, env.attempt_cost_sd, r.crash_prob, k);
+        let truth = &self.campaign.truth[&id];
+        let d = fresh_draws(r.seed, &id, truth.p_success, truth.mean_cost, env.attempt_cost_sd, r.crash_prob, k);
         let success =
-            if env.failure_stickiness > 0.0 { sticky_success(r.seed, id, truth.p_success, env.failure_stickiness, k) } else { d.success };
+            if env.failure_stickiness > 0.0 { sticky_success(r.seed, &id, truth.p_success, env.failure_stickiness, k) } else { d.success };
         let cost = if success { d.base_cost } else { d.base_cost * env.failure_cost_mult };
-        if d.crash {
+        let answer = if success { truth.secret.clone() } else { d.wrong };
+        let body = if env.distinct_solutions {
+            let variant = SplitMix64::derive(r.seed, &format!("variant/{id}/{k}")).next_u64();
+            json!({ "answer": answer, "variant": format!("{variant:016x}") })
+        } else {
+            json!({ "answer": answer })
+        };
+        Ok(if d.crash {
             Planned::Crash { gen_units: (cost * d.crash_frac).min(r.attempt_cap_units) }
         } else if cost > r.attempt_cap_units {
             Planned::Timeout
         } else {
-            Planned::Candidate { gen_units: cost, answer: if success { truth.secret.clone() } else { d.wrong }, confidence: d.confidence }
-        }
+            Planned::Candidate { gen_units: cost, body, confidence: Some(d.confidence) }
+        })
     }
 
     fn launch(&mut self, task: usize, reservation: f64) -> Result<(), SimError> {
@@ -402,10 +430,10 @@ impl<'a> Sim<'a> {
         self.ledger.reserve(attempt_id, reservation).map_err(|e| SimError::Invariant(e.to_string()))?;
         let k = self.started_per_task[task];
         self.started_per_task[task] += 1;
-        if self.campaign.truth[&self.graph.node(task).def.task_id].p_success == 0.0 {
+        if self.campaign.truth[&self.graph.node(task).def.task_id].dead {
             self.truth.dead_attempts += 1;
         }
-        let plan = self.plan_attempt(task, k);
+        let plan = self.plan_attempt(task, k)?;
         let gen_units = match plan {
             Planned::Crash { gen_units } | Planned::Candidate { gen_units, .. } => gen_units,
             Planned::Timeout => self.cfg.run.attempt_cap_units,
@@ -423,7 +451,7 @@ impl<'a> Sim<'a> {
             reserved_units: reservation,
         });
         self.schedule(self.now + gen_units, Phase::GenerationDone, attempt_id);
-        self.inflight.insert(attempt_id, InFlight { attempt, k, plan, artifact: None, gen_units });
+        self.inflight.insert(attempt_id, InFlight { attempt, k, plan, artifact: None, pending: None, gen_units });
         Ok(())
     }
 
@@ -445,16 +473,10 @@ impl<'a> Sim<'a> {
                 fl.attempt.advance(AttemptState::TimedOut).map_err(|e| SimError::Invariant(e.to_string()))?;
                 AttemptOutcome::TimedOut
             }
-            Planned::Candidate { answer, confidence, .. } => {
+            Planned::Candidate { body, confidence, .. } => {
                 fl.attempt.advance(AttemptState::ArtifactSubmitted).map_err(|e| SimError::Invariant(e.to_string()))?;
                 let node = self.graph.node(task);
                 let spec = &self.campaign.specs[self.stats[task].problem];
-                let body = if self.cfg.env.distinct_solutions {
-                    let variant = SplitMix64::derive(self.cfg.run.seed, &format!("variant/{}/{}", node.def.task_id, fl.k)).next_u64();
-                    json!({ "answer": answer, "variant": format!("{variant:016x}") })
-                } else {
-                    json!({ "answer": answer })
-                };
                 let artifact = Artifact {
                     kind: ArtifactKind::Candidate,
                     spec_digest: spec.digest(),
@@ -464,9 +486,9 @@ impl<'a> Sim<'a> {
                 };
                 let sub = Submission {
                     attempt_id: id,
-                    worker_id: format!("sim-worker-{}", fl.attempt.worker),
-                    model: "synthetic".into(),
-                    self_reported_confidence: Some(confidence),
+                    worker_id: format!("worker-{}", fl.attempt.worker),
+                    model: if self.external.is_some() { "dsl-search".into() } else { "synthetic".into() },
+                    self_reported_confidence: confidence,
                 };
                 let out = self.store.submit(artifact, sub).map_err(|e| SimError::Invariant(e.to_string()))?;
                 fl.artifact = Some(out.digest);
@@ -484,9 +506,12 @@ impl<'a> Sim<'a> {
             _ => false,
         };
         if needs_verification {
+            let (receipt, correct) = self.run_verifier(id)?;
+            let duration = receipt.cost_units;
             let fl = self.inflight.get_mut(&id).expect("present");
             fl.attempt.advance(AttemptState::Verifying).map_err(|e| SimError::Invariant(e.to_string()))?;
-            self.schedule(self.now + self.cfg.run.verify_cost_units, Phase::VerificationDone, id);
+            fl.pending = Some((receipt, correct));
+            self.schedule(self.now + duration, Phase::VerificationDone, id);
             return Ok(());
         }
         let informative = matches!(outcome, AttemptOutcome::TimedOut);
@@ -497,13 +522,20 @@ impl<'a> Sim<'a> {
         self.finish(id, gen_units, informative, false)
     }
 
-    fn on_verification_done(&mut self, id: u64) -> Result<(), SimError> {
-        let (task, digest, gen_units, k) = {
+    /// Produce the receipt for an attempt's artifact: simulated verifier, or
+    /// the external service (real verifier plus extended ground-truth check).
+    fn run_verifier(&mut self, id: u64) -> Result<(VerifierReceipt, bool), SimError> {
+        let (task, digest, k) = {
             let fl = &self.inflight[&id];
-            (fl.attempt.task, fl.artifact.expect("verified attempts have artifacts"), fl.gen_units, fl.k)
+            (fl.attempt.task, fl.artifact.expect("verified attempts have artifacts"), fl.k)
         };
-        let p = self.stats[task].problem;
-        let spec = &self.campaign.specs[p];
+        let spec = &self.campaign.specs[self.stats[task].problem];
+        let artifact = self.store.get(&digest).expect("submitted").artifact.clone();
+        if let Some(ext) = self.external.as_deref_mut() {
+            let source = artifact.body.get("source").and_then(|v| v.as_str()).unwrap_or_default();
+            let name = &self.campaign.truth[&artifact.task_id].name;
+            return ext.verify(name, source, spec.digest(), digest);
+        }
         let env = &self.cfg.env;
         let verifier = SimVerifier {
             truth: &self.campaign.truth,
@@ -512,8 +544,23 @@ impl<'a> Sim<'a> {
             fnr: env.verifier_fnr,
             fpr: env.verifier_fpr,
         };
-        let artifact = self.store.get(&digest).expect("submitted").artifact.clone();
-        let receipt = verifier.verify(spec, &artifact, digest, k);
+        let correct = artifact.spec_digest == spec.digest() && answer_is_correct(&self.campaign.truth, &artifact);
+        Ok((verifier.verify(spec, &artifact, digest, k), correct))
+    }
+
+    fn on_verification_done(&mut self, id: u64) -> Result<(), SimError> {
+        let (task, digest, gen_units, (receipt, correct)) = {
+            let fl = self.inflight.get_mut(&id).expect("present");
+            (
+                fl.attempt.task,
+                fl.artifact.expect("verified attempts have artifacts"),
+                fl.gen_units,
+                fl.pending.take().expect("pending receipt"),
+            )
+        };
+        let p = self.stats[task].problem;
+        let spec = &self.campaign.specs[p];
+        let verify_units = receipt.cost_units;
         let status = self.store.record_receipt(spec, receipt.clone()).map_err(|e| SimError::Invariant(e.to_string()))?;
         self.log.append(Event::VerificationFinished { attempt_id: id, at: self.now, receipt });
         let verified = status == ClaimStatus::MechanicallyVerified;
@@ -525,7 +572,6 @@ impl<'a> Sim<'a> {
             self.stats[task].verified = true;
             self.problems[p].verified_tasks += 1;
             self.log.append(Event::TaskVerified { task_id: self.graph.node(task).def.task_id.clone(), artifact: digest, at: self.now });
-            let correct = answer_is_correct(&self.campaign.truth, &artifact);
             let sound = correct && self.graph.node(task).deps.iter().all(|&d| self.sound[d] == Some(true));
             self.sound[task] = Some(sound);
             if !correct {
@@ -543,7 +589,7 @@ impl<'a> Sim<'a> {
                 self.log.append(Event::ProblemSolved { problem_id: spec.id().into(), at: self.now });
             }
         }
-        self.finish(id, gen_units + self.cfg.run.verify_cost_units, true, verified)
+        self.finish(id, gen_units + verify_units, true, verified)
     }
 
     /// Settle the ledger, update statistics, free the worker.

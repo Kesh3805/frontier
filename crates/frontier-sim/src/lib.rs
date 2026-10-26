@@ -4,6 +4,8 @@
 pub mod audit;
 pub mod env;
 pub mod experiment;
+pub mod external;
+pub mod real;
 pub mod runner;
 
 pub use audit::{RunSummary, summarize};

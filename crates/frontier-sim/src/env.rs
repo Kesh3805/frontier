@@ -116,6 +116,10 @@ impl EnvConfig {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct TaskTruth {
+    /// Task name understood by the worker backend (equal to the id in simulation).
+    pub name: String,
+    /// True when no attempt can ever succeed (ground truth, never shown to policies).
+    pub dead: bool,
     pub p_success: f64,
     pub mean_cost: f64,
     /// The answer a correct attempt produces; held only by the verifier.
@@ -187,7 +191,7 @@ pub fn generate(cfg: &EnvConfig, seed: u64, budget_hint: f64) -> Result<Campaign
                         }
                     }
                     let secret = format!("{:016x}", rng.next_u64());
-                    truth_by_sig.insert(key.clone(), TaskTruth { p_success: p, mean_cost, secret });
+                    truth_by_sig.insert(key.clone(), TaskTruth { name: sig.clone(), dead: p == 0.0, p_success: p, mean_cost, secret });
                     hint_by_sig.insert(key.clone(), hint);
                 }
                 let t = truth_by_sig[&key].clone();

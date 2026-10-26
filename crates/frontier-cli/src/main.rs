@@ -7,6 +7,9 @@ use std::process::ExitCode;
 use std::time::Instant;
 
 use frontier_core::{Digest, EventLog, KERNEL_VERSION};
+use frontier_sim::external::ExternalWorker;
+use frontier_sim::real::{RealExperimentConfig, campaign_from_catalog, cell_config, load_catalog, run_real_experiment};
+use frontier_sim::runner::run_campaign_with;
 use frontier_sim::{ExperimentConfig, SimConfig, run, run_experiment, summarize};
 use serde::Serialize;
 
@@ -14,7 +17,9 @@ const USAGE: &str = "usage:
   frontier run --config SIM.json --out DIR
   frontier audit --events EVENTS.jsonl [--summary SUMMARY.json]
   frontier replay --config SIM.json --events EVENTS.jsonl
-  frontier experiment --config EXP.json --out DIR [--threads N]";
+  frontier experiment --config EXP.json --out DIR [--threads N]
+  frontier real-run --config REAL.json --seed N --policy-index I --out DIR
+  frontier real-experiment --config REAL.json --out DIR [--threads N]";
 
 type Result<T> = std::result::Result<T, String>;
 
@@ -25,6 +30,8 @@ fn main() -> ExitCode {
         Some("audit") => cmd_audit(&args[1..]),
         Some("replay") => cmd_replay(&args[1..]),
         Some("experiment") => cmd_experiment(&args[1..]),
+        Some("real-run") => cmd_real_run(&args[1..]),
+        Some("real-experiment") => cmd_real_experiment(&args[1..]),
         _ => Err(USAGE.into()),
     };
     match outcome {
@@ -112,6 +119,10 @@ fn cmd_replay(args: &[String]) -> Result<()> {
 struct Manifest {
     experiment_id: String,
     kind: &'static str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    catalog_sha256: Option<Digest>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    verify_wall_seconds: Option<f64>,
     config_digest: Digest,
     results_sha256: Digest,
     records: usize,
@@ -154,6 +165,8 @@ fn cmd_experiment(args: &[String]) -> Result<()> {
     let manifest = Manifest {
         experiment_id: cfg.experiment_id.clone(),
         kind: "simulation",
+        catalog_sha256: None,
+        verify_wall_seconds: None,
         config_digest: Digest::of_canonical(&cfg).map_err(|e| e.to_string())?,
         results_sha256: Digest::of_bytes(&buf),
         records: records.len(),
@@ -168,5 +181,87 @@ fn cmd_experiment(args: &[String]) -> Result<()> {
     };
     write_json(&out.join("manifest.json"), &manifest)?;
     println!("SIMULATION experiment {}: {} runs in {:.1}s -> {}", cfg.experiment_id, records.len(), wall_seconds, results.display());
+    Ok(())
+}
+
+fn config_dir(path: &str) -> PathBuf {
+    Path::new(path).parent().map(Path::to_path_buf).unwrap_or_default()
+}
+
+fn cmd_real_run(args: &[String]) -> Result<()> {
+    let path = required(args, "--config")?;
+    let cfg: RealExperimentConfig = read_json(&path)?;
+    let base = config_dir(&path);
+    let seed: u64 = required(args, "--seed")?.parse().map_err(|e| format!("--seed: {e}"))?;
+    let pi: usize = required(args, "--policy-index")?.parse().map_err(|e| format!("--policy-index: {e}"))?;
+    let policy = cfg.policies.get(pi).ok_or("--policy-index out of range")?;
+    let out = PathBuf::from(required(args, "--out")?);
+    fs::create_dir_all(&out).map_err(|e| e.to_string())?;
+    let catalog = load_catalog(&base.join(&cfg.catalog), cfg.catalog_sha256).map_err(|e| e.to_string())?;
+    let campaign = campaign_from_catalog(&catalog, cfg.run.budget_units).map_err(|e| e.to_string())?;
+    let sim = cell_config(&cfg, policy, seed, campaign.specs.len());
+    sim.validate().map_err(|e| e.to_string())?;
+    let mut worker = ExternalWorker::spawn(&cfg.server, &base).map_err(|e| e.to_string())?;
+    let result = run_campaign_with(&sim, &campaign, Some(&mut worker)).map_err(|e| e.to_string())?;
+    let summary = summarize(&result.log).map_err(|e| e.to_string())?;
+    let f = File::create(out.join("events.jsonl")).map_err(|e| e.to_string())?;
+    result.log.write_jsonl(BufWriter::new(f)).map_err(|e| e.to_string())?;
+    write_json(&out.join("summary.json"), &summary)?;
+    write_json(&out.join("truth.json"), &result.truth)?;
+    println!(
+        "REAL TASKS {} policy={} seed={seed}: accepted {}/{} (sound {}), committed {:.2}/{} CU, log head {}",
+        cfg.experiment_id,
+        summary.policy,
+        summary.solved,
+        summary.problems,
+        result.truth.true_solved,
+        summary.committed_units,
+        cfg.run.budget_units,
+        summary.log_head
+    );
+    Ok(())
+}
+
+fn cmd_real_experiment(args: &[String]) -> Result<()> {
+    let path = required(args, "--config")?;
+    let cfg: RealExperimentConfig = read_json(&path)?;
+    let base = config_dir(&path);
+    let out = PathBuf::from(required(args, "--out")?);
+    let host_threads = std::thread::available_parallelism().map_or(1, |n| n.get());
+    let threads = match flag(args, "--threads") {
+        Some(t) => t.parse::<usize>().map_err(|e| format!("--threads: {e}"))?,
+        None => host_threads,
+    };
+    fs::create_dir_all(&out).map_err(|e| e.to_string())?;
+    let t0 = Instant::now();
+    let (records, verify_wall) = run_real_experiment(&cfg, &base, threads).map_err(|e| e.to_string())?;
+    let wall_seconds = t0.elapsed().as_secs_f64();
+    let mut buf = Vec::new();
+    for r in &records {
+        serde_json::to_writer(&mut buf, r).map_err(|e| e.to_string())?;
+        buf.push(b'\n');
+    }
+    let results = out.join("results.jsonl");
+    File::create(&results).and_then(|mut f| f.write_all(&buf)).map_err(|e| format!("{}: {e}", results.display()))?;
+    write_json(&out.join("experiment.json"), &cfg)?;
+    let manifest = Manifest {
+        experiment_id: cfg.experiment_id.clone(),
+        kind: "real-tasks",
+        catalog_sha256: Some(cfg.catalog_sha256),
+        verify_wall_seconds: Some(verify_wall),
+        config_digest: Digest::of_canonical(&cfg).map_err(|e| e.to_string())?,
+        results_sha256: Digest::of_bytes(&buf),
+        records: records.len(),
+        kernel_version: KERNEL_VERSION,
+        source_commit: git(&["rev-parse", "HEAD"]).unwrap_or_else(|| "unknown".into()),
+        source_dirty: git(&["status", "--porcelain", "--untracked-files=no"]).is_none_or(|s| !s.is_empty()),
+        host_os: std::env::consts::OS,
+        host_arch: std::env::consts::ARCH,
+        host_threads,
+        threads_used: threads,
+        wall_seconds,
+    };
+    write_json(&out.join("manifest.json"), &manifest)?;
+    println!("REAL TASKS experiment {}: {} runs in {:.1}s -> {}", cfg.experiment_id, records.len(), wall_seconds, results.display());
     Ok(())
 }
