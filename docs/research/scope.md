@@ -44,8 +44,8 @@ between agents, and model confidence are not outputs.
 
 | ID | Statement (operational) | Status |
 |---|---|---|
-| H1 | With text-only workers, adaptive allocation verifies more problems than the **stronger** of {strict fixed slice, work-conserving round-robin} at equal compute caps. It is also reported against a static-prior heuristic and a bandit baseline (Zuo et al. 2506.12721). | **Untested on real workers.** A simulation precondition (exp-000) is being run. |
-| H1-sim | In a synthetic environment where the scheduler sees only verifier receipts, posterior-based allocation beats work-conserving round-robin on verified yield when branch success rates are heterogeneous. It does *not* beat it when they are homogeneous. | Preregistered as exp-000. |
+| H1 | With text-only workers, adaptive allocation verifies more problems than the **stronger** of {strict fixed slice, work-conserving round-robin} at equal compute caps. It is also reported against a static-prior heuristic and a bandit baseline (Zuo et al. 2506.12721). | **Untested on real workers.** Its simulation precondition (H1-sim) failed in one regime, so any real-worker test must report results by budget regime and against round-robin. |
+| H1-sim | In a synthetic environment where the scheduler sees only verifier receipts, posterior-based allocation beats work-conserving round-robin on verified yield when branch success rates are heterogeneous. It does *not* beat it when they are homogeneous. | **Rejected** under the frozen rule (exp-000, simulation): positive in 5 of 6 primary cells, negative in R2-formal-plateau at moderate budget. Most single-step gain came from prior hints, and the multi-step gain from structure awareness. See [`results/exp-000`](../../results/exp-000/README.md). |
 | H2 | Hybrid workers lower all-in cost per verified solution at non-inferior verified success, compared with matched text-only workers. | **Untested; blocked.** There is no GPU, and no matched text checkpoint is released (C5). |
 | H3 | Hybrid × adaptive interaction on verified yield. | **Untested; blocked by H2.** |
 
