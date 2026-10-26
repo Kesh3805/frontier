@@ -1,0 +1,304 @@
+{
+  "schema_version": "0.1",
+  "experiment_id": "exp-001-C-moderate",
+  "regimes": [
+    {
+      "name": "C-R2-fnr0.0-fpr0.0",
+      "env": {
+        "problems": 50,
+        "approaches_min": 1,
+        "approaches_max": 1,
+        "chain_min": 1,
+        "chain_max": 1,
+        "shared_lemma_prob": 0.0,
+        "dead_fraction": 0.11,
+        "p_alpha": 0.38,
+        "p_beta": 0.17,
+        "cost_log_mean": 0.0,
+        "cost_log_sd": 0.5,
+        "attempt_cost_sd": 0.3,
+        "failure_cost_mult": 1.5,
+        "hint_noise": 1.0,
+        "verifier_fnr": 0.0,
+        "verifier_fpr": 0.0,
+        "distinct_solutions": true
+      }
+    },
+    {
+      "name": "C-R2-fnr0.0-fpr0.02",
+      "env": {
+        "problems": 50,
+        "approaches_min": 1,
+        "approaches_max": 1,
+        "chain_min": 1,
+        "chain_max": 1,
+        "shared_lemma_prob": 0.0,
+        "dead_fraction": 0.11,
+        "p_alpha": 0.38,
+        "p_beta": 0.17,
+        "cost_log_mean": 0.0,
+        "cost_log_sd": 0.5,
+        "attempt_cost_sd": 0.3,
+        "failure_cost_mult": 1.5,
+        "hint_noise": 1.0,
+        "verifier_fnr": 0.0,
+        "verifier_fpr": 0.02,
+        "distinct_solutions": true
+      }
+    },
+    {
+      "name": "C-R2-fnr0.2-fpr0.0",
+      "env": {
+        "problems": 50,
+        "approaches_min": 1,
+        "approaches_max": 1,
+        "chain_min": 1,
+        "chain_max": 1,
+        "shared_lemma_prob": 0.0,
+        "dead_fraction": 0.11,
+        "p_alpha": 0.38,
+        "p_beta": 0.17,
+        "cost_log_mean": 0.0,
+        "cost_log_sd": 0.5,
+        "attempt_cost_sd": 0.3,
+        "failure_cost_mult": 1.5,
+        "hint_noise": 1.0,
+        "verifier_fnr": 0.2,
+        "verifier_fpr": 0.0,
+        "distinct_solutions": true
+      }
+    },
+    {
+      "name": "C-R2-fnr0.2-fpr0.02",
+      "env": {
+        "problems": 50,
+        "approaches_min": 1,
+        "approaches_max": 1,
+        "chain_min": 1,
+        "chain_max": 1,
+        "shared_lemma_prob": 0.0,
+        "dead_fraction": 0.11,
+        "p_alpha": 0.38,
+        "p_beta": 0.17,
+        "cost_log_mean": 0.0,
+        "cost_log_sd": 0.5,
+        "attempt_cost_sd": 0.3,
+        "failure_cost_mult": 1.5,
+        "hint_noise": 1.0,
+        "verifier_fnr": 0.2,
+        "verifier_fpr": 0.02,
+        "distinct_solutions": true
+      }
+    },
+    {
+      "name": "C-R3-fnr0.0-fpr0.0",
+      "env": {
+        "problems": 50,
+        "approaches_min": 1,
+        "approaches_max": 1,
+        "chain_min": 1,
+        "chain_max": 1,
+        "shared_lemma_prob": 0.0,
+        "dead_fraction": 0.3,
+        "p_alpha": 0.27,
+        "p_beta": 0.91,
+        "cost_log_mean": 0.0,
+        "cost_log_sd": 0.5,
+        "attempt_cost_sd": 0.3,
+        "failure_cost_mult": 1.5,
+        "hint_noise": 1.0,
+        "verifier_fnr": 0.0,
+        "verifier_fpr": 0.0,
+        "distinct_solutions": true
+      }
+    },
+    {
+      "name": "C-R3-fnr0.0-fpr0.02",
+      "env": {
+        "problems": 50,
+        "approaches_min": 1,
+        "approaches_max": 1,
+        "chain_min": 1,
+        "chain_max": 1,
+        "shared_lemma_prob": 0.0,
+        "dead_fraction": 0.3,
+        "p_alpha": 0.27,
+        "p_beta": 0.91,
+        "cost_log_mean": 0.0,
+        "cost_log_sd": 0.5,
+        "attempt_cost_sd": 0.3,
+        "failure_cost_mult": 1.5,
+        "hint_noise": 1.0,
+        "verifier_fnr": 0.0,
+        "verifier_fpr": 0.02,
+        "distinct_solutions": true
+      }
+    },
+    {
+      "name": "C-R3-fnr0.2-fpr0.0",
+      "env": {
+        "problems": 50,
+        "approaches_min": 1,
+        "approaches_max": 1,
+        "chain_min": 1,
+        "chain_max": 1,
+        "shared_lemma_prob": 0.0,
+        "dead_fraction": 0.3,
+        "p_alpha": 0.27,
+        "p_beta": 0.91,
+        "cost_log_mean": 0.0,
+        "cost_log_sd": 0.5,
+        "attempt_cost_sd": 0.3,
+        "failure_cost_mult": 1.5,
+        "hint_noise": 1.0,
+        "verifier_fnr": 0.2,
+        "verifier_fpr": 0.0,
+        "distinct_solutions": true
+      }
+    },
+    {
+      "name": "C-R3-fnr0.2-fpr0.02",
+      "env": {
+        "problems": 50,
+        "approaches_min": 1,
+        "approaches_max": 1,
+        "chain_min": 1,
+        "chain_max": 1,
+        "shared_lemma_prob": 0.0,
+        "dead_fraction": 0.3,
+        "p_alpha": 0.27,
+        "p_beta": 0.91,
+        "cost_log_mean": 0.0,
+        "cost_log_sd": 0.5,
+        "attempt_cost_sd": 0.3,
+        "failure_cost_mult": 1.5,
+        "hint_noise": 1.0,
+        "verifier_fnr": 0.2,
+        "verifier_fpr": 0.02,
+        "distinct_solutions": true
+      }
+    },
+    {
+      "name": "C-R5-fnr0.0-fpr0.0",
+      "env": {
+        "problems": 50,
+        "approaches_min": 1,
+        "approaches_max": 3,
+        "chain_min": 1,
+        "chain_max": 4,
+        "shared_lemma_prob": 0.5,
+        "dead_fraction": 0.11,
+        "p_alpha": 0.38,
+        "p_beta": 0.17,
+        "cost_log_mean": 0.0,
+        "cost_log_sd": 0.5,
+        "attempt_cost_sd": 0.3,
+        "failure_cost_mult": 1.5,
+        "hint_noise": 1.0,
+        "verifier_fnr": 0.0,
+        "verifier_fpr": 0.0,
+        "distinct_solutions": true
+      }
+    },
+    {
+      "name": "C-R5-fnr0.0-fpr0.02",
+      "env": {
+        "problems": 50,
+        "approaches_min": 1,
+        "approaches_max": 3,
+        "chain_min": 1,
+        "chain_max": 4,
+        "shared_lemma_prob": 0.5,
+        "dead_fraction": 0.11,
+        "p_alpha": 0.38,
+        "p_beta": 0.17,
+        "cost_log_mean": 0.0,
+        "cost_log_sd": 0.5,
+        "attempt_cost_sd": 0.3,
+        "failure_cost_mult": 1.5,
+        "hint_noise": 1.0,
+        "verifier_fnr": 0.0,
+        "verifier_fpr": 0.02,
+        "distinct_solutions": true
+      }
+    },
+    {
+      "name": "C-R5-fnr0.2-fpr0.0",
+      "env": {
+        "problems": 50,
+        "approaches_min": 1,
+        "approaches_max": 3,
+        "chain_min": 1,
+        "chain_max": 4,
+        "shared_lemma_prob": 0.5,
+        "dead_fraction": 0.11,
+        "p_alpha": 0.38,
+        "p_beta": 0.17,
+        "cost_log_mean": 0.0,
+        "cost_log_sd": 0.5,
+        "attempt_cost_sd": 0.3,
+        "failure_cost_mult": 1.5,
+        "hint_noise": 1.0,
+        "verifier_fnr": 0.2,
+        "verifier_fpr": 0.0,
+        "distinct_solutions": true
+      }
+    },
+    {
+      "name": "C-R5-fnr0.2-fpr0.02",
+      "env": {
+        "problems": 50,
+        "approaches_min": 1,
+        "approaches_max": 3,
+        "chain_min": 1,
+        "chain_max": 4,
+        "shared_lemma_prob": 0.5,
+        "dead_fraction": 0.11,
+        "p_alpha": 0.38,
+        "p_beta": 0.17,
+        "cost_log_mean": 0.0,
+        "cost_log_sd": 0.5,
+        "attempt_cost_sd": 0.3,
+        "failure_cost_mult": 1.5,
+        "hint_noise": 1.0,
+        "verifier_fnr": 0.2,
+        "verifier_fpr": 0.02,
+        "distinct_solutions": true
+      }
+    }
+  ],
+  "policies": [
+    {
+      "kind": "round_robin"
+    },
+    {
+      "kind": "greedy_prior"
+    },
+    {
+      "kind": "thompson",
+      "prior_strength": 2.0,
+      "use_hints": true
+    },
+    {
+      "kind": "thompson",
+      "prior_strength": 2.0,
+      "use_hints": false
+    }
+  ],
+  "seed_start": 1,
+  "seeds": 200,
+  "run": {
+    "seed": 0,
+    "workers": 8,
+    "budget_units": 600.0,
+    "attempt_cap_units": 8.0,
+    "verify_cost_units": 0.25,
+    "crash_prob": 0.02,
+    "max_attempts_per_task": 64,
+    "max_parallel_per_task": 1,
+    "prior_cost": 1.0,
+    "policy": {
+      "kind": "round_robin"
+    }
+  }
+}

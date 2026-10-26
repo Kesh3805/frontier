@@ -1,0 +1,110 @@
+{
+  "schema_version": "0.1",
+  "experiment_id": "exp-001-A-b300",
+  "regimes": [
+    {
+      "name": "A-noise0",
+      "env": {
+        "problems": 50,
+        "approaches_min": 1,
+        "approaches_max": 1,
+        "chain_min": 1,
+        "chain_max": 1,
+        "shared_lemma_prob": 0.0,
+        "dead_fraction": 0.11,
+        "p_alpha": 0.38,
+        "p_beta": 0.17,
+        "cost_log_mean": 0.0,
+        "cost_log_sd": 0.5,
+        "attempt_cost_sd": 0.3,
+        "failure_cost_mult": 1.5,
+        "hint_noise": 0.0
+      }
+    },
+    {
+      "name": "A-noise1",
+      "env": {
+        "problems": 50,
+        "approaches_min": 1,
+        "approaches_max": 1,
+        "chain_min": 1,
+        "chain_max": 1,
+        "shared_lemma_prob": 0.0,
+        "dead_fraction": 0.11,
+        "p_alpha": 0.38,
+        "p_beta": 0.17,
+        "cost_log_mean": 0.0,
+        "cost_log_sd": 0.5,
+        "attempt_cost_sd": 0.3,
+        "failure_cost_mult": 1.5,
+        "hint_noise": 1.0
+      }
+    },
+    {
+      "name": "A-noise2",
+      "env": {
+        "problems": 50,
+        "approaches_min": 1,
+        "approaches_max": 1,
+        "chain_min": 1,
+        "chain_max": 1,
+        "shared_lemma_prob": 0.0,
+        "dead_fraction": 0.11,
+        "p_alpha": 0.38,
+        "p_beta": 0.17,
+        "cost_log_mean": 0.0,
+        "cost_log_sd": 0.5,
+        "attempt_cost_sd": 0.3,
+        "failure_cost_mult": 1.5,
+        "hint_noise": 2.0
+      }
+    }
+  ],
+  "policies": [
+    {
+      "kind": "round_robin"
+    },
+    {
+      "kind": "greedy_prior"
+    },
+    {
+      "kind": "thompson",
+      "prior_strength": 0.5,
+      "use_hints": true
+    },
+    {
+      "kind": "thompson",
+      "prior_strength": 2.0,
+      "use_hints": true
+    },
+    {
+      "kind": "thompson",
+      "prior_strength": 8.0,
+      "use_hints": true
+    },
+    {
+      "kind": "thompson",
+      "prior_strength": 2.0,
+      "use_hints": false
+    },
+    {
+      "kind": "oracle_index"
+    }
+  ],
+  "seed_start": 1,
+  "seeds": 200,
+  "run": {
+    "seed": 0,
+    "workers": 8,
+    "budget_units": 300.0,
+    "attempt_cap_units": 8.0,
+    "verify_cost_units": 0.25,
+    "crash_prob": 0.02,
+    "max_attempts_per_task": 64,
+    "max_parallel_per_task": 1,
+    "prior_cost": 1.0,
+    "policy": {
+      "kind": "round_robin"
+    }
+  }
+}
