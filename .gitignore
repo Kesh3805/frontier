@@ -1,0 +1,13 @@
+/target/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+.venv/
+/runs/
+# Original source materials are archived by hash in docs/archive/; the
+# working copies in the workspace root are not tracked.
+/FRONTIER-Complete-Research-Documentation.md
+/FRONTIER-Research-Dossier.pdf
+/frontier-research/
+/.omc/
