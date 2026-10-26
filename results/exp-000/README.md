@@ -1,5 +1,10 @@
 # exp-000 results: receipt-driven allocation vs round-robin (simulation)
 
+> **Erratum E1 (2026-10-27).** These results were produced on kernel
+> 0.1.0, which had a bug that stranded budget unevenly across policies (E1). See [`docs/research/errata.md`](../../docs/research/errata.md).
+> A corrected re-run on kernel 0.3.0 under this unchanged protocol is
+> reported in `results/rerun-k0.3/` once complete.
+
 **Kind: SIMULATION.** Synthetic environment, perfect verifier, no models, no
 spend. These results bound what an allocation policy can do in a model of
 research attempts. They are not measurements of LLM research agents.
@@ -70,8 +75,11 @@ problems common. This is a hypothesis for exp-001, not a finding.
 
 ## Secondary results (descriptive; not preregistered as decisions)
 
-1. **Prior information, not learning, explains most single-step gains
-   (P4 not confirmed).** Thompson *without* hints does not beat
+1. **Prior information matters, and learning matters too (P4 not
+   confirmed).** *Wording corrected 2026-10-27; it previously said "prior
+   information, not learning, explains most single-step gains". In R2-scarce
+   greedy_prior gains only +0.125 against Thompson's +1.46, and greedy_prior
+   loses in R2 and R3 at the moderate budget.* Thompson *without* hints does not beat
    round-robin in R2 or R3 at the scarce budget (R2: +0.03, CI
    [−0.17, 0.23]; R3: −0.40, CI [−0.61, −0.20]). The static
    `greedy_prior` index, which never learns, reaches +2.5 in R3 scarce.

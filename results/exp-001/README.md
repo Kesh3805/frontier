@@ -1,5 +1,10 @@
 # exp-001 results: mechanism, correlated failures, imperfect verifiers (simulation)
 
+> **Erratum E1 (2026-10-27).** These results were produced on kernel
+> 0.2.0, which had a bug that stranded budget unevenly across policies (E1). See [`docs/research/errata.md`](../../docs/research/errata.md).
+> A corrected re-run on kernel 0.3.0 under this unchanged protocol is
+> reported in `results/rerun-k0.3/` once complete.
+
 **Kind: SIMULATION.** Synthetic environment, no models, no spend.
 
 Protocol: [`research/preregistration/exp-001/protocol.md`](../../research/preregistration/exp-001/protocol.md),
@@ -59,7 +64,7 @@ level. So no condition in Part A gives the scheduler correct hints about
 dead problems. Two observations fit this:
 
 - hint-free Thompson ties round-robin exactly at B=600 (0.00 [−0.065, 0.065]);
-- the static hint index loses about one problem everywhere.
+- the static hint index loses about one problem at B=300 and B=600 (0.10–0.19 at B=1200).
 
 Our revised, **untested** hypothesis is optimistic priors on dead
 problems. Pseudo-successes from a high hint make the posterior decay slowly
@@ -93,9 +98,12 @@ obligation is worth more once there is enough budget to act on it.
 ### 3. Verifier false positives are amplified by the number of attempts
 
 With fpr = 0.02 per check, the share of *accepted* problems that are
-actually wrong is about 12% in R2, 23–25% in R3 and 8–11% in R5. This is a
+actually wrong is about 12% in R2, 23–27% in R3 and 8–11% in R5 (with or without fnr = 0.2). This is a
 base-rate effect: every wrong attempt that gets checked is another chance
-for a false acceptance. A verifier that is "98% specific" per check is far
+for a false acceptance. This is prior art: Stroebl, Kapoor & Narayanan
+(arXiv:2411.17501) show that imperfect verifiers cap the gains from
+resampling, because false positives accumulate. Our contribution is only
+the measurement under scheduling. A verifier that is "98% specific" per check is far
 from 98% trustworthy per accepted result. For real systems, the per-check
 false-positive rate must be well below 1 / (expected checks per problem).
 Adaptive allocation does **not** mitigate this: in R3 it produced
@@ -132,11 +140,13 @@ condition. At the freeze commit that check **failed**, but the cause was
 ours: the head had been pinned before the kernel version string (which is
 part of the first log record) changed from 0.1.0 to 0.2.0.
 
-We then verified cross-platform identity directly. A diagnostic GitHub
-Actions run on ubuntu-24.04 produced the smoke log, and it matches the
-Windows log of the same commit in all 684 events, with identical head
-`36b691cc…`. The pin was corrected afterwards. The results above are
-therefore platform-independent for this kernel.
+**Under the frozen rule, these results therefore stand as Windows-only.**
+
+Separate, post-hoc diagnostic evidence suggests they are
+platform-independent. A diagnostic GitHub Actions run on ubuntu-24.04
+produced the smoke log, which matches the Windows log of the same commit
+in all 684 events, with identical head `36b691cc…`. The pin was corrected
+afterwards. That evidence does not override the preregistered rule.
 
 exp-000 used kernel 0.1.0 and reproduces exactly only with its own Windows
 release binary; see the erratum in [`results/exp-000`](../exp-000/README.md).

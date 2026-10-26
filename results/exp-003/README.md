@@ -1,5 +1,10 @@
 # exp-003 results: first real verifier-backed pilot (non-LLM worker)
 
+> **Erratum E1 and E2 (2026-10-27).** These results were produced on kernel
+> 0.2.0, which had a bug that stranded budget unevenly across policies (E1) and one that did not count repeated rejected programs as failures (E2). See [`docs/research/errata.md`](../../docs/research/errata.md).
+> exp-003 is **not** re-run: exp-004 supersedes it (same design with
+> shuffled order), and exp-004 is re-run on kernel 0.3.0.
+
 > **Correction (exp-004).** The task-order confound flagged below also
 > affected round_robin (−0.79 at budget 60) and greedy_prior. With order
 > shuffled per seed, the budget-240 gain is no longer significant, and the
@@ -13,7 +18,7 @@ Protocol and scoring script:
 [`research/preregistration/exp-003/`](../../research/preregistration/exp-003/protocol.md),
 both frozen at `f90eaf3`.
 
-**Runs.** 2,100 campaigns (34 tasks × 7 policies × 100 seeds × 3 budgets)
+**Runs.** 2,100 campaigns (7 policies × 100 seeds × 3 budgets, 34 tasks each)
 from that commit, with a clean tree. Every run passed the log audit.
 
 **Host.** Windows, i5-1135G7, 8 threads.
@@ -64,13 +69,15 @@ There are 26 live tasks; 8 tasks are dead.
    is **not** a finding. Round-robin also iterates in this order; it treats
    all tasks symmetrically, but it is not proven immune. Fix for the next
    run: shuffle problem order per seed.
-2. **Prior information, not learning, explains most of the gain.**
+2. **Hints matter (wording corrected after exp-004).**
    - With hints, thompson gains at every budget.
    - Without hints, it **loses** badly at budget 60 (−1.78), as it did in the
-     simulator's dead-heavy, scarce-budget cell (exp-001/002 R3).
-   - The static hint index (greedy_prior), which never learns, is about as
-     good as thompson with hints.
-   - This is the exp-000 secondary finding, reproduced on real tasks.
+     simulator's dead-heavy, scarce-budget cell (exp-001 Part B, R3 scarce:
+     −0.35).
+   - In catalog order, the static hint index (greedy_prior) looked about as
+     good as thompson with hints. That was partly the order confound: with
+     shuffled order (exp-004) it gains about half as much at budget 60 and
+     falls below round-robin at 240.
 3. **Thompson with hints wastes many attempts on dead tasks, as predicted.**
    It spends 156 more dead attempts than round-robin at budget 240,
    because 3 dead tasks carry confident probe hints and fail cheaply. It
@@ -83,8 +90,9 @@ There are 26 live tasks; 8 tasks are dead.
    task whenever every remaining live task already has an attempt running.
    This interaction between work conservation and the parallelism cap is
    a design issue for future runs. It is an explanation, not tested here.
-5. **Real verifier false acceptances occur.** The frozen hidden suite (43
-   cases with values in [−20, 20]) accepted programs that the extended
+5. **Real verifier false acceptances occur.** The frozen hidden suite (40
+   random cases with values in [−20, 20], plus the 3 visible examples: 43
+   checks) accepted programs that the extended
    check rejects; calibration located these in max0, span and max_abs.
    The share of runs with at least one false solve was:
 
@@ -104,7 +112,7 @@ There are 26 live tasks; 8 tasks are dead.
 |---|---|
 | Hinted allocation over-spends on dead problems that look feasible (exp-002) | ✔ Reproduced |
 | Hint-free adaptivity loses at scarce budget when dead problems are common | ✔ Reproduced |
-| Hints carry most of the gain | ✔ Reproduced |
+| Hints carry most of the gain | ✘ Not supported after exp-004 (order confound) |
 | Hinted allocation loses at generous budget (exp-000/001 R2) | ✘ Not reproduced: a small gain instead. Here 5 of 8 dead tasks *are* flagged by the hint (detection ≈ 0.6), and exp-002 showed detection removes that loss. |
 
 ## Limits
