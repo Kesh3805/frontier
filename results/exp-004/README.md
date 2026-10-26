@@ -1,5 +1,10 @@
 # exp-004 results: real-task pilot with problem order shuffled per seed
 
+> **Erratum E1 and E2 (2026-10-27).** These results were produced on kernel
+> 0.2.0, which had a bug that stranded budget unevenly across policies (E1) and one that did not count repeated rejected programs as failures (E2). See [`docs/research/errata.md`](../../docs/research/errata.md).
+> A corrected re-run on kernel 0.3.0 under this unchanged protocol is
+> reported in `results/rerun-k0.3/` once complete.
+
 **Kind: REAL TASKS, PILOT** (non-LLM worker). Protocol:
 [`research/preregistration/exp-004/`](../../research/preregistration/exp-004/protocol.md),
 frozen at `a7e1528`.
@@ -24,6 +29,7 @@ order (exp-004), on true solves.
 | greedy_prior | **−0.82** [−1.04, −0.60] | **−1.21** [−1.48, −0.96] | −0.16 [−0.35, 0.02] |
 | thompson (hints) | −0.06 [−0.21, 0.09] | **−0.44** [−0.59, −0.29] | −0.05 [−0.17, 0.07] |
 | thompson (no hints) | +0.04 | +0.06 | +0.03 |
+| random | **+0.52** [0.06, 1.00] | −0.01 [−0.22, 0.20] | −0.01 [−0.11, 0.08] |
 | oracle_index | 0 | 0 | 0 |
 
 | Prediction | Result |
@@ -41,7 +47,11 @@ order (exp-004), on true solves.
 - **greedy_prior** breaks its many tied hints (0.999 or 0.001) by lowest
   index.
 
-Thompson sampling breaks ties at random and is nearly immune. **The lesson
+Thompson sampling breaks ties at random and is affected less, but not
+immune: −0.44 [−0.59, −0.29] at budget 240, larger than round-robin's
+effect there. It passed O4 only through the |effect| < 0.5 threshold.
+Random allocation also moved (+0.52 at 60), perhaps through its own
+order-dependent indexing. **The lesson
 for the harness:** any deterministic lowest-index tie-break turns catalog
 order into a hidden feature. Real-task runs must shuffle order, and future
 policies should break ties at random.

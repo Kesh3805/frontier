@@ -136,6 +136,39 @@ automated evaluators. None of them reports a controlled
 verified-yield-per-compute comparison of allocation policies. That gap is
 the one FRONTIER targets, and it is narrow.
 
+## 6b. Verification adequacy and the cost of verification
+
+Added 2026-10-27, for exp-001 and exp-005/006. Citations were checked
+against primary pages; items marked UNVERIFIED were not.
+
+- **Andoni, Daniliuc, Khurshid, Marinov, "Evaluating the 'Small Scope
+  Hypothesis'"** (MIT LCS; venue and year UNVERIFIED). Bounded-exhaustive
+  inputs at small bounds (about 3–5) reach full coverage and catch over 90%
+  of mutants in most of their Java benchmarks. The extended technical
+  report (Marinov et al.) finds equal-size random samples weaker in half of
+  the benchmarks. Prior art for exp-005's question.
+- **QuickCheck** (Claessen & Hughes, ICFP 2000, doi:10.1145/357766.351266)
+  and **SmallCheck** (Runciman et al., Haskell Symposium 2008): random
+  vs depth-bounded exhaustive property testing.
+- **AlphaCode** (arXiv:2203.07814, §3.2.1, Table 2): benchmark test suites
+  with 8–21 tests accept 30–62% of wrong programs; about 200 generated
+  tests reduce that to 4%. **EvalPlus** (arXiv:2305.01210): 80× more tests
+  lower pass@k by up to 19–29%. **HardTests** (arXiv:2505.24098): subtle
+  wrong solutions need edge-case tests.
+- **Stroebl, Kapoor & Narayanan, "The Limits of Inference Scaling Through
+  Resampling"** (arXiv:2411.17501): imperfect verifiers cap the gains from
+  resampling, because false positives accumulate. **This is prior art for
+  exp-001's base-rate finding**, which therefore reports a measurement under
+  scheduling, not a new effect.
+- **"When To Solve, When To Verify"** (arXiv:2504.01005, COLM 2025): once
+  verifier compute is charged to the budget, generative verification can
+  need up to 8× the compute to match majority voting. This supports
+  charging verification cost, as exp-006 does.
+- **Test prioritisation:** Rothermel et al., IEEE TSE 27(10), 2001; Elbaum,
+  Rothermel & Penix, FSE 2014. Background for fail-fast charging. We found
+  no prior cost model for fail-fast charging of LLM verifiers, but the
+  search was not exhaustive.
+
 ## 7. Gaps and bounded contributions
 
 What is **not** established in the literature we found:
