@@ -67,6 +67,28 @@ def test_suite_v2_adds_exhaustive_small_inputs_and_rejects_boundary_bug():
     assert correct_on(bug, v1) and not correct_on(bug, v2)
 
 
+def test_fail_fast_charges_less_only_for_failures():
+    srcs = [
+        "def f(xs):\n    return max(xs, default=0)\n",
+        "def f(xs):\n    return max([x for x in xs if x!=0], default=0)\n",
+        "def f(xs):\n    return xs[5]\n",
+    ]
+    reqs = [{"op": "verify", "task": "max0", "source": s, "spec_digest": "0" * 64, "artifact_digest": str(i) * 64}
+            for i, s in enumerate(srcs, 1)]
+
+    def run(*flags):
+        p = subprocess.run([sys.executable, "-m", "frontier_py.realtasks.server", "--suite-version", "2", *flags],
+                           input="\n".join(map(json.dumps, reqs)) + "\n", capture_output=True, text=True, cwd=PYTHON_DIR, timeout=120)
+        return [json.loads(line)["receipt"] for line in p.stdout.splitlines()]
+
+    full, fast = run(), run("--fail-fast")
+    assert [r["verdict"] for r in full] == [r["verdict"] for r in fast] == ["PASS", "FAIL", "FAIL"]
+    assert full[0]["cost_units"] == fast[0]["cost_units"] == 0.995  # PASS: all 199 checks charged
+    assert all(r["cost_units"] == 0.995 for r in full)
+    assert 0 < fast[1]["cost_units"] < 0.995  # output mismatch
+    assert 0 < fast[2]["cost_units"] < 0.995  # exception
+
+
 def test_server_protocol():
     reqs = [
         {"op": "hello"},
