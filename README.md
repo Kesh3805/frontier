@@ -1,60 +1,236 @@
 # FRONTIER
 
-**Adaptive allocation of compute for verified research results.**
-A research program of Ostrium Labs.
+[![ci](https://github.com/Kesh3805/frontier/actions/workflows/ci.yml/badge.svg)](https://github.com/Kesh3805/frontier/actions/workflows/ci.yml)
+![license](https://img.shields.io/badge/license-Apache--2.0-blue)
 
-FRONTIER asks a narrow, falsifiable question. At a fixed end-to-end compute
-budget, does choosing *which attempt runs next* from independent verifier
-feedback yield more verified results than strong fixed-allocation policies?
-And does a cheaper per-attempt generator, such as latent/text hybrid
-reasoning, add to that?
+**Does deciding *which attempt runs next* get more independently verified
+results out of a fixed compute budget?**
 
-## Status (2026-10-26)
+FRONTIER is a research program of Ostrium Labs. It tests, with
+preregistered experiments, whether adaptive allocation of compute across
+many verifier-checked research attempts beats strong fixed-allocation
+baselines. It also asks how much verification quality and cost change the
+answer. It is built so that a skeptical reviewer can re-run and audit every
+number.
 
-| Area | State |
-|---|---|
-| Research scope, source audit, literature review, calibration | Written; see [`docs/research/`](docs/research/) |
-| Architecture decisions | [`docs/decisions/`](docs/decisions/) (ADR-0001 to ADR-0006) |
-| Rust kernel: specs, task DAG, budget ledger, evidence, hash-chained log | Implemented and tested |
-| Scheduling policies (9) and synthetic simulator with audit and replay | Implemented and tested |
-| Python property-test verifier (V1, not sandboxed), analysis, adapters | Implemented and tested; HybridAgent and hosted adapters are interface-only |
-| **exp-000** (simulation, preregistered) | **Done. H1-sim rejected under the frozen rule**: adaptive allocation beat round-robin in 5 of 6 primary cells but was worse in one. See [`results/exp-000/`](results/exp-000/README.md) |
-| **exp-001** (simulation, preregistered) | **Done.** The R2-moderate loss replicates; the misleading-hints explanation is refuted under the frozen rule (with a disclosed confound). Where the adaptive advantage exists, it survives correlated failures and verifier noise. A 2% per-check false-positive rate makes 8–25% of accepted results false. See [`results/exp-001/`](results/exp-001/README.md) |
-| **exp-002** (simulation, preregistered) | **Done. Mechanism supported:** the loss comes from optimistic hints on dead problems the hints don't flag (+47 wasted attempts). With full detection of dead problems the loss becomes a gain (+0.56; +3.85 in R3). See [`results/exp-002/`](results/exp-002/README.md) |
-| **exp-003** (real tasks, non-LLM worker, pilot) | **Done.** 34 real algorithm tasks, real subprocess verifier. Thompson with hints beat round-robin at budgets 60 and 240 (pilot rule: supported), but most of the gain comes from hints. The predicted waste on dead tasks was reproduced, and real verifier false acceptances were measured. FIFO's lead is a task-order confound. See [`results/exp-003/`](results/exp-003/README.md) |
-| **exp-004** (real tasks, shuffled order) | **Done.** Task order leaked into FIFO, round-robin and tie-breaking index policies. With order shuffled, hinted Thompson wins clearly only at the scarce budget (+1.75 [1.36, 2.14]); the pilot H1 verdict is **inconclusive**. See [`results/exp-004/`](results/exp-004/README.md) |
-| **exp-005** (verification study) | **Done.** The current 40-case hidden suite accepts 1.8% of wrong programs (boundary bugs); every larger or narrower-range suite accepts none, so the small-scope hypothesis can't be tested at this floor. See [`results/exp-005/`](results/exp-005/README.md) |
-| H1 (LLM workers) | Untested: needs an LLM worker and a spending authorisation |
-| H2/H3 (hybrid reasoning) | Untested and blocked: no GPU, and no released matched text-only checkpoint |
+> **What this is not.** FRONTIER makes no scientific-discovery claims.
+> Most results so far are from simulation or from a deterministic
+> **non-LLM** worker on small algorithm tasks, and they are labelled as
+> such. Hybrid latent/text reasoning (HybridAgent) has not been tested yet:
+> there is no GPU here, and no matched text-only baseline has been released.
 
-Nothing in this repository is a scientific discovery claim. Simulation
-results are labelled as simulations.
+---
+
+## Findings so far
+
+Each line links to a preregistered experiment with its frozen protocol,
+scoring script, raw per-run data and an honest scorecard, including
+failed predictions.
+
+| # | Kind | Finding | Status |
+|---|---|---|---|
+| [exp-000](results/exp-000/README.md) | simulation | Adaptive (Thompson) allocation beat round-robin in 5 of 6 calibrated regimes but **lost** in one. | H1-sim **rejected** as stated |
+| [exp-001](results/exp-001/README.md) | simulation | The loss replicates. The advantage survives correlated failures and noisy verifiers. **A 2% per-check false-positive rate makes 8–25% of accepted results false.** | — |
+| [exp-002](results/exp-002/README.md) | simulation | Mechanism: optimistic hints on *undetected dead problems* (+47 wasted attempts). Flag those problems and the loss becomes a gain. | mechanism **supported** |
+| [exp-003](results/exp-003/README.md) | real tasks | First pilot on 34 real tasks with a real subprocess verifier. The predicted waste on dead tasks reproduced; real verifier false acceptances measured. | superseded by exp-004 |
+| [exp-004](results/exp-004/README.md) | real tasks | **Task order leaked into the baselines** (FIFO −9.0 when shuffled). With order shuffled, hinted Thompson wins only at a scarce budget: **+1.75 [1.36, 2.14]** of 26 live tasks. | H1 pilot **inconclusive** |
+| [exp-005](results/exp-005/README.md) | verification | The 40-case hidden suite accepted 1.8% of wrong programs (boundary bugs). 40 cases with small values accepted none. | led to suite v2 |
+| exp-006 | real tasks | Stronger verification (199 cases, 4.6× the cost): what does it cost in verified yield? | **running** |
+
+**Takeaways so far, each with its uncertainty:**
+
+1. Adaptive allocation is **not uniformly better** than a good round-robin
+   baseline. It helps most when the budget is scarce.
+2. Most of the gain comes from **prior difficulty information**, not from
+   learning from receipts. Bad hints on unsolvable problems are the main
+   failure mode.
+3. **Verification quality matters as much as allocation.** Weak hidden test
+   suites let wrong answers through, and more attempts amplify that.
+4. Infrastructure details can silently decide a comparison: task order,
+   tie-breaking, and platform-dependent floating point all did here. Each
+   was caught and corrected in the open.
+
+Program-level hypothesis status is kept in
+[`docs/research/scope.md`](docs/research/scope.md).
+
+---
+
+## How it works
+
+```mermaid
+flowchart LR
+  S[Sealed problem specs<br/>content-hashed] --> G[Task DAG]
+  G --> P[Scheduling policy<br/>sees receipts only]
+  P --> L[Budget ledger<br/>reserve before dispatch]
+  L --> W[Worker<br/>simulated or real]
+  W --> A[Artifact<br/>content-addressed]
+  A --> V[Independent verifier<br/>separate process]
+  V --> R[Receipt]
+  R --> E[Evidence store<br/>accepts only matching receipts]
+  E --> P
+  P -.-> LOG[(Hash-chained event log)]
+  V -.-> LOG
+  LOG --> AU[Audit and replay]
+```
+
+- **Rust control plane** (`crates/`):
+  - sealed problem specs;
+  - a task DAG with lifecycle states;
+  - a hard-cap budget ledger, where every attempt reserves its worst-case
+    cost before it starts;
+  - a content-addressed evidence store;
+  - nine allocation policies;
+  - a discrete-event runner;
+  - an append-only, hash-chained event log.
+- **Python execution layer** (`python/`):
+  - a property-test verifier that runs untrusted candidates in a separate
+    interpreter;
+  - the real-task suite and a deterministic DSL program-search worker;
+  - paired-bootstrap statistics;
+  - adapters for hosted models and HybridAgent (interface only).
+- **Interface:** versioned JSON/JSONL contracts (`schemas/`). A Python
+  service is driven by the Rust runner over stdin/stdout.
+
+## Evidence standards
+
+- **Acceptance is earned only through verifier receipts.** A receipt must
+  be bound to the sealed spec digest and the exact artifact, and meet the
+  required trust class. Model confidence is recorded but never read by
+  acceptance logic.
+- **Claims are tiered:** `plausible_candidate` < `mechanically_verified` <
+  `empirically_reproduced` < `independently_reviewed` <
+  `scientifically_accepted`. Software can reach `mechanically_verified` at
+  most. Real-task receipts are currently **trust class V1**: subprocess
+  isolation without an OS sandbox.
+- **Every reported metric is recomputed from the event log** (`frontier
+  audit`). The audit rejects tampering, budget overruns, unsupported
+  acceptances and double solves.
+- **Preregistration:** hypotheses, configs, analysis and scoring scripts are
+  hashed and committed *before* a run. Deviations, confounds and errata are
+  written into the results, never retro-fitted.
+
+---
 
 ## Quick start
 
+Requirements: Rust ≥ 1.85, Python ≥ 3.11 with `numpy`, `jsonschema` and
+`pytest`. CPU only.
+
 ```bash
-cargo test --workspace                       # Rust kernel, policies, simulator
-python -m pytest python -q                   # verifiers, analysis, adapters
-cargo build --release -p frontier-cli
-bash scripts/qualify.sh                      # smoke run + audit + replay + forgery check
-target/release/frontier experiment --config research/preregistration/exp-000/scarce.json --out runs/exp-000/scarce
-(cd python && python -m frontier_py.analysis ../runs/exp-000/scarce/results.jsonl --baseline round_robin --metric solved)
+cargo test --workspace
 ```
 
-## Layout
+```bash
+python -m pytest python -q
+```
 
-- `crates/frontier-core`: problem specs, task DAG and lifecycle, budget ledger, evidence store, event log
-- `crates/frontier-sched`: allocation policies
-- `crates/frontier-sim`: synthetic environment, discrete-event runner, log audit, experiment grid
-- `crates/frontier-cli`: the `frontier` binary (`run`, `audit`, `replay`, `experiment`)
-- `python/frontier_py`: verifiers, statistics, worker adapters
-- `schemas/`: versioned JSON data contracts
-- `research/preregistration/`: frozen protocols; `results/`: executed results
-- `docs/`: research, decisions, archive of the original dossier
+```bash
+cargo build --release -p frontier-cli
+```
 
-## License
+```bash
+bash scripts/qualify.sh
+```
 
-Apache License 2.0; see [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE). Third-party
-papers, code and models are cited where used and keep their own licenses
-(HybridAgent: MIT; HybridAgent checkpoints: MIT; Qwen3 base models and
-benchmark datasets: their respective terms).
+`qualify.sh` runs a simulated campaign, audits it, replays it bit-for-bit,
+checks that a forged verdict is rejected, and runs a real-task campaign
+twice to confirm the logs are identical.
+
+**Run a simulated campaign, audit it and replay it:**
+
+```bash
+target/release/frontier run --config configs/smoke.json --out runs/smoke
+```
+
+```bash
+target/release/frontier audit --events runs/smoke/events.jsonl --summary runs/smoke/summary.json
+```
+
+```bash
+target/release/frontier replay --config configs/smoke.json --events runs/smoke/events.jsonl
+```
+
+**Run one campaign on real tasks.** Real candidate programs go through the
+real verifier:
+
+```bash
+target/release/frontier real-run --config research/realtasks/dev.json --seed 1 --policy-index 1 --out runs/real
+```
+
+**Reproduce a preregistered experiment and its analysis:**
+
+```bash
+target/release/frontier real-experiment --config research/preregistration/exp-004/b60.json --out runs/exp-004/b60
+```
+
+```bash
+python research/preregistration/exp-004/evaluate_primary.py runs/exp-004
+```
+
+## Reproducibility
+
+- **Determinism:**
+  - all randomness comes from in-tree SplitMix64 streams keyed by
+    (seed, label);
+  - the math is portable (fdlibm `ln`/`exp`; see ADR-0003 and
+    `crates/frontier-core/src/detmath.rs`);
+  - a pinned smoke-run log head is checked in CI on Linux, and matches the
+    Windows result.
+- **Paired comparisons:** the k-th attempt on a task has the same outcome
+  under every policy (common random numbers), so policy differences are
+  measured on identical luck.
+- **Provenance:** every experiment manifest records the source commit, a
+  dirty-tree flag, the config digest, the results hash and the host.
+  Per-run CSVs keep each run's log head, so any single run can be
+  regenerated and checked.
+- **Real-task logs are platform-specific:** receipt reasons name the OS
+  harness.
+
+## Repository layout
+
+| Path | Contents |
+|---|---|
+| `crates/frontier-core` | Specs, task DAG, budget ledger, evidence, event log, deterministic RNG and math |
+| `crates/frontier-sched` | Allocation policies: FIFO, fixed slice, round-robin, random, static prior, elimination, UCB, Thompson, oracle (diagnostic) |
+| `crates/frontier-sim` | Synthetic environment, discrete-event runner, external real-task backend, audit, experiment grids |
+| `crates/frontier-cli` | The `frontier` binary |
+| `python/frontier_py` | Verifier, real-task suite and worker, worker service, statistics, model adapters |
+| `research/preregistration/` | Frozen protocols, configs and scoring scripts (exp-000 to exp-006) |
+| `research/realtasks/` | Task catalogs (v1, v2) with hashed hidden-suite commitments |
+| `results/` | Executed results, scorecards, per-run data, manifests |
+| `docs/research/` | Scope, source audit, literature review, simulator calibration |
+| `docs/decisions/` | Architecture decision records |
+| `docs/archive/` | The original dossier (v0.1), verbatim |
+| `schemas/` | JSON Schema data contracts |
+
+## Limits
+
+- **Worker:** the real-task worker is DSL program search, not an LLM. LLM
+  attempts may have very different success and cost distributions.
+- **Task suite:** 34 small list-processing tasks written by the project.
+  Single-step only; no dependency structure on real tasks yet.
+- **Verifier isolation:** V1 only. Network and filesystem are not isolated,
+  so model-generated code must not be run until a sandboxed (V2) image
+  exists.
+- **Cost:** costs are in deterministic compute units, not dollars. No paid
+  compute has been used.
+
+## Roadmap
+
+1. exp-006: the cost of stronger verification (running); then fail-fast
+   verification charging.
+2. **Stage 2:** an LLM worker on a harder, held-out task set, with response
+   caching for exact replay. *Requires an explicit spending
+   authorisation.*
+3. A sandboxed (V2) verifier image; Lean tasks with a pinned
+   toolchain.
+4. HybridAgent reproduction and a matched text-only baseline. *Requires a
+   GPU and training budget.*
+
+## License and attribution
+
+Apache License 2.0; see [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE).
+Third-party papers, code and models are cited where used and keep their own
+licenses. These include HybridAgent (MIT) and its checkpoints (MIT), the
+fdlibm-derived math (Sun Microsystems notice preserved in `detmath.rs`),
+and the benchmark and model terms of anything used later.
