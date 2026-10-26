@@ -77,6 +77,13 @@ dependencies = [
 [[package]]
 name = "frontier-sim"
 version = "0.1.0"
+dependencies = [
+ "frontier-core",
+ "frontier-sched",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
 
 [[package]]
 name = "hybrid-array"

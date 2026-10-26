@@ -220,6 +220,21 @@ mod tests {
         assert_eq!(back.records(), log.records());
     }
 
+    /// Regression: without serde_json's `float_roundtrip`, some f64 values do
+    /// not parse back bit-identically and genuine logs fail verification.
+    #[test]
+    fn arbitrary_floats_roundtrip_exactly() {
+        let mut rng = crate::rng::SplitMix64::new(99);
+        let mut log = EventLog::new();
+        for _ in 0..2000 {
+            let at = rng.next_f64() * 1e3 + rng.lognormal(0.0, 3.0);
+            log.append(Event::DispatchStopped { reason: String::new(), at });
+        }
+        let mut buf = Vec::new();
+        log.write_jsonl(&mut buf).unwrap();
+        assert_eq!(EventLog::read_jsonl(buf.as_slice()).unwrap().head(), log.head());
+    }
+
     #[test]
     fn tampering_is_detected() {
         let mut buf = Vec::new();
