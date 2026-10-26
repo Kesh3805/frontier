@@ -1,5 +1,10 @@
 # exp-003 results: first real verifier-backed pilot (non-LLM worker)
 
+> **Correction (exp-004).** The task-order confound flagged below also
+> affected round_robin (−0.79 at budget 60) and greedy_prior. With order
+> shuffled per seed, the budget-240 gain is no longer significant, and the
+> pilot H1 verdict becomes **inconclusive**. See [exp-004](../exp-004/README.md).
+
 **Kind: REAL TASKS, PILOT.** Real candidate programs, real subprocess
 verification (property tests, trust class V1). The worker is a
 deterministic DSL program search, **not an LLM**. Not confirmatory.

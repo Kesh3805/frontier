@@ -1,0 +1,188 @@
+{
+ "b60": {
+  "order_effect": {
+   "round_robin": {
+    "diff": -0.79,
+    "ci": [
+     -1.0,
+     -0.58
+    ]
+   },
+   "fifo": {
+    "diff": -9.03,
+    "ci": [
+     -9.5002,
+     -8.57
+    ]
+   },
+   "random": {
+    "diff": 0.52,
+    "ci": [
+     0.06,
+     1.0
+    ]
+   },
+   "greedy_prior": {
+    "diff": -0.82,
+    "ci": [
+     -1.04,
+     -0.6
+    ]
+   },
+   "thompson(k=2,hints=true)": {
+    "diff": -0.06,
+    "ci": [
+     -0.21,
+     0.09
+    ]
+   },
+   "thompson(k=2,hints=false)": {
+    "diff": 0.04,
+    "ci": [
+     -0.46,
+     0.51
+    ]
+   },
+   "oracle_index": {
+    "diff": 0.0,
+    "ci": [
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "fifo_vs_rr_shuffled": {
+   "diff": -4.83,
+   "ci": [
+    -5.39,
+    -4.27
+   ]
+  }
+ },
+ "b240": {
+  "order_effect": {
+   "round_robin": {
+    "diff": -0.07,
+    "ci": [
+     -0.16,
+     0.02
+    ]
+   },
+   "fifo": {
+    "diff": -6.67,
+    "ci": [
+     -7.39,
+     -5.96
+    ]
+   },
+   "random": {
+    "diff": -0.01,
+    "ci": [
+     -0.22,
+     0.2
+    ]
+   },
+   "greedy_prior": {
+    "diff": -1.21,
+    "ci": [
+     -1.48,
+     -0.96
+    ]
+   },
+   "thompson(k=2,hints=true)": {
+    "diff": -0.44,
+    "ci": [
+     -0.59,
+     -0.29
+    ]
+   },
+   "thompson(k=2,hints=false)": {
+    "diff": 0.06,
+    "ci": [
+     -0.12,
+     0.23
+    ]
+   },
+   "oracle_index": {
+    "diff": 0.0,
+    "ci": [
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "fifo_vs_rr_shuffled": {
+   "diff": -5.28,
+   "ci": [
+    -5.97,
+    -4.59
+   ]
+  }
+ },
+ "b480": {
+  "order_effect": {
+   "round_robin": {
+    "diff": 0.01,
+    "ci": [
+     -0.05,
+     0.07
+    ]
+   },
+   "fifo": {
+    "diff": -2.35,
+    "ci": [
+     -2.98,
+     -1.75
+    ]
+   },
+   "random": {
+    "diff": -0.01,
+    "ci": [
+     -0.11,
+     0.08
+    ]
+   },
+   "greedy_prior": {
+    "diff": -0.16,
+    "ci": [
+     -0.35,
+     0.02
+    ]
+   },
+   "thompson(k=2,hints=true)": {
+    "diff": -0.05,
+    "ci": [
+     -0.17,
+     0.07
+    ]
+   },
+   "thompson(k=2,hints=false)": {
+    "diff": 0.03,
+    "ci": [
+     -0.03,
+     0.09
+    ]
+   },
+   "oracle_index": {
+    "diff": 0.0,
+    "ci": [
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "fifo_vs_rr_shuffled": {
+   "diff": -2.54,
+   "ci": [
+    -3.1,
+    -2.0
+   ]
+  }
+ },
+ "verdicts": {
+  "O1 FIFO advantage disappears (FIFO-RR CI upper <= 0 at b60 and b240, shuffled)": true,
+  "O2 FIFO itself drops with shuffling at b60 (CI < 0)": true,
+  "O3 RR order-insensitive (|effect| < 0.5 at every budget)": false,
+  "O4 thompson(hints) order-insensitive (|effect| < 0.5 at every budget)": true
+ }
+}
