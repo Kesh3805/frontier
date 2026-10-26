@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Kesh3805/frontier/schemas/problem-spec.schema.json",
+  "title": "ProblemSpec",
+  "description": "Immutable research problem specification (frontier_core::spec::ProblemSpec, schema 0.2). Structural rules mirror the serde encoding; the pattern/range rules mirror ProblemSpec::validate(), which SealedSpec::seal enforces.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "problem_id",
+    "objective",
+    "category",
+    "budget",
+    "verification",
+    "success_criteria",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": { "const": "0.2" },
+    "problem_id": { "$ref": "#/$defs/Id" },
+    "objective": { "$ref": "#/$defs/NonBlank" },
+    "category": {
+      "enum": ["formal_proof", "algorithm", "numerical", "synthetic"],
+      "description": "\"synthetic\" denotes a simulated environment with known ground truth; never a scientific result."
+    },
+    "inputs": {
+      "description": "Defaults to [] when absent.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/InputArtifact" }
+    },
+    "allowed_tools": {
+      "description": "Defaults to [] when absent.",
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "budget": { "$ref": "#/$defs/Budget" },
+    "verification": { "$ref": "#/$defs/VerificationSpec" },
+    "success_criteria": { "$ref": "#/$defs/NonBlank" },
+    "depends_on": {
+      "description": "Problem ids this problem depends on. Defaults to [] when absent. Must not contain problem_id itself (not expressible here; enforced by validate()).",
+      "type": "array",
+      "items": { "$ref": "#/$defs/Id" }
+    },
+    "provenance": { "$ref": "#/$defs/Provenance" },
+    "difficulty": {
+      "description": "Optional; omitted when unknown. 0 = trivial, 1 = hardest in corpus.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    }
+  },
+  "$defs": {
+    "Digest": {
+      "description": "SHA-256 as 64 lowercase hex characters.",
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64,
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "Id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]{1,128}$"
+    },
+    "NonBlank": {
+      "type": "string",
+      "pattern": "\\S"
+    },
+    "U32": { "type": "integer", "minimum": 0, "maximum": 4294967295 },
+    "InputArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "sha256"],
+      "properties": {
+        "name": { "type": "string" },
+        "sha256": { "$ref": "#/$defs/Digest" }
+      }
+    },
+    "Budget": {
+      "description": "frontier_core::budget::Budget. Optional fields are omitted when unset.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["compute_units"],
+      "properties": {
+        "compute_units": { "type": "number", "exclusiveMinimum": 0 },
+        "wall_seconds": { "type": "number", "exclusiveMinimum": 0 },
+        "max_attempts": { "$ref": "#/$defs/U32" },
+        "max_tool_calls": { "$ref": "#/$defs/U32" },
+        "max_usd": { "type": "number", "minimum": 0 }
+      }
+    },
+    "VerificationSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "verifier_id", "verifier_version", "criterion_sha256", "required_trust"],
+      "properties": {
+        "method": {
+          "enum": [
+            "lean",
+            "smt",
+            "property_tests",
+            "reference_implementation",
+            "numerical_tolerance",
+            "simulated_oracle"
+          ]
+        },
+        "verifier_id": { "$ref": "#/$defs/NonBlank" },
+        "verifier_version": { "type": "string" },
+        "criterion_sha256": { "$ref": "#/$defs/Digest" },
+        "required_trust": { "$ref": "verifier-receipt.schema.json#/$defs/TrustClass" }
+      }
+    },
+    "Provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "created_by"],
+      "properties": {
+        "source": { "type": "string" },
+        "created_by": { "type": "string" },
+        "license": { "type": "string" }
+      }
+    }
+  }
+}

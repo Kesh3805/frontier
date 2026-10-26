@@ -1,0 +1,160 @@
+# FRONTIER continuous integration.
+#
+# This is CPU-only engineering qualification: formatting, lints, unit and
+# property tests, data-contract schema checks and deterministic synthetic
+# simulation runs. Passing CI shows the software behaves as specified; it is
+# NOT scientific evidence for any FRONTIER hypothesis and its outputs must not
+# be reported as experimental results.
+#
+# Security: no secrets are used, the token is read-only, and
+# pull_request_target is deliberately not used. Third-party actions are pinned
+# to full commit SHAs.
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+
+jobs:
+  rust:
+    name: rust (fmt, clippy, test)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Rust toolchain
+        run: |
+          rustup toolchain install stable --profile minimal -c rustfmt,clippy
+          rustup default stable
+          rustc --version
+          cargo --version
+
+      - name: Cache cargo registry and target
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: ${{ runner.os }}-cargo-debug-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-debug-
+
+      - name: cargo fmt
+        run: cargo fmt --all --check
+
+      - name: cargo clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+      - name: cargo test
+        run: cargo test --workspace --locked
+
+  python:
+    name: python (pytest)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: python -m pip install "numpy==2.*" "jsonschema==4.25.1" "pytest==9.0.2" pyyaml
+
+      - name: pytest
+        run: |
+          if [ -d python ]; then
+            python -m pytest python -q
+          else
+            echo "python/ not present; skipping"
+          fi
+
+  qualification:
+    name: qualification (release CLI, schemas, docs)
+    needs: rust
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Rust toolchain
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+
+      - name: Cache cargo registry and target
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: ${{ runner.os }}-cargo-release-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-release-
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: python -m pip install "numpy==2.*" "jsonschema==4.25.1" "pytest==9.0.2" pyyaml
+
+      - name: Build release CLI
+        run: cargo build --release --locked -p frontier-cli
+
+      - name: Qualification runs
+        run: |
+          if [ -f scripts/qualify.sh ]; then
+            bash scripts/qualify.sh
+          else
+            echo "scripts/qualify.sh not present; skipping"
+          fi
+
+      - name: Check data-contract schemas
+        run: |
+          args=()
+          if [ -d runs ]; then
+            while IFS= read -r -d '' f; do
+              args+=(--events "$f")
+            done < <(find runs -type f -name 'events.jsonl' -print0 | sort -z)
+          fi
+          python scripts/check_schemas.py "${args[@]}"
+
+      - name: Check documentation links and ADR names
+        run: python scripts/check_docs.py
+
+      - name: Upload qualification outputs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: qualification-runs
+          path: runs/
+          retention-days: 14
+          if-no-files-found: ignore

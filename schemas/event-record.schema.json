@@ -1,0 +1,227 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Kesh3805/frontier/schemas/event-record.schema.json",
+  "title": "EventRecord",
+  "description": "One line of the append-only, hash-chained JSONL event log (frontier_core::event::Record, schema 0.2). hash = SHA-256 of the canonical JSON of {seq, prev, event}; prev of record 0 is all zeros. Chain integrity is not checkable by a schema; use EventLog::read_jsonl.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "seq", "prev", "hash", "event"],
+  "properties": {
+    "schema_version": { "const": "0.2" },
+    "seq": { "$ref": "#/$defs/U64" },
+    "prev": { "$ref": "#/$defs/Digest" },
+    "hash": { "$ref": "#/$defs/Digest" },
+    "event": { "$ref": "#/$defs/Event" }
+  },
+  "$defs": {
+    "Digest": {
+      "description": "SHA-256 as 64 lowercase hex characters.",
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64,
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "U64": { "type": "integer", "minimum": 0, "maximum": 18446744073709551615 },
+    "Time": {
+      "description": "Simulated (or wall) time in seconds since run start.",
+      "type": "number"
+    },
+    "Usage": {
+      "description": "frontier_core::budget::Usage. All fields are always serialised; only compute_units is required on input (others default to 0).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["compute_units"],
+      "properties": {
+        "compute_units": { "type": "number" },
+        "gpu_seconds": { "type": "number" },
+        "cpu_seconds": { "type": "number" },
+        "input_tokens": { "$ref": "#/$defs/U64" },
+        "output_tokens": { "$ref": "#/$defs/U64" },
+        "latent_steps": { "$ref": "#/$defs/U64" },
+        "tool_calls": { "$ref": "#/$defs/U64" },
+        "usd": { "type": "number" }
+      }
+    },
+    "AttemptOutcome": {
+      "description": "Externally tagged enum: unit variants are bare strings, the struct variant is {\"artifact\": {...}}.",
+      "oneOf": [
+        { "enum": ["crashed", "timed_out"] },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["artifact"],
+          "properties": {
+            "artifact": {
+              "description": "The Rust variant does not deny unknown fields, so extra keys are tolerated here.",
+              "type": "object",
+              "required": ["digest", "duplicate"],
+              "properties": {
+                "digest": { "$ref": "#/$defs/Digest" },
+                "duplicate": { "type": "boolean" }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Event": {
+      "description": "Internally tagged by \"type\" (snake_case variant names); unknown fields are rejected.",
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "enum": [
+            "run_started",
+            "problem_registered",
+            "task_registered",
+            "attempt_dispatched",
+            "attempt_finished",
+            "verification_finished",
+            "task_verified",
+            "task_exhausted",
+            "problem_solved",
+            "dispatch_stopped",
+            "run_finished"
+          ]
+        }
+      },
+      "allOf": [
+        { "if": { "properties": { "type": { "const": "run_started" } } }, "then": { "$ref": "#/$defs/RunStarted" } },
+        { "if": { "properties": { "type": { "const": "problem_registered" } } }, "then": { "$ref": "#/$defs/ProblemRegistered" } },
+        { "if": { "properties": { "type": { "const": "task_registered" } } }, "then": { "$ref": "#/$defs/TaskRegistered" } },
+        { "if": { "properties": { "type": { "const": "attempt_dispatched" } } }, "then": { "$ref": "#/$defs/AttemptDispatched" } },
+        { "if": { "properties": { "type": { "const": "attempt_finished" } } }, "then": { "$ref": "#/$defs/AttemptFinished" } },
+        { "if": { "properties": { "type": { "const": "verification_finished" } } }, "then": { "$ref": "#/$defs/VerificationFinished" } },
+        { "if": { "properties": { "type": { "const": "task_verified" } } }, "then": { "$ref": "#/$defs/TaskVerified" } },
+        { "if": { "properties": { "type": { "const": "task_exhausted" } } }, "then": { "$ref": "#/$defs/TaskExhausted" } },
+        { "if": { "properties": { "type": { "const": "problem_solved" } } }, "then": { "$ref": "#/$defs/ProblemSolved" } },
+        { "if": { "properties": { "type": { "const": "dispatch_stopped" } } }, "then": { "$ref": "#/$defs/DispatchStopped" } },
+        { "if": { "properties": { "type": { "const": "run_finished" } } }, "then": { "$ref": "#/$defs/RunFinished" } }
+      ]
+    },
+    "RunStarted": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "run_id", "config_digest", "seed", "policy", "kernel_version", "budget_units", "workers"],
+      "properties": {
+        "type": { "const": "run_started" },
+        "run_id": { "type": "string" },
+        "config_digest": { "$ref": "#/$defs/Digest" },
+        "seed": { "$ref": "#/$defs/U64" },
+        "policy": { "type": "string" },
+        "kernel_version": { "type": "string" },
+        "budget_units": { "type": "number" },
+        "workers": { "$ref": "#/$defs/U64" }
+      }
+    },
+    "ProblemRegistered": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "problem_id", "spec_digest"],
+      "properties": {
+        "type": { "const": "problem_registered" },
+        "problem_id": { "type": "string" },
+        "spec_digest": { "$ref": "#/$defs/Digest" }
+      }
+    },
+    "TaskRegistered": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "task_id", "problem_id", "depends_on", "terminal"],
+      "properties": {
+        "type": { "const": "task_registered" },
+        "task_id": { "type": "string" },
+        "problem_id": { "type": "string" },
+        "depends_on": { "type": "array", "items": { "type": "string" } },
+        "terminal": { "type": "boolean" }
+      }
+    },
+    "AttemptDispatched": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "attempt_id", "task_id", "worker", "at", "reserved_units"],
+      "properties": {
+        "type": { "const": "attempt_dispatched" },
+        "attempt_id": { "$ref": "#/$defs/U64" },
+        "task_id": { "type": "string" },
+        "worker": { "$ref": "#/$defs/U64" },
+        "at": { "$ref": "#/$defs/Time" },
+        "reserved_units": { "type": "number" }
+      }
+    },
+    "AttemptFinished": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "attempt_id", "at", "outcome", "usage"],
+      "properties": {
+        "type": { "const": "attempt_finished" },
+        "attempt_id": { "$ref": "#/$defs/U64" },
+        "at": { "$ref": "#/$defs/Time" },
+        "outcome": { "$ref": "#/$defs/AttemptOutcome" },
+        "usage": { "$ref": "#/$defs/Usage" }
+      }
+    },
+    "VerificationFinished": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "attempt_id", "at", "receipt"],
+      "properties": {
+        "type": { "const": "verification_finished" },
+        "attempt_id": { "$ref": "#/$defs/U64" },
+        "at": { "$ref": "#/$defs/Time" },
+        "receipt": { "$ref": "verifier-receipt.schema.json" }
+      }
+    },
+    "TaskVerified": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "task_id", "artifact", "at"],
+      "properties": {
+        "type": { "const": "task_verified" },
+        "task_id": { "type": "string" },
+        "artifact": { "$ref": "#/$defs/Digest" },
+        "at": { "$ref": "#/$defs/Time" }
+      }
+    },
+    "TaskExhausted": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "task_id", "at"],
+      "properties": {
+        "type": { "const": "task_exhausted" },
+        "task_id": { "type": "string" },
+        "at": { "$ref": "#/$defs/Time" }
+      }
+    },
+    "ProblemSolved": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "problem_id", "at"],
+      "properties": {
+        "type": { "const": "problem_solved" },
+        "problem_id": { "type": "string" },
+        "at": { "$ref": "#/$defs/Time" }
+      }
+    },
+    "DispatchStopped": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "reason", "at"],
+      "properties": {
+        "type": { "const": "dispatch_stopped" },
+        "reason": { "type": "string" },
+        "at": { "$ref": "#/$defs/Time" }
+      }
+    },
+    "RunFinished": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "at", "committed_units"],
+      "properties": {
+        "type": { "const": "run_finished" },
+        "at": { "$ref": "#/$defs/Time" },
+        "committed_units": { "type": "number" }
+      }
+    }
+  }
+}

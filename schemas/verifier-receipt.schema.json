@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Kesh3805/frontier/schemas/verifier-receipt.schema.json",
+  "title": "VerifierReceipt",
+  "description": "Verdict of an isolated verifier on one artifact against one sealed spec (frontier_core::evidence::VerifierReceipt, schema 0.2). Only a receipt can promote a claim.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "spec_digest",
+    "artifact_digest",
+    "verdict",
+    "trust_class",
+    "verifier_id",
+    "verifier_version",
+    "reason",
+    "cost_units"
+  ],
+  "properties": {
+    "schema_version": { "const": "0.2" },
+    "spec_digest": { "$ref": "#/$defs/Digest" },
+    "artifact_digest": { "$ref": "#/$defs/Digest" },
+    "verdict": { "$ref": "#/$defs/Verdict" },
+    "trust_class": { "$ref": "#/$defs/TrustClass" },
+    "verifier_id": { "type": "string" },
+    "verifier_version": { "type": "string" },
+    "reason": { "type": "string" },
+    "cost_units": { "type": "number" }
+  },
+  "$defs": {
+    "Digest": {
+      "description": "SHA-256 as 64 lowercase hex characters.",
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64,
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "Verdict": {
+      "enum": ["PASS", "FAIL", "INCONCLUSIVE", "REVIEW_REQUIRED"]
+    },
+    "TrustClass": {
+      "description": "Strength of the checking behind a result: V0 narrative only, V1 tool-checked locally, V2 independently re-run against a frozen spec, V3 expert-reviewed reproduction, V4 accepted by the field.",
+      "enum": ["V0", "V1", "V2", "V3", "V4"]
+    }
+  }
+}

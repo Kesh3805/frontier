@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Kesh3805/frontier/schemas/artifact.schema.json",
+  "title": "Artifact",
+  "description": "Content-addressed part of an artifact (frontier_core::evidence::Artifact). Its digest is SHA-256 of the canonical JSON (compact, keys sorted) of this object.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["kind", "spec_digest", "task_id", "body"],
+  "properties": {
+    "kind": {
+      "enum": ["hypothesis", "candidate", "proof", "code", "simulation_output", "counterexample"]
+    },
+    "spec_digest": { "$ref": "#/$defs/Digest" },
+    "task_id": { "type": "string" },
+    "parents": {
+      "description": "Digests of parent artifacts. Always serialised; defaults to [] when absent on input.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/Digest" }
+    },
+    "body": {
+      "description": "Arbitrary JSON value. The key is required, but null is allowed."
+    }
+  },
+  "$defs": {
+    "Digest": {
+      "description": "SHA-256 as 64 lowercase hex characters.",
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64,
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}

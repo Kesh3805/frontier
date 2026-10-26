@@ -1,0 +1,11 @@
+{
+  "schema_version": "0.2",
+  "spec_digest": "21f76a2e700e220efa50bd7b319258038cd5fc3016ffe9da0c0757ede0a935ba",
+  "artifact_digest": "c1b5fde69bbeda75ceea70c22dbb346f9d1221d862ecbc65dd4c8d8e9e63c000",
+  "verdict": "PASS",
+  "trust_class": "V2",
+  "verifier_id": "property-tests",
+  "verifier_version": "0.1.0",
+  "reason": "all 200 property tests passed",
+  "cost_units": 1.5
+}

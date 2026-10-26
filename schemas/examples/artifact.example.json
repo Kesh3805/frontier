@@ -1,0 +1,9 @@
+{
+  "kind": "code",
+  "spec_digest": "21f76a2e700e220efa50bd7b319258038cd5fc3016ffe9da0c0757ede0a935ba",
+  "task_id": "example.sort-ints/goal",
+  "parents": [],
+  "body": {
+    "source": "def f(x): return sorted(x)"
+  }
+}

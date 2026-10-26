@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Kesh3805/frontier/schemas/sim-config.schema.json",
+  "title": "SimConfig",
+  "description": "Synthetic-campaign simulation config (frontier_sim::runner::SimConfig, schema 0.1). Structural rules mirror the serde encoding; range rules mirror SimConfig::validate() and EnvConfig::validate(). Cross-field rules (approaches_min <= approaches_max, chain_min <= chain_max) are enforced only by validate().",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "name", "env", "run"],
+  "properties": {
+    "schema_version": { "const": "0.1" },
+    "name": { "type": "string" },
+    "env": { "$ref": "#/$defs/EnvConfig" },
+    "run": { "$ref": "#/$defs/RunConfig" }
+  },
+  "$defs": {
+    "U32": { "type": "integer", "minimum": 0, "maximum": 4294967295 },
+    "U64": { "type": "integer", "minimum": 0, "maximum": 18446744073709551615 },
+    "PositiveU32": { "type": "integer", "minimum": 1, "maximum": 4294967295 },
+    "PositiveU64": { "type": "integer", "minimum": 1, "maximum": 18446744073709551615 },
+    "Probability": { "type": "number", "minimum": 0, "maximum": 1 },
+    "EnvConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "problems",
+        "approaches_min",
+        "approaches_max",
+        "chain_min",
+        "chain_max",
+        "shared_lemma_prob",
+        "dead_fraction",
+        "p_alpha",
+        "p_beta",
+        "cost_log_mean",
+        "cost_log_sd",
+        "attempt_cost_sd",
+        "failure_cost_mult",
+        "hint_noise"
+      ],
+      "properties": {
+        "problems": { "$ref": "#/$defs/PositiveU64" },
+        "approaches_min": { "$ref": "#/$defs/PositiveU32" },
+        "approaches_max": { "$ref": "#/$defs/PositiveU32" },
+        "chain_min": { "$ref": "#/$defs/PositiveU32", "description": "Obligations per approach, including the terminal goal." },
+        "chain_max": { "$ref": "#/$defs/PositiveU32" },
+        "shared_lemma_prob": { "$ref": "#/$defs/Probability" },
+        "dead_fraction": { "$ref": "#/$defs/Probability" },
+        "p_alpha": { "type": "number", "exclusiveMinimum": 0 },
+        "p_beta": { "type": "number", "exclusiveMinimum": 0 },
+        "cost_log_mean": { "type": "number" },
+        "cost_log_sd": { "type": "number", "minimum": 0 },
+        "attempt_cost_sd": { "type": "number", "minimum": 0 },
+        "failure_cost_mult": { "type": "number", "minimum": 1, "description": "Cost multiplier for unsuccessful attempts." },
+        "hint_noise": { "type": "number", "minimum": 0 }
+      }
+    },
+    "RunConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "seed",
+        "workers",
+        "budget_units",
+        "attempt_cap_units",
+        "verify_cost_units",
+        "crash_prob",
+        "max_attempts_per_task",
+        "max_parallel_per_task",
+        "prior_cost",
+        "policy"
+      ],
+      "properties": {
+        "seed": { "$ref": "#/$defs/U64" },
+        "workers": { "$ref": "#/$defs/PositiveU64" },
+        "budget_units": { "type": "number", "exclusiveMinimum": 0 },
+        "attempt_cap_units": { "type": "number", "exclusiveMinimum": 0 },
+        "verify_cost_units": { "type": "number", "minimum": 0 },
+        "crash_prob": { "$ref": "#/$defs/Probability" },
+        "max_attempts_per_task": { "$ref": "#/$defs/PositiveU32" },
+        "max_parallel_per_task": { "$ref": "#/$defs/PositiveU32" },
+        "prior_cost": { "type": "number", "exclusiveMinimum": 0 },
+        "policy": { "$ref": "#/$defs/PolicyConfig" }
+      }
+    },
+    "PolicyConfig": {
+      "description": "frontier_sched::PolicyConfig, internally tagged by \"kind\" (snake_case).",
+      "type": "object",
+      "required": ["kind"],
+      "properties": {
+        "kind": {
+          "enum": [
+            "fifo",
+            "fixed_slice",
+            "round_robin",
+            "random",
+            "greedy_prior",
+            "hopeless_elimination",
+            "ucb",
+            "thompson",
+            "oracle_index"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "enum": ["fifo", "fixed_slice", "round_robin", "random", "greedy_prior", "oracle_index"] } } },
+          "then": { "additionalProperties": false, "properties": { "kind": true } }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "hopeless_elimination" } } },
+          "then": {
+            "additionalProperties": false,
+            "required": ["min_attempts", "threshold"],
+            "properties": {
+              "kind": true,
+              "min_attempts": { "$ref": "#/$defs/U32" },
+              "threshold": { "type": "number" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "ucb" } } },
+          "then": {
+            "additionalProperties": false,
+            "required": ["prior_strength", "use_hints", "beta"],
+            "properties": {
+              "kind": true,
+              "prior_strength": { "type": "number" },
+              "use_hints": { "type": "boolean" },
+              "beta": { "type": "number" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "thompson" } } },
+          "then": {
+            "additionalProperties": false,
+            "required": ["prior_strength", "use_hints"],
+            "properties": {
+              "kind": true,
+              "prior_strength": { "type": "number" },
+              "use_hints": { "type": "boolean" }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
