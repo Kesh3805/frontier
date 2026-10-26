@@ -1,6 +1,6 @@
 """JSONL worker/verifier service for the Rust runner (protocol version 2).
 
-    python -m frontier_py.realtasks.server [--suite-version 1|2] [--sandbox none|docker]
+    python -m frontier_py.realtasks.server [--suite-version 1|2] [--sandbox none|docker] [--fail-fast]
 
 One JSON object per line on stdin, one reply per line on stdout:
 
@@ -69,6 +69,7 @@ VERIFY_UNITS_PER_CASE = 0.005
 
 _suite_version = SUITE_VERSION
 _sandbox = "none"
+_fail_fast = False  # charge FAILs only up to the first failing case
 _verify_cache: dict[tuple[str, str, str, str], dict[str, Any]] = {}
 _extended: dict[str, list] = {}
 
@@ -90,7 +91,7 @@ def library_for(task: RealTask, raw: Any) -> list[LibEntry]:
 def handle(req: dict[str, Any]) -> dict[str, Any]:
     op = req.get("op")
     if op == "hello":
-        return {"ok": True, "protocol": PROTOCOL, "suite_version": _suite_version, "hidden_seed": HIDDEN_SEED, "sandbox": _sandbox}
+        return {"ok": True, "protocol": PROTOCOL, "suite_version": _suite_version, "hidden_seed": HIDDEN_SEED, "sandbox": _sandbox, "fail_fast": _fail_fast}
     name = req.get("task", "")
     task: RealTask | None = BY_NAME.get(name) or deps.BY_NAME.get(name)
     if task is None:
@@ -106,7 +107,8 @@ def handle(req: dict[str, Any]) -> dict[str, Any]:
         if key not in _verify_cache:
             t0 = time.perf_counter()
             receipt = verify(task.task_def(_suite_version), {"source": req["source"]}, spec_digest=req["spec_digest"], seed=HIDDEN_SEED,
-                             artifact_digest=req["artifact_digest"], charge_per_case=VERIFY_UNITS_PER_CASE, sandbox=_sandbox)
+                             artifact_digest=req["artifact_digest"], charge_per_case=VERIFY_UNITS_PER_CASE, sandbox=_sandbox,
+                             fail_fast=_fail_fast)
             wall = time.perf_counter() - t0
             if task.name not in _extended:
                 _extended[task.name] = extended_cases(task)
@@ -155,16 +157,17 @@ def extended_ok(task: Any, source: str, cases: list[tuple[list[int], Any]]) -> b
 
 def configure(argv: list[str]) -> None:
     """Parse arguments and set the service mode; exit if the sandbox is unusable (fail closed)."""
-    global _suite_version, _sandbox
+    global _suite_version, _sandbox, _fail_fast
     ap = argparse.ArgumentParser(prog="server")
     ap.add_argument("--suite-version", choices=SUITE_VERSIONS, default=SUITE_VERSION)
     ap.add_argument("--sandbox", choices=SANDBOXES, default="none")
+    ap.add_argument("--fail-fast", action="store_true", help="charge a failing verification only up to its first failing case")
     ns = ap.parse_args(argv)
     if ns.sandbox == "docker":
         ok, detail = property_tests.docker_status()
         if not ok:
             sys.exit(f"server: --sandbox docker requested but unusable: {detail}")
-    _suite_version, _sandbox = ns.suite_version, ns.sandbox
+    _suite_version, _sandbox, _fail_fast = ns.suite_version, ns.sandbox, ns.fail_fast
     _verify_cache.clear()
 
 

@@ -486,13 +486,18 @@ def verify(
     task_id: str | None = None,
     charge_per_case: float | None = None,
     sandbox: Sandbox = "none",
+    fail_fast: bool = False,
 ) -> VerifierReceipt:
     """Verify an artifact body {"source": str, ...} against `task`; return a receipt.
 
     `cost_units` is verifier wall-clock seconds by default. For replayable
     runs pass `charge_per_case`: the receipt then charges a deterministic
     `charge_per_case * number_of_cases` and the caller reports wall time
-    separately.
+    separately. With `fail_fast`, a FAIL caused by a specific case (an output
+    mismatch or an exception) is charged only for the cases up to and
+    including the first failing one, in suite order (visible, then hidden),
+    as a test runner that stops at the first failure would be. Verdicts are
+    unchanged; PASS and INCONCLUSIVE are always charged in full.
 
     `sandbox="docker"` executes the candidate in the pinned container and
     yields trust class V2, but only if it actually ran there; otherwise the
@@ -548,12 +553,16 @@ def verify(
     if out.kind == "resource":
         return receipt("INCONCLUSIVE", f"resource exhaustion ({out.detail}) {_where(out.case, n_vis)}")
     if out.kind == "error":
+        if fail_fast and charge_per_case is not None and out.case is not None:
+            charge = round(charge_per_case * (out.case + 1), 9)
         return receipt("FAIL", f"candidate raised {out.detail} {_where(out.case, n_vis)}")
     if out.kind == "malformed" or out.outputs is None:
         return receipt("FAIL", f"malformed result: {out.detail}")
     if len(out.outputs) != len(expected):
         return receipt("FAIL", f"malformed result: {len(out.outputs)} outputs for {len(expected)} cases")
     bad = [i for i, (got, want) in enumerate(zip(out.outputs, expected)) if _canon(got) != canonical_json(want)]
+    if bad and fail_fast and charge_per_case is not None:
+        charge = round(charge_per_case * (bad[0] + 1), 9)
     if bad:
         return receipt("FAIL", f"output mismatch on {len(bad)} of {len(expected)} cases (first {_where(bad[0], n_vis)})")
     return receipt("PASS", f"all {len(expected)} cases match ({n_vis} visible, {len(expected) - n_vis} hidden, seed {seed})")
