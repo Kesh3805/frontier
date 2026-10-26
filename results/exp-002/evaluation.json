@@ -1,0 +1,993 @@
+{
+ "R2-b600": {
+  "0.0": {
+   "solved_mean": {
+    "round_robin": 40.14,
+    "greedy_prior": 39.045,
+    "thompson(k=0.5,hints=true)": 39.93,
+    "thompson(k=2,hints=true)": 39.88,
+    "thompson(k=8,hints=true)": 39.77,
+    "thompson(k=2,hints=false)": 40.14,
+    "oracle_index": 40.87
+   },
+   "dead_attempts_mean": {
+    "round_robin": 134.375,
+    "greedy_prior": 196.125,
+    "thompson(k=0.5,hints=true)": 179.44,
+    "thompson(k=2,hints=true)": 181.235,
+    "thompson(k=8,hints=true)": 188.16,
+    "thompson(k=2,hints=false)": 142.415,
+    "oracle_index": 121.125
+   },
+   "delta": {
+    "greedy_prior": {
+     "diff": -1.095,
+     "ci": [
+      -1.595,
+      -0.665
+     ]
+    },
+    "thompson(k=0.5,hints=true)": {
+     "diff": -0.21,
+     "ci": [
+      -0.325,
+      -0.095
+     ]
+    },
+    "thompson(k=2,hints=true)": {
+     "diff": -0.26,
+     "ci": [
+      -0.38,
+      -0.14
+     ]
+    },
+    "thompson(k=8,hints=true)": {
+     "diff": -0.37,
+     "ci": [
+      -0.515,
+      -0.225
+     ]
+    },
+    "thompson(k=2,hints=false)": {
+     "diff": 0.0,
+     "ci": [
+      -0.065,
+      0.065
+     ]
+    },
+    "oracle_index": {
+     "diff": 0.73,
+     "ci": [
+      0.59,
+      0.88
+     ]
+    }
+   },
+   "delta_dead": {
+    "greedy_prior": {
+     "diff": 61.75,
+     "ci": [
+      55.3499,
+      68.315
+     ]
+    },
+    "thompson(k=0.5,hints=true)": {
+     "diff": 45.065,
+     "ci": [
+      40.6349,
+      49.5351
+     ]
+    },
+    "thompson(k=2,hints=true)": {
+     "diff": 46.86,
+     "ci": [
+      42.2849,
+      51.51
+     ]
+    },
+    "thompson(k=8,hints=true)": {
+     "diff": 53.785,
+     "ci": [
+      48.315,
+      59.3501
+     ]
+    },
+    "thompson(k=2,hints=false)": {
+     "diff": 8.04,
+     "ci": [
+      6.64,
+      9.46
+     ]
+    },
+    "oracle_index": {
+     "diff": -13.25,
+     "ci": [
+      -17.285,
+      -9.41
+     ]
+    }
+   }
+  },
+  "0.5": {
+   "solved_mean": {
+    "round_robin": 40.14,
+    "greedy_prior": 40.535,
+    "thompson(k=0.5,hints=true)": 40.365,
+    "thompson(k=2,hints=true)": 40.43,
+    "thompson(k=8,hints=true)": 40.445,
+    "thompson(k=2,hints=false)": 40.14,
+    "oracle_index": 40.87
+   },
+   "dead_attempts_mean": {
+    "round_robin": 134.375,
+    "greedy_prior": 154.38,
+    "thompson(k=0.5,hints=true)": 158.805,
+    "thompson(k=2,hints=true)": 155.075,
+    "thompson(k=8,hints=true)": 152.545,
+    "thompson(k=2,hints=false)": 142.415,
+    "oracle_index": 121.125
+   },
+   "delta": {
+    "greedy_prior": {
+     "diff": 0.395,
+     "ci": [
+      0.275,
+      0.525
+     ]
+    },
+    "thompson(k=0.5,hints=true)": {
+     "diff": 0.225,
+     "ci": [
+      0.115,
+      0.345
+     ]
+    },
+    "thompson(k=2,hints=true)": {
+     "diff": 0.29,
+     "ci": [
+      0.185,
+      0.405
+     ]
+    },
+    "thompson(k=8,hints=true)": {
+     "diff": 0.305,
+     "ci": [
+      0.2,
+      0.42
+     ]
+    },
+    "thompson(k=2,hints=false)": {
+     "diff": 0.0,
+     "ci": [
+      -0.065,
+      0.065
+     ]
+    },
+    "oracle_index": {
+     "diff": 0.73,
+     "ci": [
+      0.59,
+      0.88
+     ]
+    }
+   },
+   "delta_dead": {
+    "greedy_prior": {
+     "diff": 20.005,
+     "ci": [
+      16.2299,
+      23.985
+     ]
+    },
+    "thompson(k=0.5,hints=true)": {
+     "diff": 24.43,
+     "ci": [
+      20.985,
+      27.99
+     ]
+    },
+    "thompson(k=2,hints=true)": {
+     "diff": 20.7,
+     "ci": [
+      17.575,
+      24.0201
+     ]
+    },
+    "thompson(k=8,hints=true)": {
+     "diff": 18.17,
+     "ci": [
+      15.0299,
+      21.56
+     ]
+    },
+    "thompson(k=2,hints=false)": {
+     "diff": 8.04,
+     "ci": [
+      6.64,
+      9.46
+     ]
+    },
+    "oracle_index": {
+     "diff": -13.25,
+     "ci": [
+      -17.285,
+      -9.41
+     ]
+    }
+   }
+  },
+  "1.0": {
+   "solved_mean": {
+    "round_robin": 40.14,
+    "greedy_prior": 40.85,
+    "thompson(k=0.5,hints=true)": 40.585,
+    "thompson(k=2,hints=true)": 40.7,
+    "thompson(k=8,hints=true)": 40.735,
+    "thompson(k=2,hints=false)": 40.14,
+    "oracle_index": 40.87
+   },
+   "dead_attempts_mean": {
+    "round_robin": 134.375,
+    "greedy_prior": 133.49,
+    "thompson(k=0.5,hints=true)": 148.865,
+    "thompson(k=2,hints=true)": 140.475,
+    "thompson(k=8,hints=true)": 131.815,
+    "thompson(k=2,hints=false)": 142.415,
+    "oracle_index": 121.125
+   },
+   "delta": {
+    "greedy_prior": {
+     "diff": 0.71,
+     "ci": [
+      0.57,
+      0.855
+     ]
+    },
+    "thompson(k=0.5,hints=true)": {
+     "diff": 0.445,
+     "ci": [
+      0.32,
+      0.58
+     ]
+    },
+    "thompson(k=2,hints=true)": {
+     "diff": 0.56,
+     "ci": [
+      0.44,
+      0.6901
+     ]
+    },
+    "thompson(k=8,hints=true)": {
+     "diff": 0.595,
+     "ci": [
+      0.475,
+      0.725
+     ]
+    },
+    "thompson(k=2,hints=false)": {
+     "diff": 0.0,
+     "ci": [
+      -0.065,
+      0.065
+     ]
+    },
+    "oracle_index": {
+     "diff": 0.73,
+     "ci": [
+      0.59,
+      0.88
+     ]
+    }
+   },
+   "delta_dead": {
+    "greedy_prior": {
+     "diff": -0.885,
+     "ci": [
+      -4.4751,
+      2.5401
+     ]
+    },
+    "thompson(k=0.5,hints=true)": {
+     "diff": 14.49,
+     "ci": [
+      11.3649,
+      17.635
+     ]
+    },
+    "thompson(k=2,hints=true)": {
+     "diff": 6.1,
+     "ci": [
+      3.51,
+      8.645
+     ]
+    },
+    "thompson(k=8,hints=true)": {
+     "diff": -2.56,
+     "ci": [
+      -4.6101,
+      -0.56
+     ]
+    },
+    "thompson(k=2,hints=false)": {
+     "diff": 8.04,
+     "ci": [
+      6.64,
+      9.46
+     ]
+    },
+    "oracle_index": {
+     "diff": -13.25,
+     "ci": [
+      -17.285,
+      -9.41
+     ]
+    }
+   }
+  }
+ },
+ "R2-b1200": {
+  "0.0": {
+   "solved_mean": {
+    "round_robin": 41.5,
+    "greedy_prior": 41.315,
+    "thompson(k=0.5,hints=true)": 41.4,
+    "thompson(k=2,hints=true)": 41.42,
+    "thompson(k=8,hints=true)": 41.395,
+    "thompson(k=2,hints=false)": 41.55,
+    "oracle_index": 41.665
+   },
+   "dead_attempts_mean": {
+    "round_robin": 296.73,
+    "greedy_prior": 324.825,
+    "thompson(k=0.5,hints=true)": 323.44,
+    "thompson(k=2,hints=true)": 323.145,
+    "thompson(k=8,hints=true)": 323.64,
+    "thompson(k=2,hints=false)": 302.395,
+    "oracle_index": 290.735
+   },
+   "delta": {
+    "greedy_prior": {
+     "diff": -0.185,
+     "ci": [
+      -0.295,
+      -0.09
+     ]
+    },
+    "thompson(k=0.5,hints=true)": {
+     "diff": -0.1,
+     "ci": [
+      -0.17,
+      -0.035
+     ]
+    },
+    "thompson(k=2,hints=true)": {
+     "diff": -0.08,
+     "ci": [
+      -0.15,
+      -0.015
+     ]
+    },
+    "thompson(k=8,hints=true)": {
+     "diff": -0.105,
+     "ci": [
+      -0.18,
+      -0.04
+     ]
+    },
+    "thompson(k=2,hints=false)": {
+     "diff": 0.05,
+     "ci": [
+      0.015,
+      0.09
+     ]
+    },
+    "oracle_index": {
+     "diff": 0.165,
+     "ci": [
+      0.11,
+      0.225
+     ]
+    }
+   },
+   "delta_dead": {
+    "greedy_prior": {
+     "diff": 28.095,
+     "ci": [
+      21.8499,
+      34.7101
+     ]
+    },
+    "thompson(k=0.5,hints=true)": {
+     "diff": 26.71,
+     "ci": [
+      20.7598,
+      32.8302
+     ]
+    },
+    "thompson(k=2,hints=true)": {
+     "diff": 26.415,
+     "ci": [
+      20.595,
+      32.465
+     ]
+    },
+    "thompson(k=8,hints=true)": {
+     "diff": 26.91,
+     "ci": [
+      20.9,
+      33.1251
+     ]
+    },
+    "thompson(k=2,hints=false)": {
+     "diff": 5.665,
+     "ci": [
+      4.07,
+      7.42
+     ]
+    },
+    "oracle_index": {
+     "diff": -5.995,
+     "ci": [
+      -8.975,
+      -3.4099
+     ]
+    }
+   }
+  },
+  "0.5": {
+   "solved_mean": {
+    "round_robin": 41.5,
+    "greedy_prior": 41.605,
+    "thompson(k=0.5,hints=true)": 41.575,
+    "thompson(k=2,hints=true)": 41.59,
+    "thompson(k=8,hints=true)": 41.58,
+    "thompson(k=2,hints=false)": 41.55,
+    "oracle_index": 41.665
+   },
+   "dead_attempts_mean": {
+    "round_robin": 296.73,
+    "greedy_prior": 306.025,
+    "thompson(k=0.5,hints=true)": 311.695,
+    "thompson(k=2,hints=true)": 308.925,
+    "thompson(k=8,hints=true)": 306.445,
+    "thompson(k=2,hints=false)": 302.395,
+    "oracle_index": 290.735
+   },
+   "delta": {
+    "greedy_prior": {
+     "diff": 0.105,
+     "ci": [
+      0.05,
+      0.16
+     ]
+    },
+    "thompson(k=0.5,hints=true)": {
+     "diff": 0.075,
+     "ci": [
+      0.03,
+      0.12
+     ]
+    },
+    "thompson(k=2,hints=true)": {
+     "diff": 0.09,
+     "ci": [
+      0.04,
+      0.145
+     ]
+    },
+    "thompson(k=8,hints=true)": {
+     "diff": 0.08,
+     "ci": [
+      0.035,
+      0.13
+     ]
+    },
+    "thompson(k=2,hints=false)": {
+     "diff": 0.05,
+     "ci": [
+      0.015,
+      0.09
+     ]
+    },
+    "oracle_index": {
+     "diff": 0.165,
+     "ci": [
+      0.11,
+      0.225
+     ]
+    }
+   },
+   "delta_dead": {
+    "greedy_prior": {
+     "diff": 9.295,
+     "ci": [
+      5.975,
+      12.9051
+     ]
+    },
+    "thompson(k=0.5,hints=true)": {
+     "diff": 14.965,
+     "ci": [
+      11.0949,
+      19.2151
+     ]
+    },
+    "thompson(k=2,hints=true)": {
+     "diff": 12.195,
+     "ci": [
+      8.92,
+      15.7904
+     ]
+    },
+    "thompson(k=8,hints=true)": {
+     "diff": 9.715,
+     "ci": [
+      6.83,
+      12.9551
+     ]
+    },
+    "thompson(k=2,hints=false)": {
+     "diff": 5.665,
+     "ci": [
+      4.07,
+      7.42
+     ]
+    },
+    "oracle_index": {
+     "diff": -5.995,
+     "ci": [
+      -8.975,
+      -3.4099
+     ]
+    }
+   }
+  },
+  "1.0": {
+   "solved_mean": {
+    "round_robin": 41.5,
+    "greedy_prior": 41.66,
+    "thompson(k=0.5,hints=true)": 41.63,
+    "thompson(k=2,hints=true)": 41.63,
+    "thompson(k=8,hints=true)": 41.64,
+    "thompson(k=2,hints=false)": 41.55,
+    "oracle_index": 41.665
+   },
+   "dead_attempts_mean": {
+    "round_robin": 296.73,
+    "greedy_prior": 300.25,
+    "thompson(k=0.5,hints=true)": 306.14,
+    "thompson(k=2,hints=true)": 303.265,
+    "thompson(k=8,hints=true)": 299.3,
+    "thompson(k=2,hints=false)": 302.395,
+    "oracle_index": 290.735
+   },
+   "delta": {
+    "greedy_prior": {
+     "diff": 0.16,
+     "ci": [
+      0.105,
+      0.22
+     ]
+    },
+    "thompson(k=0.5,hints=true)": {
+     "diff": 0.13,
+     "ci": [
+      0.08,
+      0.185
+     ]
+    },
+    "thompson(k=2,hints=true)": {
+     "diff": 0.13,
+     "ci": [
+      0.075,
+      0.185
+     ]
+    },
+    "thompson(k=8,hints=true)": {
+     "diff": 0.14,
+     "ci": [
+      0.085,
+      0.2
+     ]
+    },
+    "thompson(k=2,hints=false)": {
+     "diff": 0.05,
+     "ci": [
+      0.015,
+      0.09
+     ]
+    },
+    "oracle_index": {
+     "diff": 0.165,
+     "ci": [
+      0.11,
+      0.225
+     ]
+    }
+   },
+   "delta_dead": {
+    "greedy_prior": {
+     "diff": 3.52,
+     "ci": [
+      0.3699,
+      6.6651
+     ]
+    },
+    "thompson(k=0.5,hints=true)": {
+     "diff": 9.41,
+     "ci": [
+      6.72,
+      12.2951
+     ]
+    },
+    "thompson(k=2,hints=true)": {
+     "diff": 6.535,
+     "ci": [
+      4.48,
+      8.74
+     ]
+    },
+    "thompson(k=8,hints=true)": {
+     "diff": 2.57,
+     "ci": [
+      1.1399,
+      4.07
+     ]
+    },
+    "thompson(k=2,hints=false)": {
+     "diff": 5.665,
+     "ci": [
+      4.07,
+      7.42
+     ]
+    },
+    "oracle_index": {
+     "diff": -5.995,
+     "ci": [
+      -8.975,
+      -3.4099
+     ]
+    }
+   }
+  }
+ },
+ "R3-b600": {
+  "0.0": {
+   "solved_mean": {
+    "round_robin": 17.935,
+    "greedy_prior": 16.305,
+    "thompson(k=0.5,hints=true)": 19.005,
+    "thompson(k=2,hints=true)": 18.95,
+    "thompson(k=8,hints=true)": 18.51,
+    "thompson(k=2,hints=false)": 18.27,
+    "oracle_index": 22.955
+   },
+   "dead_attempts_mean": {
+    "round_robin": 111.39,
+    "greedy_prior": 256.53,
+    "thompson(k=0.5,hints=true)": 192.97,
+    "thompson(k=2,hints=true)": 198.145,
+    "thompson(k=8,hints=true)": 223.105,
+    "thompson(k=2,hints=false)": 136.455,
+    "oracle_index": 1.985
+   },
+   "delta": {
+    "greedy_prior": {
+     "diff": -1.63,
+     "ci": [
+      -2.085,
+      -1.175
+     ]
+    },
+    "thompson(k=0.5,hints=true)": {
+     "diff": 1.07,
+     "ci": [
+      0.86,
+      1.285
+     ]
+    },
+    "thompson(k=2,hints=true)": {
+     "diff": 1.015,
+     "ci": [
+      0.81,
+      1.22
+     ]
+    },
+    "thompson(k=8,hints=true)": {
+     "diff": 0.575,
+     "ci": [
+      0.335,
+      0.82
+     ]
+    },
+    "thompson(k=2,hints=false)": {
+     "diff": 0.335,
+     "ci": [
+      0.155,
+      0.52
+     ]
+    },
+    "oracle_index": {
+     "diff": 5.02,
+     "ci": [
+      4.745,
+      5.295
+     ]
+    }
+   },
+   "delta_dead": {
+    "greedy_prior": {
+     "diff": 145.14,
+     "ci": [
+      138.39,
+      151.8053
+     ]
+    },
+    "thompson(k=0.5,hints=true)": {
+     "diff": 81.58,
+     "ci": [
+      77.55,
+      85.5951
+     ]
+    },
+    "thompson(k=2,hints=true)": {
+     "diff": 86.755,
+     "ci": [
+      82.6349,
+      90.77
+     ]
+    },
+    "thompson(k=8,hints=true)": {
+     "diff": 111.715,
+     "ci": [
+      106.3699,
+      116.9901
+     ]
+    },
+    "thompson(k=2,hints=false)": {
+     "diff": 25.065,
+     "ci": [
+      22.98,
+      27.14
+     ]
+    },
+    "oracle_index": {
+     "diff": -109.405,
+     "ci": [
+      -112.68,
+      -106.1649
+     ]
+    }
+   }
+  },
+  "0.5": {
+   "solved_mean": {
+    "round_robin": 17.935,
+    "greedy_prior": 20.385,
+    "thompson(k=0.5,hints=true)": 20.41,
+    "thompson(k=2,hints=true)": 20.455,
+    "thompson(k=8,hints=true)": 20.265,
+    "thompson(k=2,hints=false)": 18.27,
+    "oracle_index": 22.955
+   },
+   "dead_attempts_mean": {
+    "round_robin": 111.39,
+    "greedy_prior": 170.555,
+    "thompson(k=0.5,hints=true)": 151.245,
+    "thompson(k=2,hints=true)": 149.035,
+    "thompson(k=8,hints=true)": 159.99,
+    "thompson(k=2,hints=false)": 136.455,
+    "oracle_index": 1.985
+   },
+   "delta": {
+    "greedy_prior": {
+     "diff": 2.45,
+     "ci": [
+      2.115,
+      2.79
+     ]
+    },
+    "thompson(k=0.5,hints=true)": {
+     "diff": 2.475,
+     "ci": [
+      2.25,
+      2.705
+     ]
+    },
+    "thompson(k=2,hints=true)": {
+     "diff": 2.52,
+     "ci": [
+      2.3,
+      2.745
+     ]
+    },
+    "thompson(k=8,hints=true)": {
+     "diff": 2.33,
+     "ci": [
+      2.095,
+      2.565
+     ]
+    },
+    "thompson(k=2,hints=false)": {
+     "diff": 0.335,
+     "ci": [
+      0.155,
+      0.52
+     ]
+    },
+    "oracle_index": {
+     "diff": 5.02,
+     "ci": [
+      4.745,
+      5.295
+     ]
+    }
+   },
+   "delta_dead": {
+    "greedy_prior": {
+     "diff": 59.165,
+     "ci": [
+      51.6649,
+      66.6951
+     ]
+    },
+    "thompson(k=0.5,hints=true)": {
+     "diff": 39.855,
+     "ci": [
+      35.1049,
+      44.495
+     ]
+    },
+    "thompson(k=2,hints=true)": {
+     "diff": 37.645,
+     "ci": [
+      32.8549,
+      42.3651
+     ]
+    },
+    "thompson(k=8,hints=true)": {
+     "diff": 48.6,
+     "ci": [
+      43.0349,
+      54.0255
+     ]
+    },
+    "thompson(k=2,hints=false)": {
+     "diff": 25.065,
+     "ci": [
+      22.98,
+      27.14
+     ]
+    },
+    "oracle_index": {
+     "diff": -109.405,
+     "ci": [
+      -112.68,
+      -106.1649
+     ]
+    }
+   }
+  },
+  "1.0": {
+   "solved_mean": {
+    "round_robin": 17.935,
+    "greedy_prior": 22.625,
+    "thompson(k=0.5,hints=true)": 21.69,
+    "thompson(k=2,hints=true)": 21.78,
+    "thompson(k=8,hints=true)": 21.755,
+    "thompson(k=2,hints=false)": 18.27,
+    "oracle_index": 22.955
+   },
+   "dead_attempts_mean": {
+    "round_robin": 111.39,
+    "greedy_prior": 51.285,
+    "thompson(k=0.5,hints=true)": 94.52,
+    "thompson(k=2,hints=true)": 73.02,
+    "thompson(k=8,hints=true)": 71.165,
+    "thompson(k=2,hints=false)": 136.455,
+    "oracle_index": 1.985
+   },
+   "delta": {
+    "greedy_prior": {
+     "diff": 4.69,
+     "ci": [
+      4.42,
+      4.96
+     ]
+    },
+    "thompson(k=0.5,hints=true)": {
+     "diff": 3.755,
+     "ci": [
+      3.51,
+      4.01
+     ]
+    },
+    "thompson(k=2,hints=true)": {
+     "diff": 3.845,
+     "ci": [
+      3.59,
+      4.1051
+     ]
+    },
+    "thompson(k=8,hints=true)": {
+     "diff": 3.82,
+     "ci": [
+      3.565,
+      4.08
+     ]
+    },
+    "thompson(k=2,hints=false)": {
+     "diff": 0.335,
+     "ci": [
+      0.155,
+      0.52
+     ]
+    },
+    "oracle_index": {
+     "diff": 5.02,
+     "ci": [
+      4.745,
+      5.295
+     ]
+    }
+   },
+   "delta_dead": {
+    "greedy_prior": {
+     "diff": -60.105,
+     "ci": [
+      -64.89,
+      -55.365
+     ]
+    },
+    "thompson(k=0.5,hints=true)": {
+     "diff": -16.87,
+     "ci": [
+      -21.4551,
+      -12.2999
+     ]
+    },
+    "thompson(k=2,hints=true)": {
+     "diff": -38.37,
+     "ci": [
+      -41.3151,
+      -35.4049
+     ]
+    },
+    "thompson(k=8,hints=true)": {
+     "diff": -40.225,
+     "ci": [
+      -42.62,
+      -37.9
+     ]
+    },
+    "thompson(k=2,hints=false)": {
+     "diff": 25.065,
+     "ci": [
+      22.98,
+      27.14
+     ]
+    },
+    "oracle_index": {
+     "diff": -109.405,
+     "ci": [
+      -112.68,
+      -106.1649
+     ]
+    }
+   }
+  }
+ },
+ "verdicts": {
+  "P1": true,
+  "P2": true,
+  "P3": true,
+  "P4": true,
+  "P4-strong": true,
+  "P5": true,
+  "secondary R2-b1200 P1": true,
+  "secondary R2-b1200 P3": true,
+  "secondary R3-b600 P1": true,
+  "secondary R3-b600 P3": true,
+  "O": "supported"
+ }
+}

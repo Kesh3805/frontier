@@ -20,6 +20,7 @@ reasoning, add to that?
 | Python property-test verifier (V1, not sandboxed), analysis, adapters | Implemented and tested; HybridAgent and hosted adapters are interface-only |
 | **exp-000** (simulation, preregistered) | **Done. H1-sim rejected under the frozen rule**: adaptive allocation beat round-robin in 5 of 6 primary cells but was worse in one. See [`results/exp-000/`](results/exp-000/README.md) |
 | **exp-001** (simulation, preregistered) | **Done.** The R2-moderate loss replicates; the misleading-hints explanation is refuted under the frozen rule (with a disclosed confound). Where the adaptive advantage exists, it survives correlated failures and verifier noise. A 2% per-check false-positive rate makes 8–25% of accepted results false. See [`results/exp-001/`](results/exp-001/README.md) |
+| **exp-002** (simulation, preregistered) | **Done. Mechanism supported:** the loss comes from optimistic hints on dead problems the hints don't flag (+47 wasted attempts). With full detection of dead problems the loss becomes a gain (+0.56; +3.85 in R3). See [`results/exp-002/`](results/exp-002/README.md) |
 | H1 (real workers) | Untested: needs real verifier-backed tasks and inference |
 | H2/H3 (hybrid reasoning) | Untested and blocked: no GPU, and no released matched text-only checkpoint |
 
