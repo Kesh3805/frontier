@@ -95,16 +95,20 @@ pub trait Policy {
 pub enum PolicyConfig {
     /// Lowest-numbered problem first, work-conserving.
     Fifo,
-    /// Strict equal per-problem budget slices; unused slices are not redistributed.
+    /// Strict equal per-problem budget slices; unused slices are not
+    /// redistributed (the "Uniform" baseline of Zuo et al.).
     FixedSlice,
-    /// Work-conserving round-robin over problems, then over their runnable tasks.
+    /// Work-conserving round-robin over unsolved problems, then over their
+    /// runnable tasks. With one single-obligation approach per problem this is
+    /// Zuo et al.'s Algorithm 1 with K = 1 (solved queries leave the pool).
     RoundRobin,
     Random,
     /// Expected-remaining-cost index from prior hints only; never learns.
     GreedyPrior,
-    /// Successive elimination over problems (after Zuo et al., arXiv 2506.12721;
-    /// an adaptation, not a reproduction).
-    Elimination {
+    /// FRONTIER heuristic: stop funding problems whose optimistic per-attempt
+    /// success bound falls below `threshold`. Not Zuo et al. (arXiv 2506.12721),
+    /// whose Algorithm 1 eliminates *solved* queries (see `RoundRobin`).
+    HopelessElimination {
         min_attempts: u32,
         threshold: f64,
     },
@@ -131,7 +135,7 @@ impl PolicyConfig {
             PolicyConfig::RoundRobin => Box::new(RoundRobin::default()),
             PolicyConfig::Random => Box::new(RandomPolicy),
             PolicyConfig::GreedyPrior => Box::new(IndexPolicy { estimator: Estimator::Prior, label: "greedy_prior".into() }),
-            PolicyConfig::Elimination { min_attempts, threshold } => Box::new(Elimination { min_attempts, threshold }),
+            PolicyConfig::HopelessElimination { min_attempts, threshold } => Box::new(HopelessElimination { min_attempts, threshold }),
             PolicyConfig::Ucb { prior_strength, use_hints, beta } => Box::new(IndexPolicy {
                 estimator: Estimator::Ucb { prior_strength, use_hints, beta },
                 label: format!("ucb(k={prior_strength},hints={use_hints},beta={beta})"),
@@ -209,17 +213,17 @@ impl Policy for RoundRobin {
     }
 }
 
-/// Successive elimination over problems: problems whose optimistic per-attempt
+/// Hopeless-problem elimination: problems whose optimistic per-attempt
 /// success bound drops below `threshold` after `min_attempts` stop receiving
 /// compute; the rest share it evenly by fewest attempts first.
-pub struct Elimination {
+pub struct HopelessElimination {
     min_attempts: u32,
     threshold: f64,
 }
 
-impl Policy for Elimination {
+impl Policy for HopelessElimination {
     fn name(&self) -> String {
-        format!("elimination(n={},thr={})", self.min_attempts, self.threshold)
+        format!("hopeless_elimination(n={},thr={})", self.min_attempts, self.threshold)
     }
 
     fn select(&mut self, view: &SchedView, _rng: &mut SplitMix64) -> Option<TaskIdx> {
@@ -396,7 +400,7 @@ mod tests {
         p[1].attempts = 5;
         p[1].verified_tasks = 1;
         let r = [0, 1];
-        let mut e = PolicyConfig::Elimination { min_attempts: 10, threshold: 0.2 }.build();
+        let mut e = PolicyConfig::HopelessElimination { min_attempts: 10, threshold: 0.2 }.build();
         assert_eq!(e.select(&view(&t, &a, &p, &r), &mut SplitMix64::new(0)), Some(1));
     }
 
