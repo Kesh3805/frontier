@@ -19,3 +19,4 @@ include = ["frontier_py*"]
 testpaths = ["tests"]
 pythonpath = ["."]
 addopts = "-ra"
+markers = ["docker: needs a reachable Linux docker engine and the pinned sandbox image (skipped otherwise)"]
