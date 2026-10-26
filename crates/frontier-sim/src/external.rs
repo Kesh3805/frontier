@@ -33,6 +33,8 @@ pub struct AttemptReply {
 
 pub struct ExternalWorker {
     child: Child,
+    /// The service's `hello` reply (protocol, suite version, hidden seed).
+    pub hello: Value,
     stdin: ChildStdin,
     stdout: BufReader<ChildStdout>,
     /// Host wall-clock seconds the service spent verifying (not deterministic).
@@ -55,11 +57,12 @@ impl ExternalWorker {
             .map_err(|e| protocol_error(format!("cannot start {:?}: {e}", cmd.program)))?;
         let stdin = child.stdin.take().expect("piped");
         let stdout = BufReader::new(child.stdout.take().expect("piped"));
-        let mut w = Self { child, stdin, stdout, verify_wall_seconds: 0.0 };
+        let mut w = Self { child, stdin, stdout, hello: Value::Null, verify_wall_seconds: 0.0 };
         let hello = w.request(&json!({ "op": "hello" }))?;
         if hello.get("protocol").and_then(Value::as_u64) != Some(PROTOCOL) {
             return Err(protocol_error(format!("unsupported protocol in {hello}")));
         }
+        w.hello = hello;
         Ok(w)
     }
 

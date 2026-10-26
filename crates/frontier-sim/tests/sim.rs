@@ -172,7 +172,7 @@ fn fixed_slice_never_exceeds_its_per_problem_share() {
 fn smoke_config_log_head_is_pinned() {
     let cfg: SimConfig = serde_json::from_str(include_str!("../../../configs/smoke.json")).unwrap();
     let out = run(&cfg).unwrap();
-    assert_eq!(out.log.head().to_hex(), "36b691cc3e6f8cf5faf3d9cc2038cc757d78d1a1d8e2358770e33dcdc983bbf7");
+    assert_eq!(out.log.head().to_hex(), "6020bf6895edb086f5cadd18a3809f822a7727aa69d14800d9bec7ccd0e9075c");
     // New environment fields default to off and are not serialised.
     let original: serde_json::Value = serde_json::from_str(include_str!("../../../configs/smoke.json")).unwrap();
     assert_eq!(serde_json::to_value(&cfg).unwrap(), original);
@@ -278,4 +278,55 @@ fn problem_order_shuffle_is_a_seeded_permutation() {
     let mut sorted = names(&cat);
     sorted.sort();
     assert_eq!(sorted_a, sorted, "a permutation, nothing added or lost");
+}
+
+/// Regression (kernel 0.3): dispatch used to stop for good the first time
+/// outstanding reservations blocked a new one, stranding budget unevenly
+/// across policies. Now it waits for in-flight attempts to settle, so every
+/// run ends with less than one reservation of budget unspent.
+#[test]
+fn budget_is_used_up_to_one_reservation() {
+    // FixedSlice idles by design once its per-problem slices are spent.
+    for p in all_policies().into_iter().filter(|p| *p != PolicyConfig::FixedSlice) {
+        for seed in 0..10 {
+            let cfg = config(p.clone(), seed);
+            let s = summarize(&run(&cfg).unwrap().log).unwrap();
+            let reservation = cfg.run.attempt_cap_units + cfg.run.verify_cost_units;
+            let all_closed = s.solved == s.problems;
+            assert!(
+                all_closed || cfg.run.budget_units - s.committed_units < reservation + 1e-9 || s.attempts == 0,
+                "{p:?} seed {seed}: {:.2} of {} unspent",
+                cfg.run.budget_units - s.committed_units,
+                cfg.run.budget_units
+            );
+        }
+    }
+}
+
+/// Regression (kernel 0.3): a repeat of already-rejected content must count
+/// as a failed attempt. Needs the Python worker service; skipped if absent.
+#[test]
+fn real_repeats_of_rejected_programs_are_rejections() {
+    use frontier_sim::external::{ExternalWorker, ServerCommand};
+    use frontier_sim::real::{campaign_from_catalog, load_catalog, neutral_env};
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let cmd =
+        ServerCommand { program: "python".into(), args: vec!["-m".into(), "frontier_py.realtasks.server".into()], cwd: "python".into() };
+    let Ok(mut worker) = ExternalWorker::spawn(&cmd, &root) else {
+        eprintln!("python worker service unavailable; skipping");
+        return;
+    };
+    let digest = frontier_core::Digest::from_hex("80bdd82bec3e249b17d7938dab3e28786989dae55edd0650875c0c6c440b9585").unwrap();
+    let cat = load_catalog(&root.join("research/realtasks/catalog-v1.json"), digest).unwrap();
+    let campaign = campaign_from_catalog(&cat, 120.0).unwrap();
+    let mut cfg = config(PolicyConfig::Thompson { prior_strength: 2.0, use_hints: true }, 1001);
+    cfg.env = neutral_env(campaign.specs.len());
+    cfg.run.budget_units = 120.0;
+    cfg.run.attempt_cap_units = 3.0;
+    cfg.run.crash_prob = 0.0;
+    cfg.run.max_parallel_per_task = 1;
+    let out = frontier_sim::runner::run_campaign_with(&cfg, &campaign, Some(&mut worker)).unwrap();
+    let s = summarize(&out.log).unwrap();
+    assert!(s.reused_rejections > 0, "expected repeated rejected programs in a DSL run");
+    assert!(s.committed_units <= 120.0 + 1e-9);
 }

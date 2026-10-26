@@ -43,6 +43,7 @@ pub struct CatalogTask {
 pub struct Catalog {
     pub catalog_version: String,
     pub suite_version: String,
+    pub hidden_seed: u64,
     pub tasks: Vec<CatalogTask>,
 }
 
@@ -176,6 +177,20 @@ pub fn cell_config(cfg: &RealExperimentConfig, policy: &PolicyConfig, seed: u64,
     }
 }
 
+/// Refuse to run if the service verifies against a different hidden suite
+/// than the one the catalog's criterion digests commit to.
+pub fn check_service_matches(worker: &ExternalWorker, cat: &Catalog) -> Result<(), SimError> {
+    let suite = worker.hello.get("suite_version").and_then(serde_json::Value::as_str);
+    let seed = worker.hello.get("hidden_seed").and_then(serde_json::Value::as_u64);
+    if suite != Some(cat.suite_version.as_str()) || seed != Some(cat.hidden_seed) {
+        return Err(SimError::Config(format!(
+            "worker service serves suite {suite:?} seed {seed:?}, catalog needs suite {:?} seed {}",
+            cat.suite_version, cat.hidden_seed
+        )));
+    }
+    Ok(())
+}
+
 /// Per-thread output: records grouped by seed, plus verifier wall seconds.
 type ThreadOutput = (Vec<(u64, Vec<ResultRecord>)>, f64);
 
@@ -201,6 +216,7 @@ pub fn run_real_experiment(cfg: &RealExperimentConfig, base: &Path, threads: usi
                 let (fixed_campaign, catalog) = (&fixed_campaign, &catalog);
                 scope.spawn(move || -> Result<ThreadOutput, SimError> {
                     let mut worker = ExternalWorker::spawn(&cfg.server, base)?;
+                    check_service_matches(&worker, catalog)?;
                     let mut local = vec![];
                     for seed in chunk {
                         let shuffled;

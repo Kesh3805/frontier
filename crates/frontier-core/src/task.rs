@@ -90,7 +90,8 @@ impl AttemptState {
         match self {
             Leased => matches!(to, Running | Cancelled),
             Running => matches!(to, ArtifactSubmitted | Crashed | TimedOut | Cancelled),
-            ArtifactSubmitted => matches!(to, Verifying | Cancelled | Quarantined),
+            // Rejected directly: identical content already holds a failing receipt.
+            ArtifactSubmitted => matches!(to, Verifying | Rejected | Cancelled | Quarantined),
             Verifying => matches!(to, Accepted | Rejected | Inconclusive | Quarantined),
             _ => false,
         }

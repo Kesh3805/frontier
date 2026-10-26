@@ -364,8 +364,13 @@ impl<'a> Sim<'a> {
                 return Ok(());
             }
             if self.ledger.available() < reservation {
-                self.stopped = true;
-                self.log.append(Event::DispatchStopped { reason: "budget".into(), at: self.now });
+                // Outstanding reservations may be blocking: in-flight attempts
+                // usually settle below their worst case and release the rest.
+                // Wait for them; stop only when nothing is left to release.
+                if self.inflight.is_empty() {
+                    self.stopped = true;
+                    self.log.append(Event::DispatchStopped { reason: "budget".into(), at: self.now });
+                }
                 return Ok(());
             }
             let view = SchedView {
@@ -514,10 +519,21 @@ impl<'a> Sim<'a> {
             self.schedule(self.now + duration, Phase::VerificationDone, id);
             return Ok(());
         }
-        let informative = matches!(outcome, AttemptOutcome::TimedOut);
+        // Identical content that already carries a non-verifying receipt is
+        // rejected by reusing that receipt: the attempt failed and counts as
+        // evidence about the task, without paying for verification again.
+        let reused_rejection = match &outcome {
+            AttemptOutcome::Artifact { digest, .. } => {
+                !self.task_closed(task)
+                    && self.store.get(digest).is_some_and(|s| !s.receipts.is_empty() && s.status != ClaimStatus::MechanicallyVerified)
+            }
+            _ => false,
+        };
+        let informative = matches!(outcome, AttemptOutcome::TimedOut) || reused_rejection;
         let fl = self.inflight.get_mut(&id).expect("present");
         if fl.attempt.state() == AttemptState::ArtifactSubmitted {
-            fl.attempt.advance(AttemptState::Cancelled).map_err(|e| SimError::Invariant(e.to_string()))?;
+            let to = if reused_rejection { AttemptState::Rejected } else { AttemptState::Cancelled };
+            fl.attempt.advance(to).map_err(|e| SimError::Invariant(e.to_string()))?;
         }
         self.finish(id, gen_units, informative, false)
     }

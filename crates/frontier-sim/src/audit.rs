@@ -33,6 +33,9 @@ pub struct RunSummary {
     pub rejected: u64,
     pub accepted: u64,
     pub duplicates: u64,
+    /// Duplicates of content that already held a failing receipt, rejected
+    /// by reusing it (no second verification).
+    pub reused_rejections: u64,
     pub unverified_candidates: u64,
     pub time_to_first_solve: Option<f64>,
     pub makespan: f64,
@@ -96,6 +99,7 @@ pub fn summarize(log: &EventLog) -> Result<RunSummary, AuditError> {
         rejected: 0,
         accepted: 0,
         duplicates: 0,
+        reused_rejections: 0,
         unverified_candidates: 0,
         time_to_first_solve: None,
         makespan: *end,
@@ -112,6 +116,7 @@ pub fn summarize(log: &EventLog) -> Result<RunSummary, AuditError> {
     let mut terminal: BTreeMap<String, (String, bool)> = BTreeMap::new();
     let mut verified_tasks: BTreeSet<String> = BTreeSet::new();
     let mut solved: BTreeSet<String> = BTreeSet::new();
+    let mut failed_digests: BTreeSet<Digest> = BTreeSet::new();
 
     for r in recs {
         match &r.event {
@@ -139,11 +144,16 @@ pub fn summarize(log: &EventLog) -> Result<RunSummary, AuditError> {
                         s.timeout_units += u;
                         s.busy_worker_seconds += at - t0;
                     }
-                    AttemptOutcome::Artifact { duplicate, .. } => {
+                    AttemptOutcome::Artifact { digest, duplicate } => {
                         if *duplicate {
                             s.duplicates += 1;
                         }
-                        pending_candidate.insert(*attempt_id, (u, *at));
+                        if *duplicate && failed_digests.contains(digest) {
+                            s.reused_rejections += 1;
+                            s.busy_worker_seconds += at - t0;
+                        } else {
+                            pending_candidate.insert(*attempt_id, (u, *at));
+                        }
                     }
                 }
             }
@@ -157,6 +167,7 @@ pub fn summarize(log: &EventLog) -> Result<RunSummary, AuditError> {
                     passed.insert((receipt.artifact_digest, task_of[attempt_id].clone()));
                 } else {
                     s.rejected += 1;
+                    failed_digests.insert(receipt.artifact_digest);
                 }
             }
             Event::TaskVerified { task_id, artifact, .. } => {
@@ -178,7 +189,7 @@ pub fn summarize(log: &EventLog) -> Result<RunSummary, AuditError> {
             _ => {}
         }
     }
-    // Candidates that were never verified: duplicates of verified content or
+    // Candidates that were never verified (other than reused rejections):
     // results for tasks that closed while the attempt was running.
     for (id, (u, at)) in &pending_candidate {
         s.unverified_candidates += 1;

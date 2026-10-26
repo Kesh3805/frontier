@@ -45,8 +45,10 @@ def _gen_lists(rng: random.Random) -> list[list[Any]]:
 
 
 def _gen_lists_v2(rng: random.Random) -> list[list[Any]]:
-    """v2 = every list over {-2..2} of length <= 3 (156 inputs), then the v1
-    random cases. Added after exp-005 found boundary bugs that v1 accepts."""
+    """v2 = every list over {-2..2} of length <= 3 (156 inputs), then 40
+    random cases drawn by the v1 generator. They are not the same 40 inputs
+    as v1, because the hidden-input stream is keyed by suite version. Added
+    after exp-005 found boundary bugs that v1 accepts."""
     small = [[list(t)] for n in range(4) for t in itertools.product(range(-2, 3), repeat=n)]
     return small + _gen_lists(rng)
 

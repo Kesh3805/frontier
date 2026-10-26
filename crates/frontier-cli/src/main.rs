@@ -8,7 +8,9 @@ use std::time::Instant;
 
 use frontier_core::{Digest, EventLog, KERNEL_VERSION};
 use frontier_sim::external::ExternalWorker;
-use frontier_sim::real::{RealExperimentConfig, campaign_from_catalog, cell_config, load_catalog, ordered_catalog, run_real_experiment};
+use frontier_sim::real::{
+    RealExperimentConfig, campaign_from_catalog, cell_config, check_service_matches, load_catalog, ordered_catalog, run_real_experiment,
+};
 use frontier_sim::runner::run_campaign_with;
 use frontier_sim::{ExperimentConfig, SimConfig, run, run_experiment, summarize};
 use serde::Serialize;
@@ -203,6 +205,7 @@ fn cmd_real_run(args: &[String]) -> Result<()> {
     let sim = cell_config(&cfg, policy, seed, campaign.specs.len());
     sim.validate().map_err(|e| e.to_string())?;
     let mut worker = ExternalWorker::spawn(&cfg.server, &base).map_err(|e| e.to_string())?;
+    check_service_matches(&worker, &catalog).map_err(|e| e.to_string())?;
     let result = run_campaign_with(&sim, &campaign, Some(&mut worker)).map_err(|e| e.to_string())?;
     let summary = summarize(&result.log).map_err(|e| e.to_string())?;
     let f = File::create(out.join("events.jsonl")).map_err(|e| e.to_string())?;
