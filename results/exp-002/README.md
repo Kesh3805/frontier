@@ -1,5 +1,10 @@
 # exp-002 results: optimistic hints on undetected dead problems (simulation)
 
+> **Erratum E1 (2026-10-27).** These results were produced on kernel
+> 0.2.0, which had a bug that stranded budget unevenly across policies (E1). See [`docs/research/errata.md`](../../docs/research/errata.md).
+> A corrected re-run on kernel 0.3.0 under this unchanged protocol is
+> reported in `results/rerun-k0.3/` once complete.
+
 **Kind: SIMULATION.** Synthetic environment, no models, no spend.
 
 Protocol and scoring script:

@@ -44,8 +44,8 @@ between agents, and model confidence are not outputs.
 
 | ID | Statement (operational) | Status |
 |---|---|---|
-| H1 | With text-only workers, adaptive allocation verifies more problems than the **stronger** of {strict fixed slice, work-conserving round-robin} at equal compute caps. It is also reported against a static-prior heuristic and a bandit baseline (Zuo et al. 2506.12721). | **Untested on real workers.** Its simulation precondition (H1-sim) failed in one regime, so any real-worker test must report results by budget regime and against round-robin. |
-| H1-sim | In a synthetic environment where the scheduler sees only verifier receipts, posterior-based allocation beats work-conserving round-robin on verified yield when branch success rates are heterogeneous. It does *not* beat it when they are homogeneous. | **Rejected** under the frozen rule (exp-000, simulation): positive in 5 of 6 primary cells, negative in R2-formal-plateau at moderate budget. Most single-step gain came from prior hints, and the multi-step gain from structure awareness. See [`results/exp-000`](../../results/exp-000/README.md). The loss replicated in [exp-001](../../results/exp-001/README.md), and the advantage elsewhere survived correlated failures and verifier noise. [exp-002](../../results/exp-002/README.md) traced the loss to optimistic hints on dead problems the hints don't flag; with calibrated detection of dead problems, the loss became a gain. |
+| H1 | With text-only workers, adaptive allocation verifies more problems than the **stronger** of {strict fixed slice, work-conserving round-robin} at equal compute caps. It is also reported against a static-prior heuristic and a bandit baseline (Zuo et al. 2506.12721). | **Untested with LLM workers.** The non-LLM real-task pilot ([exp-004](../../results/exp-004/README.md)) was **inconclusive** (kernel 0.2; corrected re-run pending, see [errata](errata.md)). Its simulation precondition (H1-sim) failed in one regime, so any real-worker test must report results by budget regime and against round-robin. |
+| H1-sim | In a synthetic environment where the scheduler sees only verifier receipts, posterior-based allocation beats work-conserving round-robin on verified yield when branch success rates are heterogeneous. It does not beat it by a material margin (≥ 0.5 problems) when they are homogeneous. | **Rejected** under the frozen rule (exp-000, simulation): positive in 5 of 6 primary cells, negative in R2-formal-plateau at moderate budget. Hints and learning both contributed to single-step gains, and the multi-step gain came mostly from structure awareness. See [`results/exp-000`](../../results/exp-000/README.md). The loss replicated in [exp-001](../../results/exp-001/README.md), and the advantage elsewhere survived correlated failures and verifier noise. [exp-002](../../results/exp-002/README.md) traced the loss to optimistic hints on dead problems the hints don't flag; with perfect (simulated) detection of dead problems, the loss became a gain. |
 | H2 | Hybrid workers lower all-in cost per verified solution at non-inferior verified success, compared with matched text-only workers. | **Untested; blocked.** There is no GPU, and no matched text checkpoint is released (C5). |
 | H3 | Hybrid × adaptive interaction on verified yield. | **Untested; blocked by H2.** |
 
@@ -104,10 +104,9 @@ records generation and verification charges separately for this reason.
 6. *Main bottlenecks:* sparse and delayed verifier signal; correlated
    failures across branches; verification cost; for H2, the missing matched
    baseline.
-7. *Falsification:* see each preregistration. For H1-sim: if the adaptive
-   policy's paired difference against round-robin has a 95% CI that includes
-   0 in the heterogeneous regime, the mechanism H1 relies on fails even in a
-   favourable setting.
+7. *Falsification:* see each preregistration. For H1-sim (frozen exp-000
+   rule), it is rejected if any of the six heterogeneous primary cells has a
+   95% CI entirely below 0, or if four or more of those CIs include 0.
 8. *Could something simpler match it?* Possibly. Work-conserving round-robin
    with deduplication is the default to beat, and losing to it is a
    publishable outcome.

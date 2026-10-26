@@ -57,9 +57,20 @@ service's suite version and hidden seed must match the catalog.
   unchanged frozen protocols and scoring scripts. Each results page reports
   whether its preregistered verdicts change.
 
-## Known limitation, not yet fixed
+## Known limitation (addressed by the `--sandbox docker` mode)
 
 The worker service runs the extended ground-truth check in its own process,
 which is only safe for the project's own DSL programs. Model-written code
 must be checked inside the sandboxed verifier child before any LLM worker
 is connected.
+
+**Status (2026-10-27, ADR-0007).** With `--sandbox docker`, the service runs
+both the receipt check and the extended ground-truth check inside the V2
+docker sandbox. No candidate code runs in the service process. The service
+refuses to start if the sandbox is unusable, and a check that could not run
+in the sandbox produces an error reply rather than a guessed `extended_ok`.
+The default `--sandbox none` keeps the old behaviour unchanged, including
+the in-process extended check. All published experiments (exp-000 to
+exp-006) used that default, so none of their results change. Any LLM worker
+must be connected only through `--sandbox docker`. See
+[ADR-0007](../decisions/ADR-0007-v2-sandboxed-verifier.md).

@@ -29,26 +29,30 @@ failed predictions.
 
 | # | Kind | Finding | Status |
 |---|---|---|---|
-| [exp-000](results/exp-000/README.md) | simulation | Adaptive (Thompson) allocation beat round-robin in 5 of 6 calibrated regimes but **lost** in one. | H1-sim **rejected** as stated |
+| [exp-000](results/exp-000/README.md) | simulation | Adaptive (Thompson) allocation beat round-robin in 5 of 6 primary cells but **lost** in one. | H1-sim **rejected** as stated |
 | [exp-001](results/exp-001/README.md) | simulation | The loss replicates. The advantage survives correlated failures and noisy verifiers. **A 2% per-check false-positive rate makes 8–25% of accepted results false.** | — |
 | [exp-002](results/exp-002/README.md) | simulation | Mechanism: optimistic hints on *undetected dead problems* (+47 wasted attempts). Flag those problems and the loss becomes a gain. | mechanism **supported** |
 | [exp-003](results/exp-003/README.md) | real tasks | First pilot on 34 real tasks with a real subprocess verifier. The predicted waste on dead tasks reproduced; real verifier false acceptances measured. | superseded by exp-004 |
-| [exp-004](results/exp-004/README.md) | real tasks | **Task order leaked into the baselines** (FIFO −9.0 when shuffled). With order shuffled, hinted Thompson wins only at a scarce budget: **+1.75 [1.36, 2.14]** of 26 live tasks. | H1 pilot **inconclusive** |
-| [exp-005](results/exp-005/README.md) | verification | The 40-case hidden suite accepted 1.8% of wrong programs (boundary bugs). 40 cases with small values accepted none. | led to suite v2 |
-| exp-006 | real tasks | Stronger verification (199 cases, 4.6× the cost): what does it cost in verified yield? | **running** |
+| [exp-004](results/exp-004/README.md) | real tasks | **Task order leaked into the baselines** (FIFO −9.0 when shuffled). With order shuffled, hinted Thompson wins clearly at a scarce budget (**+1.75 [1.36, 2.14]** of 26 live tasks), is not significant at 240 and gains +0.22 [0.04, 0.39] at 480. | H1 pilot **inconclusive** |
+| [exp-005](results/exp-005/README.md) | verification | The 40-case hidden suite accepted 1.8% of wrong programs (boundary bugs). 40 cases with small values accepted none. | frozen verdict **refuted** (floor effect); led to suite v2 |
+| exp-006 | real tasks | Stronger verification (199 cases, 4.6× the cost): what does it cost in verified yield? | stopped on kernel 0.2 (errata E1/E2); **re-running on 0.3** |
 
 **Takeaways so far, each with its uncertainty:**
 
 1. Adaptive allocation is **not uniformly better** than a good round-robin
    baseline. It helps most when the budget is scarce.
-2. Most of the gain comes from **prior difficulty information**, not from
-   learning from receipts. Bad hints on unsolvable problems are the main
-   failure mode.
+2. **Difficulty hints and learning interact.** Neither explains the gain
+   alone. Hint-free adaptivity loses at a scarce budget, and a static hint
+   index without learning sometimes loses too. Confident hints on
+   unsolvable problems are the main failure mode found so far.
 3. **Verification quality matters as much as allocation.** Weak hidden test
    suites let wrong answers through, and more attempts amplify that.
-4. Infrastructure details can silently decide a comparison: task order,
-   tie-breaking, and platform-dependent floating point all did here. Each
-   was caught and corrected in the open.
+4. **Infrastructure details can silently bias a comparison.** Task order
+   and lowest-index tie-breaking did here. Platform-dependent floating
+   point broke cross-binary reproducibility, though not a conclusion. Two
+   runner bugs, found by independent review, stranded budget and
+   mis-counted repeated failures ([errata](docs/research/errata.md)). Each
+   was disclosed, fixed, and is being re-run.
 
 Program-level hypothesis status is kept in
 [`docs/research/scope.md`](docs/research/scope.md).

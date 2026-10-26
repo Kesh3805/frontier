@@ -92,6 +92,35 @@ jobs:
             echo "python/ not present; skipping"
           fi
 
+  verifier-v2:
+    name: verifier-v2 (docker sandbox integration)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: python -m pip install "numpy==2.*" "jsonschema==4.25.1" "pytest==9.0.2" pyyaml
+
+      - name: Pull the pinned sandbox image
+        working-directory: python
+        run: |
+          image=$(python -c "from frontier_py.verifiers.property_tests import SANDBOX_IMAGE; print(SANDBOX_IMAGE)")
+          echo "sandbox image: $image"
+          docker version
+          docker pull "$image"
+
+      - name: pytest (docker sandbox; skipping is an error here)
+        env:
+          FRONTIER_REQUIRE_DOCKER: "1"
+        run: python -m pytest python/tests/test_sandbox_docker.py python/tests/test_sandbox_selection.py -v
+
   qualification:
     name: qualification (release CLI, schemas, docs)
     needs: rust
