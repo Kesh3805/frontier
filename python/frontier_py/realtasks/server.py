@@ -19,7 +19,8 @@ false acceptance: the program is also checked against 1,000 further inputs.
 It is not part of the receipt and the runner keeps it out of the audited
 log. Replies for identical verify requests are memoised: the verifier is
 deterministic for these programs (they always terminate quickly), so this
-saves time without changing results.
+saves time without changing results. A memoised reply carries
+`"cached": true` and `wall_seconds` 0.
 """
 
 from __future__ import annotations
@@ -61,7 +62,9 @@ def handle(req: dict[str, Any]) -> dict[str, Any]:
                 _extended[task.name] = extended_cases(task)
             _verify_cache[key] = {"ok": True, "receipt": json.loads(receipt.to_json()),
                                   "extended_ok": correct_on(req["source"], _extended[task.name]), "wall_seconds": round(wall, 6)}
-        return _verify_cache[key]
+            return _verify_cache[key]
+        # Memoised: the receipt is identical, but no verification time was spent now.
+        return {**_verify_cache[key], "wall_seconds": 0.0, "cached": True}
     return {"ok": False, "error": f"unknown op {op!r}"}
 
 
