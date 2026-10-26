@@ -149,7 +149,9 @@ def test_secret_not_visible_to_child(monkeypatch):
     assert probe.kind == "ok"
     assert probe.outputs[0][0] is None
     assert secret not in json.dumps(probe.outputs)
-    assert set(probe.outputs[0][1]) <= {"SYSTEMROOT"}
+    # The parent passes at most SYSTEMROOT (Windows). CPython itself may add
+    # LC_CTYPE in the child on POSIX when it coerces the C locale (PEP 538).
+    assert set(probe.outputs[0][1]) <= {"SYSTEMROOT", "LC_CTYPE"}
 
 
 def test_child_cannot_import_repo_or_reference():
