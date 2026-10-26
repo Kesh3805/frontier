@@ -69,6 +69,10 @@ dependencies = [
 [[package]]
 name = "frontier-sched"
 version = "0.1.0"
+dependencies = [
+ "frontier-core",
+ "serde",
+]
 
 [[package]]
 name = "frontier-sim"

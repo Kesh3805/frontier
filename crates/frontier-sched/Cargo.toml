@@ -1,0 +1,14 @@
+[package]
+name = "frontier-sched"
+description = "Scheduling policies for allocating research attempts under a budget"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+frontier-core.workspace = true
+serde.workspace = true
+
+[lints]
+workspace = true
