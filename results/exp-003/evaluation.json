@@ -1,0 +1,721 @@
+{
+ "b60": {
+  "means": {
+   "solved": {
+    "round_robin": 12.3,
+    "fifo": 15.72,
+    "random": 9.89,
+    "greedy_prior": 13.21,
+    "thompson(k=2,hints=true)": 13.31,
+    "thompson(k=2,hints=false)": 10.52,
+    "oracle_index": 16.21
+   },
+   "sim_true_solved": {
+    "round_robin": 12.28,
+    "fifo": 15.69,
+    "random": 9.89,
+    "greedy_prior": 13.2,
+    "thompson(k=2,hints=true)": 13.3,
+    "thompson(k=2,hints=false)": 10.5,
+    "oracle_index": 16.19
+   },
+   "sim_dead_attempts": {
+    "round_robin": 7.89,
+    "fifo": 0.29,
+    "random": 9.59,
+    "greedy_prior": 44.49,
+    "thompson(k=2,hints=true)": 30.08,
+    "thompson(k=2,hints=false)": 14.15,
+    "oracle_index": 0.02
+   },
+   "sim_false_solved": {
+    "round_robin": 0.02,
+    "fifo": 0.03,
+    "random": 0.0,
+    "greedy_prior": 0.01,
+    "thompson(k=2,hints=true)": 0.01,
+    "thompson(k=2,hints=false)": 0.02,
+    "oracle_index": 0.02
+   },
+   "committed_units": {
+    "round_robin": 53.1898,
+    "fifo": 50.4898,
+    "random": 52.2158,
+    "greedy_prior": 43.7314,
+    "thompson(k=2,hints=true)": 43.3472,
+    "thompson(k=2,hints=false)": 49.6647,
+    "oracle_index": 51.0724
+   },
+   "attempts": {
+    "round_robin": 34.58,
+    "fifo": 40.8,
+    "random": 34.01,
+    "greedy_prior": 85.05,
+    "thompson(k=2,hints=true)": 67.38,
+    "thompson(k=2,hints=false)": 40.74,
+    "oracle_index": 40.73
+   }
+  },
+  "vs_rr": {
+   "sim_true_solved": {
+    "fifo": {
+     "diff": 3.41,
+     "ci": [
+      3.1,
+      3.74
+     ],
+     "a_gt_b": 95,
+     "a_lt_b": 2
+    },
+    "random": {
+     "diff": -2.39,
+     "ci": [
+      -2.79,
+      -1.98
+     ],
+     "a_gt_b": 8,
+     "a_lt_b": 82
+    },
+    "greedy_prior": {
+     "diff": 0.92,
+     "ci": [
+      0.53,
+      1.31
+     ],
+     "a_gt_b": 61,
+     "a_lt_b": 22
+    },
+    "thompson(k=2,hints=true)": {
+     "diff": 1.02,
+     "ci": [
+      0.64,
+      1.41
+     ],
+     "a_gt_b": 60,
+     "a_lt_b": 23
+    },
+    "thompson(k=2,hints=false)": {
+     "diff": -1.78,
+     "ci": [
+      -2.17,
+      -1.36
+     ],
+     "a_gt_b": 13,
+     "a_lt_b": 74
+    },
+    "oracle_index": {
+     "diff": 3.91,
+     "ci": [
+      3.57,
+      4.26
+     ],
+     "a_gt_b": 96,
+     "a_lt_b": 0
+    }
+   },
+   "solved": {
+    "fifo": {
+     "diff": 3.42,
+     "ci": [
+      3.1,
+      3.75
+     ],
+     "a_gt_b": 95,
+     "a_lt_b": 2
+    },
+    "random": {
+     "diff": -2.41,
+     "ci": [
+      -2.8102,
+      -2.0
+     ],
+     "a_gt_b": 8,
+     "a_lt_b": 82
+    },
+    "greedy_prior": {
+     "diff": 0.91,
+     "ci": [
+      0.52,
+      1.3
+     ],
+     "a_gt_b": 61,
+     "a_lt_b": 22
+    },
+    "thompson(k=2,hints=true)": {
+     "diff": 1.01,
+     "ci": [
+      0.63,
+      1.4
+     ],
+     "a_gt_b": 60,
+     "a_lt_b": 24
+    },
+    "thompson(k=2,hints=false)": {
+     "diff": -1.78,
+     "ci": [
+      -2.17,
+      -1.36
+     ],
+     "a_gt_b": 13,
+     "a_lt_b": 74
+    },
+    "oracle_index": {
+     "diff": 3.91,
+     "ci": [
+      3.57,
+      4.26
+     ],
+     "a_gt_b": 96,
+     "a_lt_b": 0
+    }
+   },
+   "sim_dead_attempts": {
+    "fifo": {
+     "diff": -7.6,
+     "ci": [
+      -7.74,
+      -7.44
+     ],
+     "a_gt_b": 0,
+     "a_lt_b": 100
+    },
+    "random": {
+     "diff": 1.7,
+     "ci": [
+      1.18,
+      2.2402
+     ],
+     "a_gt_b": 70,
+     "a_lt_b": 20
+    },
+    "greedy_prior": {
+     "diff": 36.6,
+     "ci": [
+      35.78,
+      37.43
+     ],
+     "a_gt_b": 100,
+     "a_lt_b": 0
+    },
+    "thompson(k=2,hints=true)": {
+     "diff": 22.19,
+     "ci": [
+      21.13,
+      23.25
+     ],
+     "a_gt_b": 100,
+     "a_lt_b": 0
+    },
+    "thompson(k=2,hints=false)": {
+     "diff": 6.26,
+     "ci": [
+      5.54,
+      6.99
+     ],
+     "a_gt_b": 94,
+     "a_lt_b": 2
+    },
+    "oracle_index": {
+     "diff": -7.87,
+     "ci": [
+      -7.95,
+      -7.78
+     ],
+     "a_gt_b": 0,
+     "a_lt_b": 100
+    }
+   }
+  },
+  "runs_with_false_solve": {
+   "round_robin": 2,
+   "fifo": 3,
+   "random": 0,
+   "greedy_prior": 1,
+   "thompson(k=2,hints=true)": 1,
+   "thompson(k=2,hints=false)": 2,
+   "oracle_index": 2
+  }
+ },
+ "b240": {
+  "means": {
+   "solved": {
+    "round_robin": 20.57,
+    "fifo": 21.89,
+    "random": 20.63,
+    "greedy_prior": 21.55,
+    "thompson(k=2,hints=true)": 21.18,
+    "thompson(k=2,hints=false)": 20.31,
+    "oracle_index": 22.43
+   },
+   "sim_true_solved": {
+    "round_robin": 20.52,
+    "fifo": 21.84,
+    "random": 20.59,
+    "greedy_prior": 21.5,
+    "thompson(k=2,hints=true)": 21.14,
+    "thompson(k=2,hints=false)": 20.27,
+    "oracle_index": 22.38
+   },
+   "sim_dead_attempts": {
+    "round_robin": 58.46,
+    "fifo": 65.86,
+    "random": 73.81,
+    "greedy_prior": 212.84,
+    "thompson(k=2,hints=true)": 213.96,
+    "thompson(k=2,hints=false)": 161.61,
+    "oracle_index": 150.48
+   },
+   "sim_false_solved": {
+    "round_robin": 0.05,
+    "fifo": 0.05,
+    "random": 0.04,
+    "greedy_prior": 0.05,
+    "thompson(k=2,hints=true)": 0.04,
+    "thompson(k=2,hints=false)": 0.04,
+    "oracle_index": 0.05
+   },
+   "committed_units": {
+    "round_robin": 232.1489,
+    "fifo": 230.9034,
+    "random": 231.5869,
+    "greedy_prior": 233.7598,
+    "thompson(k=2,hints=true)": 233.6355,
+    "thompson(k=2,hints=false)": 229.3482,
+    "oracle_index": 228.1319
+   },
+   "attempts": {
+    "round_robin": 139.49,
+    "fifo": 180.26,
+    "random": 159.8,
+    "greedy_prior": 324.65,
+    "thompson(k=2,hints=true)": 326.11,
+    "thompson(k=2,hints=false)": 262.44,
+    "oracle_index": 277.66
+   }
+  },
+  "vs_rr": {
+   "sim_true_solved": {
+    "fifo": {
+     "diff": 1.32,
+     "ci": [
+      1.03,
+      1.62
+     ],
+     "a_gt_b": 71,
+     "a_lt_b": 9
+    },
+    "random": {
+     "diff": 0.07,
+     "ci": [
+      -0.09,
+      0.23
+     ],
+     "a_gt_b": 25,
+     "a_lt_b": 18
+    },
+    "greedy_prior": {
+     "diff": 0.98,
+     "ci": [
+      0.74,
+      1.22
+     ],
+     "a_gt_b": 67,
+     "a_lt_b": 9
+    },
+    "thompson(k=2,hints=true)": {
+     "diff": 0.62,
+     "ci": [
+      0.34,
+      0.9
+     ],
+     "a_gt_b": 52,
+     "a_lt_b": 20
+    },
+    "thompson(k=2,hints=false)": {
+     "diff": -0.25,
+     "ci": [
+      -0.54,
+      0.04
+     ],
+     "a_gt_b": 31,
+     "a_lt_b": 43
+    },
+    "oracle_index": {
+     "diff": 1.86,
+     "ci": [
+      1.62,
+      2.11
+     ],
+     "a_gt_b": 89,
+     "a_lt_b": 0
+    }
+   },
+   "solved": {
+    "fifo": {
+     "diff": 1.32,
+     "ci": [
+      1.03,
+      1.62
+     ],
+     "a_gt_b": 71,
+     "a_lt_b": 9
+    },
+    "random": {
+     "diff": 0.06,
+     "ci": [
+      -0.1,
+      0.22
+     ],
+     "a_gt_b": 25,
+     "a_lt_b": 19
+    },
+    "greedy_prior": {
+     "diff": 0.98,
+     "ci": [
+      0.74,
+      1.22
+     ],
+     "a_gt_b": 67,
+     "a_lt_b": 9
+    },
+    "thompson(k=2,hints=true)": {
+     "diff": 0.61,
+     "ci": [
+      0.33,
+      0.89
+     ],
+     "a_gt_b": 51,
+     "a_lt_b": 20
+    },
+    "thompson(k=2,hints=false)": {
+     "diff": -0.26,
+     "ci": [
+      -0.55,
+      0.03
+     ],
+     "a_gt_b": 30,
+     "a_lt_b": 43
+    },
+    "oracle_index": {
+     "diff": 1.86,
+     "ci": [
+      1.62,
+      2.11
+     ],
+     "a_gt_b": 89,
+     "a_lt_b": 0
+    }
+   },
+   "sim_dead_attempts": {
+    "fifo": {
+     "diff": 7.4,
+     "ci": [
+      2.64,
+      12.6202
+     ],
+     "a_gt_b": 54,
+     "a_lt_b": 42
+    },
+    "random": {
+     "diff": 15.35,
+     "ci": [
+      13.93,
+      16.8
+     ],
+     "a_gt_b": 100,
+     "a_lt_b": 0
+    },
+    "greedy_prior": {
+     "diff": 154.38,
+     "ci": [
+      152.66,
+      156.01
+     ],
+     "a_gt_b": 100,
+     "a_lt_b": 0
+    },
+    "thompson(k=2,hints=true)": {
+     "diff": 155.5,
+     "ci": [
+      153.66,
+      157.24
+     ],
+     "a_gt_b": 100,
+     "a_lt_b": 0
+    },
+    "thompson(k=2,hints=false)": {
+     "diff": 103.15,
+     "ci": [
+      100.61,
+      105.77
+     ],
+     "a_gt_b": 100,
+     "a_lt_b": 0
+    },
+    "oracle_index": {
+     "diff": 92.02,
+     "ci": [
+      85.9998,
+      98.16
+     ],
+     "a_gt_b": 100,
+     "a_lt_b": 0
+    }
+   }
+  },
+  "runs_with_false_solve": {
+   "round_robin": 5,
+   "fifo": 5,
+   "random": 4,
+   "greedy_prior": 5,
+   "thompson(k=2,hints=true)": 4,
+   "thompson(k=2,hints=false)": 4,
+   "oracle_index": 5
+  }
+ },
+ "b480": {
+  "means": {
+   "solved": {
+    "round_robin": 23.14,
+    "fifo": 22.97,
+    "random": 23.27,
+    "greedy_prior": 23.36,
+    "thompson(k=2,hints=true)": 23.42,
+    "thompson(k=2,hints=false)": 23.27,
+    "oracle_index": 23.93
+   },
+   "sim_true_solved": {
+    "round_robin": 23.08,
+    "fifo": 22.9,
+    "random": 23.22,
+    "greedy_prior": 23.3,
+    "thompson(k=2,hints=true)": 23.36,
+    "thompson(k=2,hints=false)": 23.22,
+    "oracle_index": 23.87
+   },
+   "sim_dead_attempts": {
+    "round_robin": 200.62,
+    "fifo": 261.37,
+    "random": 233.37,
+    "greedy_prior": 280.39,
+    "thompson(k=2,hints=true)": 280.53,
+    "thompson(k=2,hints=false)": 278.9,
+    "oracle_index": 267.09
+   },
+   "sim_false_solved": {
+    "round_robin": 0.06,
+    "fifo": 0.07,
+    "random": 0.05,
+    "greedy_prior": 0.06,
+    "thompson(k=2,hints=true)": 0.06,
+    "thompson(k=2,hints=false)": 0.05,
+    "oracle_index": 0.06
+   },
+   "committed_units": {
+    "round_robin": 471.0068,
+    "fifo": 472.2094,
+    "random": 472.0746,
+    "greedy_prior": 474.3869,
+    "thompson(k=2,hints=true)": 474.5682,
+    "thompson(k=2,hints=false)": 474.1628,
+    "oracle_index": 474.5323
+   },
+   "attempts": {
+    "round_robin": 336.75,
+    "fifo": 399.81,
+    "random": 375.21,
+    "greedy_prior": 427.32,
+    "thompson(k=2,hints=true)": 428.9,
+    "thompson(k=2,hints=false)": 425.18,
+    "oracle_index": 427.95
+   }
+  },
+  "vs_rr": {
+   "sim_true_solved": {
+    "fifo": {
+     "diff": -0.18,
+     "ci": [
+      -0.39,
+      0.0202
+     ],
+     "a_gt_b": 25,
+     "a_lt_b": 42
+    },
+    "random": {
+     "diff": 0.14,
+     "ci": [
+      0.02,
+      0.26
+     ],
+     "a_gt_b": 22,
+     "a_lt_b": 11
+    },
+    "greedy_prior": {
+     "diff": 0.22,
+     "ci": [
+      0.04,
+      0.4
+     ],
+     "a_gt_b": 35,
+     "a_lt_b": 18
+    },
+    "thompson(k=2,hints=true)": {
+     "diff": 0.28,
+     "ci": [
+      0.12,
+      0.44
+     ],
+     "a_gt_b": 35,
+     "a_lt_b": 15
+    },
+    "thompson(k=2,hints=false)": {
+     "diff": 0.14,
+     "ci": [
+      -0.01,
+      0.29
+     ],
+     "a_gt_b": 26,
+     "a_lt_b": 13
+    },
+    "oracle_index": {
+     "diff": 0.79,
+     "ci": [
+      0.61,
+      0.98
+     ],
+     "a_gt_b": 49,
+     "a_lt_b": 0
+    }
+   },
+   "solved": {
+    "fifo": {
+     "diff": -0.17,
+     "ci": [
+      -0.38,
+      0.03
+     ],
+     "a_gt_b": 25,
+     "a_lt_b": 41
+    },
+    "random": {
+     "diff": 0.13,
+     "ci": [
+      0.01,
+      0.26
+     ],
+     "a_gt_b": 22,
+     "a_lt_b": 12
+    },
+    "greedy_prior": {
+     "diff": 0.22,
+     "ci": [
+      0.04,
+      0.4
+     ],
+     "a_gt_b": 35,
+     "a_lt_b": 18
+    },
+    "thompson(k=2,hints=true)": {
+     "diff": 0.28,
+     "ci": [
+      0.12,
+      0.44
+     ],
+     "a_gt_b": 35,
+     "a_lt_b": 15
+    },
+    "thompson(k=2,hints=false)": {
+     "diff": 0.13,
+     "ci": [
+      -0.02,
+      0.28
+     ],
+     "a_gt_b": 26,
+     "a_lt_b": 14
+    },
+    "oracle_index": {
+     "diff": 0.79,
+     "ci": [
+      0.61,
+      0.98
+     ],
+     "a_gt_b": 49,
+     "a_lt_b": 0
+    }
+   },
+   "sim_dead_attempts": {
+    "fifo": {
+     "diff": 60.75,
+     "ci": [
+      52.33,
+      69.1005
+     ],
+     "a_gt_b": 93,
+     "a_lt_b": 6
+    },
+    "random": {
+     "diff": 32.75,
+     "ci": [
+      29.38,
+      36.03
+     ],
+     "a_gt_b": 94,
+     "a_lt_b": 3
+    },
+    "greedy_prior": {
+     "diff": 79.77,
+     "ci": [
+      71.2095,
+      88.2202
+     ],
+     "a_gt_b": 94,
+     "a_lt_b": 4
+    },
+    "thompson(k=2,hints=true)": {
+     "diff": 79.91,
+     "ci": [
+      71.4597,
+      88.23
+     ],
+     "a_gt_b": 99,
+     "a_lt_b": 1
+    },
+    "thompson(k=2,hints=false)": {
+     "diff": 78.28,
+     "ci": [
+      70.08,
+      86.3902
+     ],
+     "a_gt_b": 98,
+     "a_lt_b": 0
+    },
+    "oracle_index": {
+     "diff": 66.47,
+     "ci": [
+      59.6097,
+      73.2402
+     ],
+     "a_gt_b": 94,
+     "a_lt_b": 4
+    }
+   }
+  },
+  "runs_with_false_solve": {
+   "round_robin": 6,
+   "fifo": 7,
+   "random": 5,
+   "greedy_prior": 6,
+   "thompson(k=2,hints=true)": 6,
+   "thompson(k=2,hints=false)": 5,
+   "oracle_index": 6
+  }
+ },
+ "verdicts": {
+  "P1 dead over-spend at all budgets": true,
+  "P2a scarce gain (b60)": true,
+  "P2b no gain at b480": false,
+  "P3 hint-free ~ RR at b240 and b480": true,
+  "P4 hint-free spends fewer dead attempts than hinted (b240, b480)": true,
+  "H1-pilot": "supported"
+ }
+}
