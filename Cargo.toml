@@ -8,6 +8,7 @@ edition = "2024"
 rust-version = "1.85"
 repository = "https://github.com/Kesh3805/frontier"
 publish = false
+license = "Apache-2.0"
 
 [workspace.dependencies]
 serde = { version = "=1.0.229", features = ["derive"] }

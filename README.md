@@ -29,5 +29,7 @@ produced in simulation is labelled as simulation.
 
 ## License
 
-No license has been granted yet. Licensing will be decided before any public
-release. Third-party work is cited where it is used.
+Apache License 2.0; see [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE). Third-party
+papers, code and models are cited where used and keep their own licenses
+(HybridAgent: MIT; HybridAgent checkpoints: MIT; Qwen3 base models and
+benchmark datasets: their respective terms).
