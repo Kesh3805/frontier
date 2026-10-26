@@ -57,7 +57,12 @@
               "required": ["digest", "duplicate"],
               "properties": {
                 "digest": { "$ref": "#/$defs/Digest" },
-                "duplicate": { "type": "boolean" }
+                "duplicate": { "type": "boolean" },
+                "parents": {
+                  "description": "Accepted prerequisite artifacts the artifact builds on (library of a dependent task). Omitted when empty.",
+                  "type": "array",
+                  "items": { "$ref": "#/$defs/Digest" }
+                }
               }
             }
           }

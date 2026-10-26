@@ -1,10 +1,14 @@
-//! Client for the Python worker/verifier service (JSONL protocol version 1,
-//! see `python/frontier_py/realtasks/server.py`).
+//! Client for the Python worker/verifier service (JSONL protocol versions 1
+//! and 2, see `python/frontier_py/realtasks/server.py`).
 //!
 //! The service runs real candidate programs through the property-test
 //! verifier. Its replies are trusted only as far as the receipt's trust class
 //! says (V1: subprocess harness without OS isolation). Wall time it reports
 //! is collected here and kept out of the deterministic event log.
+//!
+//! Protocol 2 adds an optional `library` to `attempt`: verified helper
+//! sources for a dependent task. An attempt without a library is the same
+//! request in both versions, so v1/v2 catalogs run unchanged against either.
 
 use std::io::{BufRead, BufReader, Write};
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
@@ -15,7 +19,18 @@ use serde_json::{Value, json};
 
 use crate::runner::SimError;
 
-pub const PROTOCOL: u64 = 1;
+/// Newest protocol this client speaks; it also accepts services speaking 1.
+pub const PROTOCOL: u64 = 2;
+/// First protocol version whose `attempt` accepts a `library`.
+pub const LIBRARY_PROTOCOL: u64 = 2;
+
+/// A verified helper passed to a dependent task's attempt: the call name and
+/// the source of the artifact the evidence store accepted for the prerequisite.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct LibraryEntry {
+    pub name: String,
+    pub source: String,
+}
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -35,6 +50,8 @@ pub struct ExternalWorker {
     child: Child,
     /// The service's `hello` reply (protocol, suite version, hidden seed).
     pub hello: Value,
+    /// Protocol version the service speaks (1 or 2).
+    pub protocol: u64,
     stdin: ChildStdin,
     stdout: BufReader<ChildStdout>,
     /// Host wall-clock seconds the service spent verifying (not deterministic).
@@ -57,10 +74,11 @@ impl ExternalWorker {
             .map_err(|e| protocol_error(format!("cannot start {:?}: {e}", cmd.program)))?;
         let stdin = child.stdin.take().expect("piped");
         let stdout = BufReader::new(child.stdout.take().expect("piped"));
-        let mut w = Self { child, stdin, stdout, hello: Value::Null, verify_wall_seconds: 0.0 };
+        let mut w = Self { child, stdin, stdout, hello: Value::Null, protocol: 0, verify_wall_seconds: 0.0 };
         let hello = w.request(&json!({ "op": "hello" }))?;
-        if hello.get("protocol").and_then(Value::as_u64) != Some(PROTOCOL) {
-            return Err(protocol_error(format!("unsupported protocol in {hello}")));
+        match hello.get("protocol").and_then(Value::as_u64) {
+            Some(p @ 1..=PROTOCOL) => w.protocol = p,
+            _ => return Err(protocol_error(format!("unsupported protocol in {hello}"))),
         }
         w.hello = hello;
         Ok(w)
@@ -82,8 +100,17 @@ impl ExternalWorker {
         Ok(v)
     }
 
-    pub fn attempt(&mut self, task: &str, seed: u64, k: u32) -> Result<AttemptReply, SimError> {
-        let v = self.request(&json!({ "op": "attempt", "task": task, "seed": seed, "k": k }))?;
+    /// One worker attempt. `library` must be empty for tasks without
+    /// prerequisites; the request is then identical to protocol 1.
+    pub fn attempt(&mut self, task: &str, seed: u64, k: u32, library: &[LibraryEntry]) -> Result<AttemptReply, SimError> {
+        let mut req = json!({ "op": "attempt", "task": task, "seed": seed, "k": k });
+        if !library.is_empty() {
+            if self.protocol < LIBRARY_PROTOCOL {
+                return Err(protocol_error(format!("protocol {} service cannot take a library", self.protocol)));
+            }
+            req["library"] = serde_json::to_value(library).map_err(|e| protocol_error(e.to_string()))?;
+        }
+        let v = self.request(&req)?;
         let source = v.get("source").and_then(Value::as_str).ok_or_else(|| protocol_error("attempt reply lacks source"))?;
         let gen_units = v.get("gen_units").and_then(Value::as_f64).filter(|u| u.is_finite() && *u >= 0.0);
         Ok(AttemptReply { source: source.to_owned(), gen_units: gen_units.ok_or_else(|| protocol_error("bad gen_units"))? })
