@@ -1,0 +1,57 @@
+{
+  "schema_version": "0.1",
+  "experiment_id": "exp-007-b1920",
+  "catalog": "../../realtasks/catalog-v3.json",
+  "catalog_sha256": "6c63d226d405975517d67fc87f48e4d8345f6f315886cc59d87c35a9b70ef686",
+  "server": {
+    "program": "python",
+    "args": [
+      "-m",
+      "frontier_py.realtasks.server",
+      "--suite-version",
+      "2"
+    ],
+    "cwd": "../../../python"
+  },
+  "policies": [
+    {
+      "kind": "round_robin"
+    },
+    {
+      "kind": "random"
+    },
+    {
+      "kind": "greedy_prior"
+    },
+    {
+      "kind": "thompson",
+      "prior_strength": 2.0,
+      "use_hints": true
+    },
+    {
+      "kind": "thompson",
+      "prior_strength": 2.0,
+      "use_hints": false
+    },
+    {
+      "kind": "oracle_index"
+    }
+  ],
+  "seed_start": 3001,
+  "seeds": 100,
+  "run": {
+    "seed": 0,
+    "workers": 8,
+    "budget_units": 1920.0,
+    "attempt_cap_units": 3.0,
+    "verify_cost_units": 1.05,
+    "crash_prob": 0.0,
+    "max_attempts_per_task": 64,
+    "max_parallel_per_task": 1,
+    "prior_cost": 1.0,
+    "policy": {
+      "kind": "round_robin"
+    }
+  },
+  "shuffle_problem_order": true
+}
