@@ -55,6 +55,12 @@ dependencies = [
 [[package]]
 name = "frontier-cli"
 version = "0.1.0"
+dependencies = [
+ "frontier-core",
+ "frontier-sim",
+ "serde",
+ "serde_json",
+]
 
 [[package]]
 name = "frontier-core"

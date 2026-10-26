@@ -1,0 +1,21 @@
+[package]
+name = "frontier-cli"
+description = "Command-line runner for FRONTIER campaigns and experiments"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "frontier"
+path = "src/main.rs"
+
+[dependencies]
+frontier-core.workspace = true
+frontier-sim.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true
