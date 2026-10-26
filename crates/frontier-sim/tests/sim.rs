@@ -20,6 +20,7 @@ fn env() -> EnvConfig {
         attempt_cost_sd: 0.3,
         failure_cost_mult: 1.5,
         hint_noise: 1.0,
+        ..EnvConfig::default()
     }
 }
 
@@ -161,4 +162,55 @@ fn fixed_slice_never_exceeds_its_per_problem_share() {
     for (p, u) in spent {
         assert!(u <= slice + 1e-9, "{p} spent {u} > slice {slice}");
     }
+}
+
+/// Pinned log head of the smoke campaign. The same value must come out of
+/// every build profile and platform (CI checks Linux; it was pinned on
+/// Windows). A change here means simulation outputs changed: re-pin only
+/// together with a documented kernel change.
+#[test]
+fn smoke_config_log_head_is_pinned() {
+    let cfg: SimConfig = serde_json::from_str(include_str!("../../../configs/smoke.json")).unwrap();
+    let out = run(&cfg).unwrap();
+    assert_eq!(out.log.head().to_hex(), "86098db37bf81423e3cc5e6d7cc2eb6b1adb792534439a241450e3759dac3fcd");
+    // New environment fields default to off and are not serialised.
+    let original: serde_json::Value = serde_json::from_str(include_str!("../../../configs/smoke.json")).unwrap();
+    assert_eq!(serde_json::to_value(&cfg).unwrap(), original);
+}
+
+#[test]
+fn perfect_verifier_accepts_only_sound_results() {
+    for seed in 0..10 {
+        let mut cfg = config(PolicyConfig::RoundRobin, seed);
+        cfg.env.distinct_solutions = true;
+        let out = run(&cfg).unwrap();
+        let s = summarize(&out.log).unwrap();
+        assert_eq!(out.truth.true_solved, s.solved);
+        assert_eq!(out.truth.false_solved + out.truth.false_accepted_tasks, 0);
+    }
+}
+
+#[test]
+fn false_positives_produce_unsound_solves_and_false_negatives_block_them() {
+    let mut cfg = config(PolicyConfig::RoundRobin, 2);
+    cfg.env.distinct_solutions = true;
+    cfg.env.verifier_fpr = 1.0;
+    let out = run(&cfg).unwrap();
+    let s = summarize(&out.log).unwrap();
+    assert!(out.truth.false_solved > 0);
+    assert_eq!(out.truth.true_solved + out.truth.false_solved, s.solved);
+
+    cfg.env.verifier_fpr = 0.0;
+    cfg.env.verifier_fnr = 1.0;
+    let out = run(&cfg).unwrap();
+    assert_eq!(summarize(&out.log).unwrap().solved, 0);
+}
+
+#[test]
+fn sticky_runs_are_reproducible_and_audited() {
+    let mut cfg = config(PolicyConfig::Thompson { prior_strength: 2.0, use_hints: true }, 8);
+    cfg.env.failure_stickiness = 0.8;
+    let a = run(&cfg).unwrap();
+    assert_eq!(a.log.head(), run(&cfg).unwrap().log.head());
+    summarize(&a.log).unwrap();
 }

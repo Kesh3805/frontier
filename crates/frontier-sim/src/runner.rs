@@ -97,6 +97,20 @@ pub struct RunOutput {
     /// excluded from the deterministic log).
     pub select_nanos: u128,
     pub decisions: u64,
+    /// Simulation ground truth about accepted results. Computed from hidden
+    /// answers, so it is not part of the audited log.
+    pub truth: SimTruth,
+}
+
+/// Soundness of what the run accepted, judged against hidden answers.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct SimTruth {
+    /// Problems whose accepted terminal and every accepted prerequisite are correct.
+    pub true_solved: usize,
+    /// Problems closed as solved whose accepted chain contains a wrong artifact.
+    pub false_solved: usize,
+    /// Tasks accepted with an incorrect artifact (verifier false positives).
+    pub false_accepted_tasks: usize,
 }
 
 #[derive(Clone, Debug)]
@@ -108,6 +122,8 @@ enum Planned {
 
 struct InFlight {
     attempt: Attempt,
+    /// Per-task attempt index; keys the outcome and verifier streams.
+    k: u32,
     plan: Planned,
     artifact: Option<Digest>,
     gen_units: f64,
@@ -122,12 +138,26 @@ enum Phase {
 struct SimVerifier<'a> {
     truth: &'a BTreeMap<String, TaskTruth>,
     cost: f64,
+    seed: u64,
+    fnr: f64,
+    fpr: f64,
+}
+
+fn answer_is_correct(truth: &BTreeMap<String, TaskTruth>, artifact: &Artifact) -> bool {
+    artifact.body.get("answer").and_then(|v| v.as_str()) == Some(truth[&artifact.task_id].secret.as_str())
 }
 
 impl SimVerifier<'_> {
-    fn verify(&self, spec: &SealedSpec, artifact: &Artifact, digest: Digest) -> VerifierReceipt {
-        let expected = &self.truth[&artifact.task_id].secret;
-        let pass = artifact.spec_digest == spec.digest() && artifact.body.get("answer").and_then(|v| v.as_str()) == Some(expected.as_str());
+    /// Ground-truth check, then (if configured) a false-negative or
+    /// false-positive flip drawn from a stream keyed by (task, attempt index).
+    fn verify(&self, spec: &SealedSpec, artifact: &Artifact, digest: Digest, k: u32) -> VerifierReceipt {
+        let correct = artifact.spec_digest == spec.digest() && answer_is_correct(self.truth, artifact);
+        let pass = if self.fnr == 0.0 && self.fpr == 0.0 {
+            correct
+        } else {
+            let u = SplitMix64::derive(self.seed, &format!("verify/{}/{k}", artifact.task_id)).next_f64();
+            if correct { u >= self.fnr } else { u < self.fpr }
+        };
         VerifierReceipt {
             schema_version: RECEIPT_SCHEMA_VERSION.into(),
             spec_digest: spec.digest(),
@@ -164,6 +194,9 @@ struct Sim<'a> {
     policy_rng: SplitMix64,
     select_nanos: u128,
     decisions: u64,
+    /// Ground-truth soundness of each accepted task (None = not accepted).
+    sound: Vec<Option<bool>>,
+    truth: SimTruth,
 }
 
 pub fn run(cfg: &SimConfig) -> Result<RunOutput, SimError> {
@@ -175,7 +208,13 @@ pub fn run(cfg: &SimConfig) -> Result<RunOutput, SimError> {
 pub fn run_campaign(cfg: &SimConfig, campaign: &Campaign) -> Result<RunOutput, SimError> {
     let mut sim = Sim::new(cfg, campaign)?;
     sim.execute()?;
-    Ok(RunOutput { policy_name: sim.policy.name(), select_nanos: sim.select_nanos, decisions: sim.decisions, log: sim.log })
+    Ok(RunOutput {
+        policy_name: sim.policy.name(),
+        select_nanos: sim.select_nanos,
+        decisions: sim.decisions,
+        truth: sim.truth,
+        log: sim.log,
+    })
 }
 
 impl<'a> Sim<'a> {
@@ -239,6 +278,8 @@ impl<'a> Sim<'a> {
             policy_rng: SplitMix64::derive(cfg.run.seed, "policy"),
             select_nanos: 0,
             decisions: 0,
+            sound: vec![None; n],
+            truth: SimTruth::default(),
         })
     }
 
@@ -336,23 +377,19 @@ impl<'a> Sim<'a> {
 
     fn plan_attempt(&self, task: usize, k: u32) -> Planned {
         let r = &self.cfg.run;
+        let env = &self.cfg.env;
         let id = &self.graph.node(task).def.task_id;
         let truth = &self.campaign.truth[id];
-        let mut rng = SplitMix64::derive(r.seed, &format!("attempt/{id}/{k}"));
-        let sd = self.cfg.env.attempt_cost_sd;
-        let base_cost = truth.mean_cost * rng.lognormal(-0.5 * sd * sd, sd);
-        let crash = rng.bernoulli(r.crash_prob);
-        let crash_frac = rng.next_f64();
-        let success = rng.bernoulli(truth.p_success);
-        let cost = if success { base_cost } else { base_cost * self.cfg.env.failure_cost_mult };
-        let wrong = format!("{:016x}", rng.next_u64());
-        let confidence = 0.5 + 0.5 * rng.next_f64();
-        if crash {
-            Planned::Crash { gen_units: (cost * crash_frac).min(r.attempt_cap_units) }
+        let d = fresh_draws(r.seed, id, truth.p_success, truth.mean_cost, env.attempt_cost_sd, r.crash_prob, k);
+        let success =
+            if env.failure_stickiness > 0.0 { sticky_success(r.seed, id, truth.p_success, env.failure_stickiness, k) } else { d.success };
+        let cost = if success { d.base_cost } else { d.base_cost * env.failure_cost_mult };
+        if d.crash {
+            Planned::Crash { gen_units: (cost * d.crash_frac).min(r.attempt_cap_units) }
         } else if cost > r.attempt_cap_units {
             Planned::Timeout
         } else {
-            Planned::Candidate { gen_units: cost, answer: if success { truth.secret.clone() } else { wrong }, confidence }
+            Planned::Candidate { gen_units: cost, answer: if success { truth.secret.clone() } else { d.wrong }, confidence: d.confidence }
         }
     }
 
@@ -381,7 +418,7 @@ impl<'a> Sim<'a> {
             reserved_units: reservation,
         });
         self.schedule(self.now + gen_units, Phase::GenerationDone, attempt_id);
-        self.inflight.insert(attempt_id, InFlight { attempt, plan, artifact: None, gen_units });
+        self.inflight.insert(attempt_id, InFlight { attempt, k, plan, artifact: None, gen_units });
         Ok(())
     }
 
@@ -407,12 +444,18 @@ impl<'a> Sim<'a> {
                 fl.attempt.advance(AttemptState::ArtifactSubmitted).map_err(|e| SimError::Invariant(e.to_string()))?;
                 let node = self.graph.node(task);
                 let spec = &self.campaign.specs[self.stats[task].problem];
+                let body = if self.cfg.env.distinct_solutions {
+                    let variant = SplitMix64::derive(self.cfg.run.seed, &format!("variant/{}/{}", node.def.task_id, fl.k)).next_u64();
+                    json!({ "answer": answer, "variant": format!("{variant:016x}") })
+                } else {
+                    json!({ "answer": answer })
+                };
                 let artifact = Artifact {
                     kind: ArtifactKind::Candidate,
                     spec_digest: spec.digest(),
                     task_id: node.def.task_id.clone(),
                     parents: vec![],
-                    body: json!({ "answer": answer }),
+                    body,
                 };
                 let sub = Submission {
                     attempt_id: id,
@@ -450,15 +493,22 @@ impl<'a> Sim<'a> {
     }
 
     fn on_verification_done(&mut self, id: u64) -> Result<(), SimError> {
-        let (task, digest, gen_units) = {
+        let (task, digest, gen_units, k) = {
             let fl = &self.inflight[&id];
-            (fl.attempt.task, fl.artifact.expect("verified attempts have artifacts"), fl.gen_units)
+            (fl.attempt.task, fl.artifact.expect("verified attempts have artifacts"), fl.gen_units, fl.k)
         };
         let p = self.stats[task].problem;
         let spec = &self.campaign.specs[p];
-        let verifier = SimVerifier { truth: &self.campaign.truth, cost: self.cfg.run.verify_cost_units };
+        let env = &self.cfg.env;
+        let verifier = SimVerifier {
+            truth: &self.campaign.truth,
+            cost: self.cfg.run.verify_cost_units,
+            seed: self.cfg.run.seed,
+            fnr: env.verifier_fnr,
+            fpr: env.verifier_fpr,
+        };
         let artifact = self.store.get(&digest).expect("submitted").artifact.clone();
-        let receipt = verifier.verify(spec, &artifact, digest);
+        let receipt = verifier.verify(spec, &artifact, digest, k);
         let status = self.store.record_receipt(spec, receipt.clone()).map_err(|e| SimError::Invariant(e.to_string()))?;
         self.log.append(Event::VerificationFinished { attempt_id: id, at: self.now, receipt });
         let verified = status == ClaimStatus::MechanicallyVerified;
@@ -470,7 +520,18 @@ impl<'a> Sim<'a> {
             self.stats[task].verified = true;
             self.problems[p].verified_tasks += 1;
             self.log.append(Event::TaskVerified { task_id: self.graph.node(task).def.task_id.clone(), artifact: digest, at: self.now });
+            let correct = answer_is_correct(&self.campaign.truth, &artifact);
+            let sound = correct && self.graph.node(task).deps.iter().all(|&d| self.sound[d] == Some(true));
+            self.sound[task] = Some(sound);
+            if !correct {
+                self.truth.false_accepted_tasks += 1;
+            }
             if self.graph.node(task).def.terminal {
+                if sound {
+                    self.truth.true_solved += 1;
+                } else {
+                    self.truth.false_solved += 1;
+                }
                 self.problems[p].solved = true;
                 self.problems[p].closed = true;
                 self.graph.abandon_problem(spec.id()).map_err(|e| SimError::Invariant(e.to_string()))?;
@@ -522,4 +583,73 @@ impl<'a> Sim<'a> {
 fn expected_charge(cfg: &SimConfig, t: &TaskTruth) -> f64 {
     let mean = t.mean_cost * (t.p_success + (1.0 - t.p_success) * cfg.env.failure_cost_mult);
     mean.min(cfg.run.attempt_cap_units) + cfg.run.verify_cost_units * (1.0 - cfg.run.crash_prob)
+}
+
+/// Draws from attempt k's own stream, in a fixed order. How many uniforms
+/// each draw consumes depends only on the stream, never on the cost or crash
+/// parameters, so the success draw is the same for any parameter values.
+struct FreshDraws {
+    base_cost: f64,
+    crash: bool,
+    crash_frac: f64,
+    success: bool,
+    wrong: String,
+    confidence: f64,
+}
+
+fn fresh_draws(seed: u64, task_id: &str, p: f64, mean_cost: f64, cost_sd: f64, crash_prob: f64, k: u32) -> FreshDraws {
+    let mut rng = SplitMix64::derive(seed, &format!("attempt/{task_id}/{k}"));
+    let base_cost = mean_cost * rng.lognormal(-0.5 * cost_sd * cost_sd, cost_sd);
+    let crash = rng.bernoulli(crash_prob);
+    let crash_frac = rng.next_f64();
+    let success = rng.bernoulli(p);
+    let wrong = format!("{:016x}", rng.next_u64());
+    let confidence = 0.5 + 0.5 * rng.next_f64();
+    FreshDraws { base_cost, crash, crash_frac, success, wrong, confidence }
+}
+
+/// Success of attempt k when attempt k repeats attempt k-1's outcome with
+/// probability `rho` and otherwise draws fresh. Attempt 0 is fresh, so every
+/// attempt has marginal success `p` and lag-1 correlation `rho`. Depends only
+/// on (seed, task, k), never on scheduling, so policies stay paired.
+pub fn sticky_success(seed: u64, task_id: &str, p: f64, rho: f64, k: u32) -> bool {
+    let fresh = |j: u32| fresh_draws(seed, task_id, p, 1.0, 0.0, 0.0, j).success;
+    let mut outcome = fresh(0);
+    for j in 1..=k {
+        if !SplitMix64::derive(seed, &format!("stick/{task_id}/{j}")).bernoulli(rho) {
+            outcome = fresh(j);
+        }
+    }
+    outcome
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sticky_chain_keeps_marginal_and_sets_lag_one_correlation() {
+        let (p, rho, n, len) = (0.3, 0.6, 4000, 12u32);
+        let (mut sum, mut xy, mut pairs) = (0.0, 0.0, 0.0);
+        for t in 0..n {
+            let id = format!("t{t}");
+            let xs: Vec<f64> = (0..len).map(|k| sticky_success(9, &id, p, rho, k) as u8 as f64).collect();
+            sum += xs.iter().sum::<f64>();
+            for w in xs.windows(2) {
+                xy += w[0] * w[1];
+                pairs += 1.0;
+            }
+        }
+        let mean = sum / (n as f64 * len as f64);
+        let corr = (xy / pairs - mean * mean) / (mean * (1.0 - mean));
+        assert!((mean - p).abs() < 0.01, "marginal {mean}");
+        assert!((corr - rho).abs() < 0.03, "lag-1 correlation {corr}");
+    }
+
+    #[test]
+    fn zero_stickiness_matches_fresh_draws() {
+        for k in 0..50 {
+            assert_eq!(sticky_success(3, "x", 0.4, 0.0, k), fresh_draws(3, "x", 0.4, 2.0, 0.3, 0.1, k).success);
+        }
+    }
 }

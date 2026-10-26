@@ -21,7 +21,7 @@ use serde::{Deserialize, Serialize};
 pub const SIM_VERIFIER_ID: &str = "sim-oracle";
 pub const SIM_VERIFIER_VERSION: &str = "0.1.0";
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct EnvConfig {
     pub problems: usize,
@@ -48,6 +48,26 @@ pub struct EnvConfig {
     /// Noise of the prior hint in logit space; dead obligations get a hint
     /// drawn as if they were live.
     pub hint_noise: f64,
+    /// Lag-1 correlation of attempt outcomes on one obligation: attempt k
+    /// repeats attempt k-1's outcome with this probability, otherwise draws
+    /// fresh. The per-attempt marginal stays p. 0 = i.i.d. attempts.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub failure_stickiness: f64,
+    /// Probability that the verifier rejects a correct artifact.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub verifier_fnr: f64,
+    /// Probability that the verifier accepts an incorrect artifact.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub verifier_fpr: f64,
+    /// Each attempt yields distinct artifact content even when correct
+    /// (different proofs or programs for the same obligation). When false,
+    /// correct answers are canonical and deduplicate.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub distinct_solutions: bool,
+}
+
+fn is_zero(x: &f64) -> bool {
+    *x == 0.0
 }
 
 impl EnvConfig {
@@ -70,6 +90,12 @@ impl EnvConfig {
         }
         if !(self.failure_cost_mult.is_finite() && self.failure_cost_mult >= 1.0) {
             return Err("failure_cost_mult must be >= 1".into());
+        }
+        if !(0.0..1.0).contains(&self.failure_stickiness) {
+            return Err("failure_stickiness must lie in [0, 1)".into());
+        }
+        if !prob(self.verifier_fnr) || !prob(self.verifier_fpr) {
+            return Err("verifier error rates must lie in [0, 1]".into());
         }
         if self.cost_log_sd < 0.0 || self.attempt_cost_sd < 0.0 || self.hint_noise < 0.0 {
             return Err("standard deviations must be >= 0".into());
@@ -97,11 +123,11 @@ pub struct Campaign {
 
 fn logit(p: f64) -> f64 {
     let p = p.clamp(1e-6, 1.0 - 1e-6);
-    (p / (1.0 - p)).ln()
+    frontier_core::detmath::ln(p / (1.0 - p))
 }
 
 fn sigmoid(x: f64) -> f64 {
-    1.0 / (1.0 + (-x).exp())
+    1.0 / (1.0 + frontier_core::detmath::exp(-x))
 }
 
 fn between(rng: &mut SplitMix64, lo: u32, hi: u32) -> u32 {
@@ -210,6 +236,7 @@ pub(crate) mod tests {
             attempt_cost_sd: 0.3,
             failure_cost_mult: 1.5,
             hint_noise: 0.5,
+            ..EnvConfig::default()
         }
     }
 

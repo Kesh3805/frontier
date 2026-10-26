@@ -43,6 +43,10 @@ pub struct ResultRecord {
     /// Host wall-clock time inside the policy; not deterministic.
     pub select_nanos: u128,
     pub decisions: u64,
+    /// Simulation ground truth (hidden answers), outside the audited log.
+    pub sim_true_solved: usize,
+    pub sim_false_solved: usize,
+    pub sim_false_accepted_tasks: usize,
 }
 
 impl ExperimentConfig {
@@ -91,6 +95,9 @@ pub fn run_experiment(cfg: &ExperimentConfig, threads: usize) -> Result<Vec<Resu
                                 summary,
                                 select_nanos: output.select_nanos,
                                 decisions: output.decisions,
+                                sim_true_solved: output.truth.true_solved,
+                                sim_false_solved: output.truth.false_solved,
+                                sim_false_accepted_tasks: output.truth.false_accepted_tasks,
                             });
                         }
                         local.push((ri, seed, recs));
