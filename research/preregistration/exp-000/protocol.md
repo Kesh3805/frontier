@@ -6,15 +6,19 @@ models, no spend). Results say nothing directly about LLM workers.
 
 ## Frozen inputs
 
+Hashes are SHA-256 of the committed (LF-normalised) file bytes. The first
+version of this table hashed CRLF working copies; it was corrected before
+any exp-000 run.
+
 | Item | Value |
 |---|---|
 | Source commit | `bcdaeb9c5f7537f68643ed2f84fe8e4a9cc471c7` (kernel, policies, simulator, analysis) |
-| `scarce.json` | `1bcf1ca7310809d73bf7d572ebacf2e5a86033158afaabd729278c87a5abda85` |
-| `moderate.json` | `57c051135696e509c0bfd1fa19ce920d530662ce7a081cebc7eb8a14d0f62201` |
+| `scarce.json` | `1b1e7dba8de19c16efead9b9e47c3e5e913148558a6f89f88363ce4bb65df074` |
+| `moderate.json` | `0f6005a70edf96564fbb8aedef22f83250bb1bcb709ed9d12086ecf68a659c73` |
 | `python/frontier_py/analysis.py` | `fbbf32e21c9cb5e9814820f7a0dc76e4ed7d1490a773256556fc6bced5661a0c` |
 | `crates/frontier-sim/src/runner.rs` | `0308773cd8473cba6f79eaa8b9fe9d4de9855501630f6ec7ff705716c041ada3` |
-| `crates/frontier-sim/src/env.rs` | `9c26ec83a790deacf0e99e6c5c710203eb3c3c95931be863cbfad198d9294b81` |
-| `crates/frontier-sched/src/lib.rs` | `22b5bc5cee7af71ab36cd2e8813ee85e7e4ab5da50449cb7bc4f3db85c57109f` |
+| `crates/frontier-sim/src/env.rs` | `ab5016d595e58e2e1be533ddbd53fe81be4c562d9bd55a5f223981ab7d87d968` |
+| `crates/frontier-sched/src/lib.rs` | `1485f04636668ea16165657e0fe68db47575785d8d032ec0732ba796651dab1f` |
 
 ## Question
 
