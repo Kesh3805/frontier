@@ -228,7 +228,7 @@ impl Policy for HopelessElimination {
 
     fn select(&mut self, view: &SchedView, _rng: &mut SplitMix64) -> Option<TaskIdx> {
         let total_attempts: u32 = view.problems.iter().map(|p| p.attempts).sum();
-        let log_term = (2.0 * (total_attempts.max(2) as f64).ln()).max(0.0);
+        let log_term = (2.0 * frontier_core::detmath::ln(total_attempts.max(2) as f64)).max(0.0);
         let active = |p: usize| {
             let s = &view.problems[p];
             if s.attempts < self.min_attempts {
@@ -290,7 +290,7 @@ impl IndexPolicy {
                 Estimator::Ucb { prior_strength, use_hints, beta } => {
                     let (a, b) = beta_params(s, *prior_strength, *use_hints);
                     let mean = a / (a + b);
-                    let sd = (a * b / ((a + b).powi(2) * (a + b + 1.0))).sqrt();
+                    let sd = (a * b / (((a + b) * (a + b)) * (a + b + 1.0))).sqrt();
                     ((mean + beta * sd).min(1.0), view.cost_estimate(t))
                 }
                 Estimator::Thompson { prior_strength, use_hints } => {

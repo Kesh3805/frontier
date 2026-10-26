@@ -3,6 +3,7 @@
 //! Implemented in-tree so that replays do not depend on the stream stability
 //! of an external crate across versions (see ADR-0003).
 
+use crate::detmath;
 use crate::digest::Digest;
 
 #[derive(Clone, Debug)]
@@ -54,15 +55,21 @@ impl SplitMix64 {
         self.next_f64() < p
     }
 
+    /// Marsaglia polar method. Uses only `detmath::ln` and `sqrt` (which
+    /// IEEE-754 requires to be correctly rounded), so it is portable.
     pub fn standard_normal(&mut self) -> f64 {
-        // Box–Muller; 1 - u keeps the log argument in (0, 1].
-        let u1 = 1.0 - self.next_f64();
-        let u2 = self.next_f64();
-        (-2.0 * u1.ln()).sqrt() * (2.0 * std::f64::consts::PI * u2).cos()
+        loop {
+            let u = 2.0 * self.next_f64() - 1.0;
+            let v = 2.0 * self.next_f64() - 1.0;
+            let s = u * u + v * v;
+            if s > 0.0 && s < 1.0 {
+                return u * (-2.0 * detmath::ln(s) / s).sqrt();
+            }
+        }
     }
 
     pub fn lognormal(&mut self, mu: f64, sigma: f64) -> f64 {
-        (mu + sigma * self.standard_normal()).exp()
+        detmath::exp(mu + sigma * self.standard_normal())
     }
 
     /// Gamma(shape, 1) via Marsaglia–Tsang, with the shape < 1 boost.
@@ -70,18 +77,19 @@ impl SplitMix64 {
         assert!(shape > 0.0, "gamma shape must be positive");
         if shape < 1.0 {
             let u = 1.0 - self.next_f64();
-            return self.gamma(shape + 1.0) * u.powf(1.0 / shape);
+            return self.gamma(shape + 1.0) * detmath::exp(detmath::ln(u) / shape);
         }
         let d = shape - 1.0 / 3.0;
         let c = 1.0 / (9.0 * d).sqrt();
         loop {
             let x = self.standard_normal();
-            let v = (1.0 + c * x).powi(3);
+            let w = 1.0 + c * x;
+            let v = w * w * w;
             if v <= 0.0 {
                 continue;
             }
             let u = 1.0 - self.next_f64();
-            if u.ln() < 0.5 * x * x + d - d * v + d * v.ln() {
+            if detmath::ln(u) < 0.5 * x * x + d - d * v + d * detmath::ln(v) {
                 return d * v;
             }
         }

@@ -54,7 +54,7 @@ dependencies = [
 
 [[package]]
 name = "frontier-cli"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "frontier-core",
  "frontier-sim",
@@ -64,7 +64,7 @@ dependencies = [
 
 [[package]]
 name = "frontier-core"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -74,7 +74,7 @@ dependencies = [
 
 [[package]]
 name = "frontier-sched"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "frontier-core",
  "serde",
@@ -82,7 +82,7 @@ dependencies = [
 
 [[package]]
 name = "frontier-sim"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "frontier-core",
  "frontier-sched",

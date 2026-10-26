@@ -3,6 +3,7 @@
 
 pub mod budget;
 pub mod dag;
+pub mod detmath;
 pub mod digest;
 pub mod event;
 pub mod evidence;
