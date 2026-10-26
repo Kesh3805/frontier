@@ -1,0 +1,15 @@
+{
+  "experiment_id": "exp-000-moderate",
+  "kind": "simulation",
+  "config_digest": "61503e47bad420b5682174e20e7b12eb210e07d5c74dd36de87b28ac1318da74",
+  "results_sha256": "c4375be3cdac10cf59b50b953c3ed0921451c5ee28274adc99d977c8360d8be7",
+  "records": 12000,
+  "kernel_version": "0.1.0",
+  "source_commit": "3906794e48d4066430f12be366b7424713e7254a",
+  "source_dirty": false,
+  "host_os": "windows",
+  "host_arch": "x86_64",
+  "host_threads": 8,
+  "threads_used": 8,
+  "wall_seconds": 96.2719585
+}
