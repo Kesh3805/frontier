@@ -2,8 +2,7 @@
 
 > **Erratum E1 (2026-10-27).** These results were produced on kernel
 > 0.1.0, which had a bug that stranded budget unevenly across policies (E1). See [`docs/research/errata.md`](../../docs/research/errata.md).
-> A corrected re-run on kernel 0.3.0 under this unchanged protocol is
-> reported in `results/rerun-k0.3/` once complete.
+> Re-run on kernel 0.3.0: **verdict unchanged** (H1-sim rejected, same losing cell); the R2-scarce gain shrinks from +1.46 to +0.33. See [`results/rerun-k0.3/`](../rerun-k0.3/README.md).
 
 **Kind: SIMULATION.** Synthetic environment, perfect verifier, no models, no
 spend. These results bound what an allocation policy can do in a model of

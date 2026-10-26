@@ -53,9 +53,11 @@ service's suite version and hidden seed must match the catalog.
 - exp-006 on kernel 0.2 was **stopped before completion** (budgets 60 and
   240 had finished) once E1 and E2 were confirmed. Its data were not
   analysed.
-- exp-000 to exp-004 and exp-006 are **re-run on kernel 0.3.0** under their
-  unchanged frozen protocols and scoring scripts. Each results page reports
-  whether its preregistered verdicts change.
+- exp-000, exp-001, exp-002, exp-004 and exp-006 were **re-run on kernel
+  0.3.0** (commit `4f68438`, clean tree) under their unchanged frozen
+  protocols and scoring scripts; exp-003 is superseded by exp-004.
+  **No frozen verdict changed.** exp-004's P3 and P4 now hold, and some
+  magnitudes moved. See [`results/rerun-k0.3/`](../../results/rerun-k0.3/README.md).
 
 ## Known limitation (addressed by the `--sandbox docker` mode)
 
