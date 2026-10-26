@@ -320,8 +320,15 @@ def verify(
     seed: int,
     artifact_digest: str | None = None,
     task_id: str | None = None,
+    charge_per_case: float | None = None,
 ) -> VerifierReceipt:
-    """Verify an artifact body {"source": str, ...} against `task`; return a receipt."""
+    """Verify an artifact body {"source": str, ...} against `task`; return a receipt.
+
+    `cost_units` is verifier wall-clock seconds by default. For replayable
+    runs pass `charge_per_case`: the receipt then charges a deterministic
+    `charge_per_case * number_of_cases` and the caller reports wall time
+    separately.
+    """
     start = time.perf_counter()
     if artifact_digest is None:
         artifact_digest = artifact_digest_for(spec_digest, task_id or task.name, body)
@@ -335,9 +342,11 @@ def verify(
             verifier_id=VERIFIER_ID,
             verifier_version=VERIFIER_VERSION,
             reason=f"{ISOLATION_NOTE} {task.name} v{task.version}: {reason}",
-            cost_units=round(time.perf_counter() - start, 6),
+            cost_units=round(time.perf_counter() - start, 6) if charge_per_case is None else charge,
         )
 
+    n_cases = len(task.visible) + len(task.hidden_inputs(seed))
+    charge = round((charge_per_case or 0.0) * n_cases, 9)
     source = body.get("source")
     if not isinstance(source, str):
         return receipt("FAIL", "artifact body has no string 'source'")
