@@ -64,6 +64,13 @@ pub struct EnvConfig {
     /// correct answers are canonical and deduplicate.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub distinct_solutions: bool,
+    /// Probability that the hint predictor recognises a dead obligation and
+    /// reports a near-zero success estimate (logit(0.001) plus the usual
+    /// noise). Undetected dead obligations keep a live-looking hint. Drawn
+    /// from a separate stream, so the campaign's ground truth and live hints
+    /// are identical across values. 0 = dead obligations always look live.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub dead_hint_detection: f64,
 }
 
 fn is_zero(x: &f64) -> bool {
@@ -93,6 +100,9 @@ impl EnvConfig {
         }
         if !(0.0..1.0).contains(&self.failure_stickiness) {
             return Err("failure_stickiness must lie in [0, 1)".into());
+        }
+        if !prob(self.dead_hint_detection) {
+            return Err("dead_hint_detection must lie in [0, 1]".into());
         }
         if !prob(self.verifier_fnr) || !prob(self.verifier_fpr) {
             return Err("verifier error rates must lie in [0, 1]".into());
@@ -169,7 +179,13 @@ pub fn generate(cfg: &EnvConfig, seed: u64, budget_hint: f64) -> Result<Campaign
                     let live_p = rng.beta(cfg.p_alpha, cfg.p_beta);
                     let p = if dead { 0.0 } else { live_p };
                     let mean_cost = rng.lognormal(cfg.cost_log_mean, cfg.cost_log_sd);
-                    let hint = sigmoid(logit(live_p) + cfg.hint_noise * rng.standard_normal());
+                    let mut hint = sigmoid(logit(live_p) + cfg.hint_noise * rng.standard_normal());
+                    if dead && cfg.dead_hint_detection > 0.0 {
+                        let mut r = SplitMix64::derive(seed, &format!("deadhint/{sig}"));
+                        if r.bernoulli(cfg.dead_hint_detection) {
+                            hint = sigmoid(logit(1e-3) + cfg.hint_noise * r.standard_normal());
+                        }
+                    }
                     let secret = format!("{:016x}", rng.next_u64());
                     truth_by_sig.insert(key.clone(), TaskTruth { p_success: p, mean_cost, secret });
                     hint_by_sig.insert(key.clone(), hint);

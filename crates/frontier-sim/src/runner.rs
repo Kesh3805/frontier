@@ -111,6 +111,8 @@ pub struct SimTruth {
     pub false_solved: usize,
     /// Tasks accepted with an incorrect artifact (verifier false positives).
     pub false_accepted_tasks: usize,
+    /// Attempts dispatched on obligations whose true success probability is 0.
+    pub dead_attempts: usize,
 }
 
 #[derive(Clone, Debug)]
@@ -400,6 +402,9 @@ impl<'a> Sim<'a> {
         self.ledger.reserve(attempt_id, reservation).map_err(|e| SimError::Invariant(e.to_string()))?;
         let k = self.started_per_task[task];
         self.started_per_task[task] += 1;
+        if self.campaign.truth[&self.graph.node(task).def.task_id].p_success == 0.0 {
+            self.truth.dead_attempts += 1;
+        }
         let plan = self.plan_attempt(task, k);
         let gen_units = match plan {
             Planned::Crash { gen_units } | Planned::Candidate { gen_units, .. } => gen_units,

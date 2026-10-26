@@ -47,6 +47,7 @@ pub struct ResultRecord {
     pub sim_true_solved: usize,
     pub sim_false_solved: usize,
     pub sim_false_accepted_tasks: usize,
+    pub sim_dead_attempts: usize,
 }
 
 impl ExperimentConfig {
@@ -98,6 +99,7 @@ pub fn run_experiment(cfg: &ExperimentConfig, threads: usize) -> Result<Vec<Resu
                                 sim_true_solved: output.truth.true_solved,
                                 sim_false_solved: output.truth.false_solved,
                                 sim_false_accepted_tasks: output.truth.false_accepted_tasks,
+                                sim_dead_attempts: output.truth.dead_attempts,
                             });
                         }
                         local.push((ri, seed, recs));

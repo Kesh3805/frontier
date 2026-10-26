@@ -55,7 +55,8 @@
         "failure_stickiness": { "type": "number", "minimum": 0, "exclusiveMaximum": 1, "description": "Lag-1 correlation of attempt outcomes; omitted when 0." },
         "verifier_fnr": { "type": "number", "minimum": 0, "maximum": 1, "description": "Verifier false-negative rate; omitted when 0." },
         "verifier_fpr": { "type": "number", "minimum": 0, "maximum": 1, "description": "Verifier false-positive rate; omitted when 0." },
-        "distinct_solutions": { "type": "boolean", "description": "Each attempt yields distinct artifact content; omitted when false." }
+        "distinct_solutions": { "type": "boolean", "description": "Each attempt yields distinct artifact content; omitted when false." },
+        "dead_hint_detection": { "type": "number", "minimum": 0, "maximum": 1, "description": "Probability a dead obligation gets a near-zero hint; omitted when 0." }
       }
     },
     "RunConfig": {

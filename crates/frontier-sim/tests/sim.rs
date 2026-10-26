@@ -207,6 +207,34 @@ fn false_positives_produce_unsound_solves_and_false_negatives_block_them() {
 }
 
 #[test]
+fn dead_hint_detection_changes_only_dead_hints() {
+    let mut cfg = config(PolicyConfig::RoundRobin, 4);
+    cfg.env.dead_fraction = 0.5;
+    let base = generate(&cfg.env, 4, 100.0).unwrap();
+    cfg.env.dead_hint_detection = 1.0;
+    let det = generate(&cfg.env, 4, 100.0).unwrap();
+    assert_eq!(base.truth, det.truth);
+    let mut dead_seen = 0;
+    for (id, t) in &base.truth {
+        if t.p_success == 0.0 {
+            dead_seen += 1;
+            assert!(det.hints[id] < 0.05, "detected dead hint {}", det.hints[id]);
+        } else {
+            assert_eq!(base.hints[id], det.hints[id]);
+        }
+    }
+    assert!(dead_seen > 0);
+}
+
+#[test]
+fn dead_attempts_are_counted() {
+    let mut cfg = config(PolicyConfig::RoundRobin, 5);
+    cfg.env.dead_fraction = 1.0;
+    let out = run(&cfg).unwrap();
+    assert_eq!(out.truth.dead_attempts as u64, summarize(&out.log).unwrap().attempts);
+}
+
+#[test]
 fn sticky_runs_are_reproducible_and_audited() {
     let mut cfg = config(PolicyConfig::Thompson { prior_strength: 2.0, use_hints: true }, 8);
     cfg.env.failure_stickiness = 0.8;
