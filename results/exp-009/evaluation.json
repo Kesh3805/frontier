@@ -1,0 +1,94 @@
+{
+ "M": {
+  "candidates": 1257,
+  "fail": 1020,
+  "pass": 237,
+  "inconclusive": 0,
+  "verdict_disagreements": 0,
+  "charge_mismatches": 0,
+  "mean_wall_f_s": 0.12951,
+  "mean_wall_e_s": 0.12306,
+  "S_meas_fail": 0.064,
+  "S_meas_fail_ci": [
+   0.0508,
+   0.0779
+  ],
+  "S_mod_fail": 0.9294,
+  "S_meas_all": 0.0498,
+  "S_meas_all_ci": [
+   0.0366,
+   0.0628
+  ],
+  "S_mod_all": 0.7542,
+  "S_cpu_fail": 0.5149,
+  "fixed_share": 0.9215,
+  "fixed_share_ci": [
+   0.8625,
+   0.9735
+  ],
+  "fit_seconds": {
+   "a": 0.1205343,
+   "b_per_case": 5.16e-05
+  },
+  "pass_ratio_median": 1.0031,
+  "descriptive": {
+   "mean_attempt_wall_s": 0.01459,
+   "verification_share_measured_F": 0.8988,
+   "verification_share_measured_E": 0.894
+  }
+ },
+ "C": {
+  "runs": {
+   "C-E1": 700,
+   "C-F1": 700,
+   "C-F2": 700,
+   "C-E2": 700
+  },
+  "identical_to_F1": {
+   "C-E1": 700,
+   "C-F1": 700,
+   "C-F2": 700,
+   "C-E2": 700
+  },
+  "verify_wall_s": {
+   "C-E1": 2459.2896380000007,
+   "C-F1": 2259.8864909999998,
+   "C-F2": 2768.2169480000016,
+   "C-E2": 5868.8016309999975
+  },
+  "verify_child_cpu_s": {
+   "C-E1": 516.921875,
+   "C-F1": 506.765625,
+   "C-F2": 540.6875,
+   "C-E2": 569.703125
+  },
+  "measured_saving": -0.6563,
+  "source": {
+   "C-E1": [
+    "bad09c9f497524c1ee6fc7146b4a541b4fbf9667",
+    false
+   ],
+   "C-F1": [
+    "bad09c9f497524c1ee6fc7146b4a541b4fbf9667",
+    false
+   ],
+   "C-F2": [
+    "bad09c9f497524c1ee6fc7146b4a541b4fbf9667",
+    false
+   ],
+   "C-E2": [
+    "bad09c9f497524c1ee6fc7146b4a541b4fbf9667",
+    false
+   ]
+  }
+ },
+ "verdicts": {
+  "M1 measured saving on FAIL candidates: CI upper bound < 0.25": true,
+  "M2 modelled minus measured saving on FAIL candidates >= 0.40": true,
+  "M3 fixed-overhead share of a full verification >= 0.75": true,
+  "M4 early stop costs PASS candidates within 10% (median ratio in [0.9, 1.1])": true,
+  "M5 same verdicts and charges for every candidate, and identical campaign outcomes": true,
+  "M6 campaign measured saving < 0.25": true,
+  "Decision": "modelled fail-fast saving does not hold physically on this harness"
+ }
+}

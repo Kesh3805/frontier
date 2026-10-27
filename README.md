@@ -38,7 +38,7 @@ failed predictions.
 | [exp-006](results/exp-006/README.md) | real tasks | A stronger hidden suite (199 checks, 4.6× the cost) removed every false solve, but **cost 1–4 true solves per run**; with expensive verification, hinted Thompson's scarce-budget margin roughly doubles (+3.41). | strong verification **costs yield** |
 | [exp-007](results/exp-007/README.md) | real tasks, dependencies | On 24 lemma-structured problems, hinted Thompson **more than doubles** round-robin's verified yield at a scarce budget (**+4.44 [4.12, 4.76]** of 19 live problems) and gains +4.45 at a moderate one. A static hint index matches it early but falls behind at a large budget (−1.92). | H1-deps pilot **supported** |
 | [exp-008](results/exp-008/README.md) | real tasks | Charging failing candidates only for the cases they ran keeps the strong suite's verdicts (0 false solves in 3,900 runs) and recovers **71–96%** of round-robin's lost yield. Hinted Thompson's dependency-task margin holds (**+5.07 [4.75, 5.39]** at 120 CU); its single-step margin shrinks to +2.29. | fail-fast **recovers yield** (6/6 predictions) |
-| [exp-009](research/preregistration/exp-009/protocol.md) | real tasks, measured cost | Does fail-fast save measured compute (wall and CPU time), with a verifier that really stops at the first failing case, or only modelled compute? | protocol frozen; **running** |
+| [exp-009](results/exp-009/README.md) | real tasks, measured cost | With a verifier that really stops at the first failing case, measured verification time falls only **6.4% [5.1, 7.8]** on failing candidates; the charge model said 93%. About 92% of a verification (~120 ms here) is fixed per-call overhead. Early stop changes no verdict, charge or campaign outcome. | modelled fail-fast saving **does not hold physically** (6/6 predictions) |
 | [rerun-k0.3](results/rerun-k0.3/README.md) | all | Corrected re-runs after errata E1/E2. **No frozen verdict changed**; exp-004's P3/P4 now hold; some magnitudes moved (exp-000 R2-scarce +1.46 → +0.33; real-task hint-free loss −0.95 → −0.12, n.s.). | errata applied |
 
 **Takeaways so far, each with its uncertainty:**
@@ -55,7 +55,9 @@ failed predictions.
    A 4.6× costlier suite removed about 0.05 false solves per run at the
    price of 1–4 true ones, but most of that price was paid on failures:
    charging a failing candidate only for the cases it ran recovered
-   71–96% of the loss (exp-008). Verification cost belongs inside the
+   71–96% of the loss (exp-008). That recovery did not survive measurement:
+   most of a verification's real cost here is fixed per-call overhead,
+   so stopping early saves about 6% of wall time (exp-009). Verification cost belongs inside the
    allocation problem, and cheaper failures shrink the margin an adaptive
    allocator can win on single-step tasks.
 4. **Infrastructure details can silently bias a comparison.** Task order
@@ -245,8 +247,10 @@ python research/preregistration/exp-004/evaluate_primary.py runs/exp-004
   CI-tested on Linux but has not been used for an experiment, and has not
   been tested on Windows. Containers share the host kernel; gVisor is the
   documented next step.
-- **Cost:** costs are modelled compute units (per sample and per test case),
-  not measured CPU time or dollars. No paid compute has been used.
+- **Cost:** experiment results use modelled compute units (per sample and
+  per test case), not measured time or dollars. exp-009 showed the
+  per-case verification charge misstates measured cost on this host: real
+  cost is mostly fixed per-call overhead. No paid compute has been used.
 - **Hypotheses:** H2 and H3 (hybrid latent/text reasoning) are untested.
   HybridAgent inference is not integrated: the adapter's `generate()` is a
   stub, and there is no GPU here.
@@ -254,12 +258,14 @@ python research/preregistration/exp-004/evaluate_primary.py runs/exp-004
 ## Roadmap
 
 Done: the cost of stronger verification (exp-006), dependency-structured
-tasks (exp-007), fail-fast verification charging (exp-008), the V2
+tasks (exp-007), fail-fast verification charging (exp-008) and its
+measured cost (exp-009), the V2
 sandbox, and corrected re-runs after errata E1/E2.
 
-1. **Measured cost:** verification wall time and (on Linux and macOS) child
-   CPU time are recorded; per-attempt measurement and a fail-fast
-   comparison in measured time remain.
+1. **Measured cost model:** exp-009 measured verification at about 0.12 s
+   fixed plus 0.05 ms per case on this host. Next: re-run the allocation
+   comparisons under that charge, and measure a warm-interpreter verifier
+   (which needs its own isolation analysis).
 2. **Stage 2, the first model-backed study:**
    - a text-only LLM worker behind the V2 sandbox;
    - a held-out task set the generator cannot see;
