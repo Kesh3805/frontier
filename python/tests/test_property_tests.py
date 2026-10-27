@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from frontier_py.receipt import VerifierReceipt
+from frontier_py.receipt import VerifierReceipt, canonical_json
 from frontier_py.tasks import TASKS
 from frontier_py.verifiers.property_tests import POSIX, artifact_digest_for, run_candidate, verify
 
@@ -112,9 +112,7 @@ except ImportError:
 """
 
 
-@pytest.mark.parametrize(
-    "name,source",
-    [
+ADVERSARIAL = [
         ("hardcoded_visible", HARDCODED),
         ("forged_stdout_then_exit", FORGE),
         ("forged_stdout_in_function", FORGE_IN_FUNCTION),
@@ -127,11 +125,62 @@ except ImportError:
         ("missing_function", "def sort(xs):\n    return sorted(xs)"),
         ("float_instead_of_int", "def sort_ints(xs):\n    return [float(x) for x in sorted(xs)]"),
         ("nan_output", "def sort_ints(xs):\n    return float('nan')"),
-    ],
-)
+]
+
+
+@pytest.mark.parametrize("name,source", ADVERSARIAL)
 def test_adversarial_candidates_fail(name, source):
     r = check(SORT, source)
     assert r.verdict == "FAIL", (name, r.reason)
+
+
+@pytest.mark.parametrize("name,source", ADVERSARIAL)
+def test_adversarial_candidates_fail_with_early_stop(name, source):
+    r = verify(SORT, {"source": source}, spec_digest=SPEC, seed=7, early_stop=True)
+    assert r.verdict == "FAIL", (name, r.reason)
+
+
+# --- early stop -------------------------------------------------------------
+
+def test_early_stop_keeps_verdicts_and_fail_fast_charges():
+    for task, source in [*CORRECT, (SORT, HARDCODED), (SORT, EXIT_IN_CALL), (SORT, "def sort_ints(xs):\n    return xs"),
+                         (GCD, "def gcd(a, b):\n    return a"), (LIS, "def lis_length(xs):\n    return len(xs)")]:
+        kw = dict(spec_digest=SPEC, seed=7, charge_per_case=0.005)
+        full, ff, es = (verify(task, {"source": source}, **kw, **x) for x in ({}, {"fail_fast": True}, {"early_stop": True}))
+        assert full.verdict == ff.verdict == es.verdict, (task.name, source)
+        assert ff.cost_units == es.cost_units, (task.name, source)
+        assert (es.cost_units < full.cost_units) == (es.verdict == "FAIL"), (task.name, source)
+
+
+def test_early_stop_stops_the_run():
+    import time
+
+    src = "import time\ndef f(x):\n    if x:\n        time.sleep(0.3)\n    return -1"
+    inputs = [[0]] + [[1]] * 5
+    t0 = time.perf_counter()
+    full = run(src, inputs)
+    t1 = time.perf_counter()
+    early = run(src, inputs, expected=lambda i: canonical_json(0))
+    t2 = time.perf_counter()
+    assert full.kind == "ok" and full.outputs == [-1] * 6
+    assert early.kind == "mismatch" and early.case == 0 and early.matched == 0
+    assert (t2 - t1) < (t1 - t0) - 0.6
+
+
+def test_streamed_outputs_compare_canonically():
+    want = [None, [1, 2], 1]
+    ok = run("def f(i):\n    return [None, [1, 2], 1][i]", [[0], [1], [2]], expected=lambda i: canonical_json(want[i]))
+    assert ok.kind == "ok" and ok.matched == 3 and ok.outputs is None
+    bad = run("def f(i):\n    return [None, [1, 2], 1.0][i]", [[0], [1], [2]], expected=lambda i: canonical_json(want[i]))
+    assert bad.kind == "mismatch" and bad.case == 2 and bad.matched == 2
+    err = run("def f(i):\n    return 1 // (i - 1)", [[0], [1]], expected=lambda i: canonical_json(-1))
+    assert err.kind == "error" and err.case == 1 and err.matched == 1
+
+
+def test_stats_report_child_cpu():
+    stats = {}
+    run("def f():\n    return sum(range(30_000_000))", [[]], stats=stats)  # well above Windows' 15.6 ms CPU tick
+    assert stats["child_cpu_seconds"] is not None and stats["child_cpu_seconds"] > 0
 
 
 def test_hardcoded_visible_examples_do_pass_visible_only():

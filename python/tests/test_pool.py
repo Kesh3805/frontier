@@ -339,10 +339,7 @@ def test_verify_reply_reports_measured_cost():
     reqs = [{"op": "verify", "task": "sum", "source": GOOD, "spec_digest": "0" * 64, "artifact_digest": "1" * 64}] * 2
     r = [json.loads(line) for line in _server([], reqs).stdout.splitlines()]
     assert r[0]["wall_seconds"] > 0 and "cached" not in r[0]
-    if os.name == "posix":
-        assert r[0]["child_cpu_seconds"] is not None and r[0]["child_cpu_seconds"] >= 0
-    else:
-        assert r[0]["child_cpu_seconds"] is None
+    assert r[0]["child_cpu_seconds"] is not None and r[0]["child_cpu_seconds"] >= 0
     assert r[1]["cached"] and r[1]["wall_seconds"] == 0.0 and r[1]["child_cpu_seconds"] in (0.0, None)
     assert r[0]["receipt"] == r[1]["receipt"]
 

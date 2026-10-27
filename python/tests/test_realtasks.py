@@ -81,8 +81,10 @@ def test_fail_fast_charges_less_only_for_failures():
                            input="\n".join(map(json.dumps, reqs)) + "\n", capture_output=True, text=True, cwd=PYTHON_DIR, timeout=120)
         return [json.loads(line)["receipt"] for line in p.stdout.splitlines()]
 
-    full, fast = run(), run("--fail-fast")
-    assert [r["verdict"] for r in full] == [r["verdict"] for r in fast] == ["PASS", "FAIL", "FAIL"]
+    full, fast, early = run(), run("--fail-fast"), run("--early-stop")
+    assert [r["verdict"] for r in full] == [r["verdict"] for r in fast] == [r["verdict"] for r in early] == ["PASS", "FAIL", "FAIL"]
+    assert [r["cost_units"] for r in fast] == [r["cost_units"] for r in early]
+    assert "stopped early" in early[1]["reason"]
     assert full[0]["cost_units"] == fast[0]["cost_units"] == 0.995  # PASS: all 199 checks charged
     assert all(r["cost_units"] == 0.995 for r in full)
     assert 0 < fast[1]["cost_units"] < 0.995  # output mismatch

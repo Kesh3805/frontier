@@ -1,6 +1,6 @@
 """JSONL worker/verifier service for the Rust runner (protocol version 2).
 
-    python -m frontier_py.realtasks.server [--suite-version 1|2] [--sandbox none|docker] [--fail-fast]
+    python -m frontier_py.realtasks.server [--suite-version 1|2] [--sandbox none|docker] [--fail-fast | --early-stop]
         [--worker dsl|llm-pool --pool POOL.jsonl]
 
 One JSON object per line on stdin, one reply per line on stdout:
@@ -68,9 +68,19 @@ Workers (`--worker`, default `dsl`):
   `"worker": "llm-pool:<provider>/<model>@<revision>"` and the pool's
   SHA-256; the Rust runner records that label on every submission.
 
-Measured cost: each fresh `verify` reply carries its wall time and, on
-POSIX, the CPU time of the verifier's child processes (`getrusage`
-children delta; null elsewhere). With `--sandbox docker` the child is the
+Fail-fast (`--fail-fast`) only changes the charge: a FAIL is charged up to
+its first failing case, but the candidate still runs on every case.
+`--early-stop` makes it physical: the candidate's run is streamed and
+stopped at the first mismatch (`verify(early_stop=True)`), with the same
+charges. PASS verdicts and every charge are the same as with `--fail-fast`;
+only FAIL reasons differ (they no longer count every mismatching case), as
+would a candidate that fails a case and later times out (FAIL, not
+INCONCLUSIVE; not seen with DSL programs).
+
+Measured cost: each fresh `verify` reply carries its wall time and the CPU
+time of the verifier's child process (POSIX: `getrusage` children delta;
+Windows: GetProcessTimes, in 15.6 ms ticks; a candidate that never started
+reports null). With `--sandbox docker` the child is the
 docker CLI, so container CPU is not included. Memoised replies report 0
 for both. The runner keeps both out of the deterministic log.
 """
@@ -82,11 +92,6 @@ import json
 import sys
 import time
 from typing import Any
-
-try:
-    import resource as _resource
-except ImportError:  # Windows
-    _resource = None  # type: ignore[assignment]
 
 from ..tasks import TaskDef
 from ..verifiers import property_tests
@@ -103,6 +108,7 @@ VERIFY_UNITS_PER_CASE = 0.005
 _suite_version = SUITE_VERSION
 _sandbox = "none"
 _fail_fast = False  # charge FAILs only up to the first failing case
+_early_stop = False  # also stop the candidate's run at the first failing case
 _pool: Pool | None = None  # --worker llm-pool
 DSL_WORKER_LABEL = "dsl-search"
 _verify_cache: dict[tuple[str, str, str, str], dict[str, Any]] = {}
@@ -127,7 +133,7 @@ def handle(req: dict[str, Any]) -> dict[str, Any]:
     op = req.get("op")
     if op == "hello":
         return {"ok": True, "protocol": PROTOCOL, "suite_version": _suite_version, "hidden_seed": HIDDEN_SEED, "sandbox": _sandbox,
-                "fail_fast": _fail_fast, "worker": DSL_WORKER_LABEL if _pool is None else _pool.label,
+                "fail_fast": _fail_fast, "early_stop": _early_stop, "worker": DSL_WORKER_LABEL if _pool is None else _pool.label,
                 "pool_sha256": None if _pool is None else _pool.sha256}
     name = req.get("task", "")
     task: RealTask | None = BY_NAME.get(name) or deps.BY_NAME.get(name)
@@ -147,29 +153,21 @@ def handle(req: dict[str, Any]) -> dict[str, Any]:
     if op == "verify":
         key = (task.name, req["source"], req["spec_digest"], req["artifact_digest"])
         if key not in _verify_cache:
-            t0, cpu0 = time.perf_counter(), _children_cpu()
+            t0, stats = time.perf_counter(), {}
             receipt = verify(task.task_def(_suite_version), {"source": req["source"]}, spec_digest=req["spec_digest"], seed=HIDDEN_SEED,
                              artifact_digest=req["artifact_digest"], charge_per_case=VERIFY_UNITS_PER_CASE, sandbox=_sandbox,
-                             fail_fast=_fail_fast)
-            wall, cpu1 = time.perf_counter() - t0, _children_cpu()
+                             fail_fast=_fail_fast, early_stop=_early_stop, stats=stats)
+            wall, cpu = time.perf_counter() - t0, stats.get("child_cpu_seconds")
             if task.name not in _extended:
                 _extended[task.name] = extended_cases(task)
             _verify_cache[key] = {"ok": True, "receipt": json.loads(receipt.to_json()),
                                   "extended_ok": extended_ok(task, req["source"], _extended[task.name]), "wall_seconds": round(wall, 6),
-                                  "child_cpu_seconds": None if cpu0 is None or cpu1 is None else round(cpu1 - cpu0, 6)}
+                                  "child_cpu_seconds": None if cpu is None else round(cpu, 6)}
             return _verify_cache[key]
         # Memoised: the receipt is identical, but no verification time was spent now.
         cached = _verify_cache[key]
         return {**cached, "wall_seconds": 0.0, "child_cpu_seconds": None if cached["child_cpu_seconds"] is None else 0.0, "cached": True}
     return {"ok": False, "error": f"unknown op {op!r}"}
-
-
-def _children_cpu() -> float | None:
-    """User + system CPU seconds of reaped child processes (POSIX), else None."""
-    if _resource is None:
-        return None
-    r = _resource.getrusage(_resource.RUSAGE_CHILDREN)
-    return r.ru_utime + r.ru_stime
 
 
 def extended_task(task: Any, cases: list[tuple[list[int], Any]]) -> TaskDef:
@@ -209,11 +207,13 @@ def extended_ok(task: Any, source: str, cases: list[tuple[list[int], Any]]) -> b
 
 def configure(argv: list[str]) -> None:
     """Parse arguments and set the service mode; exit if the sandbox is unusable (fail closed)."""
-    global _suite_version, _sandbox, _fail_fast, _pool
+    global _suite_version, _sandbox, _fail_fast, _early_stop, _pool
     ap = argparse.ArgumentParser(prog="server")
     ap.add_argument("--suite-version", choices=SUITE_VERSIONS, default=SUITE_VERSION)
     ap.add_argument("--sandbox", choices=SANDBOXES, default="none")
-    ap.add_argument("--fail-fast", action="store_true", help="charge a failing verification only up to its first failing case")
+    mode = ap.add_mutually_exclusive_group()
+    mode.add_argument("--fail-fast", action="store_true", help="charge a failing verification only up to its first failing case")
+    mode.add_argument("--early-stop", action="store_true", help="as --fail-fast, and stop the candidate's run at that case")
     ap.add_argument("--worker", choices=("dsl", "llm-pool"), default="dsl")
     ap.add_argument("--pool", help="transcript store to replay (--worker llm-pool)")
     ap.add_argument("--allow-unsandboxed-for-tests", action="store_true", help=argparse.SUPPRESS)
@@ -233,7 +233,7 @@ def configure(argv: list[str]) -> None:
         ok, detail = property_tests.docker_status()
         if not ok:
             sys.exit(f"server: --sandbox docker requested but unusable: {detail}")
-    _suite_version, _sandbox, _fail_fast, _pool = ns.suite_version, ns.sandbox, ns.fail_fast, pool
+    _suite_version, _sandbox, _fail_fast, _early_stop, _pool = ns.suite_version, ns.sandbox, ns.fail_fast, ns.early_stop, pool
     _verify_cache.clear()
 
 
