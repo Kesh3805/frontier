@@ -37,7 +37,7 @@ failed predictions.
 | [exp-005](results/exp-005/README.md) | verification | The 40-case hidden suite accepted 1.8% of wrong programs (boundary bugs). 40 cases with small values accepted none. | frozen verdict **refuted** (floor effect); led to suite v2 |
 | [exp-006](results/exp-006/README.md) | real tasks | A stronger hidden suite (199 checks, 4.6× the cost) removed every false solve, but **cost 1–4 true solves per run**; with expensive verification, hinted Thompson's scarce-budget margin roughly doubles (+3.41). | strong verification **costs yield** |
 | [exp-007](results/exp-007/README.md) | real tasks, dependencies | On 24 lemma-structured problems, hinted Thompson **more than doubles** round-robin's verified yield at a scarce budget (**+4.44 [4.12, 4.76]** of 19 live problems) and gains +4.45 at a moderate one. A static hint index matches it early but falls behind at a large budget (−1.92). | H1-deps pilot **supported** |
-| [exp-008](research/preregistration/exp-008/protocol.md) | real tasks | Does fail-fast verification charging recover the yield lost to the stronger suite (single-step and dependency tasks)? | protocol frozen; **running** |
+| [exp-008](results/exp-008/README.md) | real tasks | Charging failing candidates only for the cases they ran keeps the strong suite's verdicts (0 false solves in 3,900 runs) and recovers **71–96%** of round-robin's lost yield. Hinted Thompson's dependency-task margin holds (**+5.07 [4.75, 5.39]** at 120 CU); its single-step margin shrinks to +2.29. | fail-fast **recovers yield** (6/6 predictions) |
 | [rerun-k0.3](results/rerun-k0.3/README.md) | all | Corrected re-runs after errata E1/E2. **No frozen verdict changed**; exp-004's P3/P4 now hold; some magnitudes moved (exp-000 R2-scarce +1.46 → +0.33; real-task hint-free loss −0.95 → −0.12, n.s.). | errata applied |
 
 **Takeaways so far, each with its uncertainty:**
@@ -51,15 +51,18 @@ failed predictions.
    mode found so far.
 3. **Verification quality and verification cost both matter.** Weak
    hidden suites let wrong answers through, and more attempts amplify that.
-   But a 4.6× costlier suite removed about 0.05 false solves per run at the
-   price of 1–4 true ones. Verification cost belongs inside the allocation
-   problem.
+   A 4.6× costlier suite removed about 0.05 false solves per run at the
+   price of 1–4 true ones, but most of that price was paid on failures:
+   charging a failing candidate only for the cases it ran recovered
+   71–96% of the loss (exp-008). Verification cost belongs inside the
+   allocation problem, and cheaper failures shrink the margin an adaptive
+   allocator can win on single-step tasks.
 4. **Infrastructure details can silently bias a comparison.** Task order
    and lowest-index tie-breaking did here. Platform-dependent floating
    point broke cross-binary reproducibility, though not a conclusion. Two
    runner bugs, found by independent review, stranded budget and
    mis-counted repeated failures ([errata](docs/research/errata.md)). Each
-   was disclosed, fixed, and is being re-run.
+   was disclosed, fixed and re-run; no frozen verdict changed.
 
 Program-level hypothesis status is kept in
 [`docs/research/scope.md`](docs/research/scope.md).
@@ -250,13 +253,13 @@ python research/preregistration/exp-004/evaluate_primary.py runs/exp-004
 ## Roadmap
 
 Done: the cost of stronger verification (exp-006), dependency-structured
-tasks (exp-007), the V2 sandbox, and corrected re-runs after errata E1/E2.
+tasks (exp-007), fail-fast verification charging (exp-008), the V2
+sandbox, and corrected re-runs after errata E1/E2.
 
-1. **exp-008** (running): does fail-fast verification charging recover the
-   yield lost to the stronger suite?
-2. **Measured cost:** record CPU and wall time per attempt and per
-   verification alongside the modelled compute units.
-3. **Stage 2, the first model-backed study:**
+1. **Measured cost:** verification wall time and (on Linux and macOS) child
+   CPU time are recorded; per-attempt measurement and a fail-fast
+   comparison in measured time remain.
+2. **Stage 2, the first model-backed study:**
    - a text-only LLM worker behind the V2 sandbox;
    - a held-out task set the generator cannot see;
    - recorded transcripts for exact replay;
@@ -268,11 +271,11 @@ tasks (exp-007), the V2 sandbox, and corrected re-runs after errata E1/E2.
    ([ADR-0008](docs/decisions/ADR-0008-record-once-replay-for-model-workers.md)).
    The plan and cost estimate (about $0.20–$13, recommended cap $10) are in
    [`docs/research/stage2-plan.md`](docs/research/stage2-plan.md).
-4. **HybridAgent:** reproduce the released 8B checkpoint, profile latent
+3. **HybridAgent:** reproduce the released 8B checkpoint, profile latent
    inference, and build a matched text-only baseline before any H2/H3
    claim. *Requires a GPU and, for the matched baseline, a training
    budget.*
-5. Lean tasks with a pinned toolchain.
+4. Lean tasks with a pinned toolchain.
 
 ## License and attribution
 
