@@ -125,6 +125,18 @@ struct Manifest {
     catalog_sha256: Option<Digest>,
     #[serde(skip_serializing_if = "Option::is_none")]
     verify_wall_seconds: Option<f64>,
+    /// Child CPU seconds of verification (POSIX services only).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    verify_child_cpu_seconds: Option<f64>,
+    /// Verifications that did real work (memoised replies excluded).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    verify_calls: Option<u64>,
+    /// Submission model label reported by the worker service.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    worker: Option<String>,
+    /// SHA-256 of the replayed sample pool, for `--worker llm-pool` services.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pool_sha256: Option<String>,
     config_digest: Digest,
     results_sha256: Digest,
     records: usize,
@@ -169,6 +181,10 @@ fn cmd_experiment(args: &[String]) -> Result<()> {
         kind: "simulation",
         catalog_sha256: None,
         verify_wall_seconds: None,
+        verify_child_cpu_seconds: None,
+        verify_calls: None,
+        worker: None,
+        pool_sha256: None,
         config_digest: Digest::of_canonical(&cfg).map_err(|e| e.to_string())?,
         results_sha256: Digest::of_bytes(&buf),
         records: records.len(),
@@ -238,7 +254,7 @@ fn cmd_real_experiment(args: &[String]) -> Result<()> {
     };
     fs::create_dir_all(&out).map_err(|e| e.to_string())?;
     let t0 = Instant::now();
-    let (records, verify_wall) = run_real_experiment(&cfg, &base, threads).map_err(|e| e.to_string())?;
+    let (records, stats) = run_real_experiment(&cfg, &base, threads).map_err(|e| e.to_string())?;
     let wall_seconds = t0.elapsed().as_secs_f64();
     let mut buf = Vec::new();
     for r in &records {
@@ -252,7 +268,11 @@ fn cmd_real_experiment(args: &[String]) -> Result<()> {
         experiment_id: cfg.experiment_id.clone(),
         kind: "real-tasks",
         catalog_sha256: Some(cfg.catalog_sha256),
-        verify_wall_seconds: Some(verify_wall),
+        verify_wall_seconds: Some(stats.verify_wall_seconds),
+        verify_child_cpu_seconds: stats.verify_child_cpu_seconds,
+        verify_calls: Some(stats.verify_calls),
+        worker: Some(stats.worker),
+        pool_sha256: stats.pool_sha256,
         config_digest: Digest::of_canonical(&cfg).map_err(|e| e.to_string())?,
         results_sha256: Digest::of_bytes(&buf),
         records: records.len(),

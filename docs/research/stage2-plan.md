@@ -1,8 +1,9 @@
 # Stage 2 plan: the first model-backed study
 
-Status: **proposal, awaiting spending authorisation.** No paid call has
-been made. All prices below are **assumptions to verify** against the
-provider before anything is spent.
+Status: **phase 0 implemented; phases 1–3 await spending authorisation.**
+No provider call has been made and no API key has been used. All prices
+below are **assumptions to verify** against the provider before anything
+is spent.
 
 ## Goal
 
@@ -94,6 +95,37 @@ point A or B.
 | 1 | authorisation 1 | Calibration calls. Freeze the model, rate card, catalog and budgets. Preregister exp-009. |
 | 2 | authorisation 2 | Experiment-pool calls. |
 | 3 | none | Run exp-009 offline from the pool, with frozen scoring, then publish. |
+
+## Phase 0 status (no spend)
+
+Done, tested only with a fake transport; recorded in
+[ADR-0008](../decisions/ADR-0008-record-once-replay-for-model-workers.md):
+
+| Piece | Where |
+|---|---|
+| Append-only transcript store (keyed, tamper-evident, duplicate-refusing) | `python/frontier_py/workers/transcripts.py` |
+| Versioned rate card (tokens to CU and USD) | `python/frontier_py/workers/rate_card.py` |
+| Crash-safe campaign ledger, wired into `BudgetGuard` | `python/frontier_py/workers/ledger.py`, `workers/base.py` |
+| Prompt template `codegen-v1` and `ast`-only parser | `python/frontier_py/workers/llm_codegen.py` |
+| `Transport` protocol and `FakeTransport`; real transport left as a refusing TODO | `python/frontier_py/workers/transport.py` |
+| `pool estimate` / `fill` / `screen` CLI | `python/frontier_py/realtasks/pool.py` |
+| Replay service `server --worker llm-pool --pool PATH` | `python/frontier_py/realtasks/server.py` |
+| Model label from the service `hello`; pool digest, verify calls and child CPU in the manifest | `crates/frontier-sim/src/{external,real,runner}.rs`, `crates/frontier-cli` |
+
+Checks: `python/tests/test_pool.py` (prompt golden hash and leakage, parser,
+store, permutation, ledger, canary key) and
+`crates/frontier-sim/tests/pool.rs` (a replayed mini-experiment from a
+fake DSL pool has identical log heads across runs and thread counts).
+Existing log heads are unchanged.
+
+Not done in phase 0, and needed before phase 1:
+
+- the *llm-v1* held-out suite (design decision 3);
+- a real transport for the chosen provider, added only with authorisation;
+- a run of `pool screen` and of the replay service under
+  `--sandbox docker` on a host with the pinned image (CI `verifier-v2`
+  covers the sandbox itself, not these two entry points);
+- the frozen rate card for the chosen model.
 
 ## What the project owner must decide
 

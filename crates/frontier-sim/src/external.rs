@@ -9,6 +9,11 @@
 //! Protocol 2 adds an optional `library` to `attempt`: verified helper
 //! sources for a dependent task. An attempt without a library is the same
 //! request in both versions, so v1/v2 catalogs run unchanged against either.
+//!
+//! The model label recorded on every submission comes from the service's
+//! `hello` (`worker`), defaulting to [`DEFAULT_MODEL_LABEL`] for services
+//! that do not report one. A replay service (`--worker llm-pool`) also
+//! reports the SHA-256 of the sample pool it serves (`pool_sha256`).
 
 use std::io::{BufRead, BufReader, Write};
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
@@ -23,6 +28,22 @@ use crate::runner::SimError;
 pub const PROTOCOL: u64 = 2;
 /// First protocol version whose `attempt` accepts a `library`.
 pub const LIBRARY_PROTOCOL: u64 = 2;
+/// Submission model label for a service whose `hello` names no `worker`
+/// (the DSL search worker, as before the field existed).
+pub const DEFAULT_MODEL_LABEL: &str = "dsl-search";
+
+/// The submission model label a service's `hello` asks for.
+pub fn model_label(hello: &Value) -> String {
+    match hello.get("worker").and_then(Value::as_str) {
+        Some(w) if !w.is_empty() => w.to_owned(),
+        _ => DEFAULT_MODEL_LABEL.to_owned(),
+    }
+}
+
+/// The pool digest a replay service reports, if any (null or absent: none).
+pub fn pool_sha256(hello: &Value) -> Option<String> {
+    hello.get("pool_sha256").and_then(Value::as_str).map(str::to_owned)
+}
 
 /// A verified helper passed to a dependent task's attempt: the call name and
 /// the source of the artifact the evidence store accepted for the prerequisite.
@@ -52,10 +73,19 @@ pub struct ExternalWorker {
     pub hello: Value,
     /// Protocol version the service speaks (1 or 2).
     pub protocol: u64,
+    /// Model label for submissions (`hello.worker`, default "dsl-search").
+    pub model_label: String,
+    /// SHA-256 of the replayed sample pool, if the service replays one.
+    pub pool_sha256: Option<String>,
     stdin: ChildStdin,
     stdout: BufReader<ChildStdout>,
     /// Host wall-clock seconds the service spent verifying (not deterministic).
     pub verify_wall_seconds: f64,
+    /// CPU seconds of the verifier's child processes, summed over the replies
+    /// that reported it (`None` if none did, e.g. on Windows). Not deterministic.
+    pub verify_child_cpu_seconds: Option<f64>,
+    /// Verify replies that did real work (not memoised).
+    pub verify_calls: u64,
 }
 
 fn protocol_error(msg: impl Into<String>) -> SimError {
@@ -74,12 +104,25 @@ impl ExternalWorker {
             .map_err(|e| protocol_error(format!("cannot start {:?}: {e}", cmd.program)))?;
         let stdin = child.stdin.take().expect("piped");
         let stdout = BufReader::new(child.stdout.take().expect("piped"));
-        let mut w = Self { child, stdin, stdout, hello: Value::Null, protocol: 0, verify_wall_seconds: 0.0 };
+        let mut w = Self {
+            child,
+            stdin,
+            stdout,
+            hello: Value::Null,
+            protocol: 0,
+            model_label: DEFAULT_MODEL_LABEL.to_owned(),
+            pool_sha256: None,
+            verify_wall_seconds: 0.0,
+            verify_child_cpu_seconds: None,
+            verify_calls: 0,
+        };
         let hello = w.request(&json!({ "op": "hello" }))?;
         match hello.get("protocol").and_then(Value::as_u64) {
             Some(p @ 1..=PROTOCOL) => w.protocol = p,
             _ => return Err(protocol_error(format!("unsupported protocol in {hello}"))),
         }
+        w.model_label = model_label(&hello);
+        w.pool_sha256 = pool_sha256(&hello);
         w.hello = hello;
         Ok(w)
     }
@@ -128,6 +171,12 @@ impl ExternalWorker {
             return Err(protocol_error("receipt bound to a different spec or artifact"));
         }
         self.verify_wall_seconds += v.get("wall_seconds").and_then(Value::as_f64).unwrap_or(0.0);
+        if let Some(cpu) = v.get("child_cpu_seconds").and_then(Value::as_f64) {
+            *self.verify_child_cpu_seconds.get_or_insert(0.0) += cpu;
+        }
+        if v.get("cached") != Some(&Value::Bool(true)) {
+            self.verify_calls += 1;
+        }
         let extended_ok = v.get("extended_ok").and_then(Value::as_bool).ok_or_else(|| protocol_error("missing extended_ok"))?;
         Ok((receipt, extended_ok))
     }
@@ -137,5 +186,23 @@ impl Drop for ExternalWorker {
     fn drop(&mut self) {
         let _ = self.child.kill();
         let _ = self.child.wait();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn model_label_defaults_to_dsl_search() {
+        let old = json!({ "ok": true, "protocol": 2, "suite_version": "1", "hidden_seed": 20261026, "sandbox": "none" });
+        assert_eq!(model_label(&old), "dsl-search");
+        assert_eq!(model_label(&json!({ "worker": null })), "dsl-search");
+        assert_eq!(model_label(&json!({ "worker": "" })), "dsl-search");
+        assert_eq!(model_label(&json!({ "worker": "dsl-search" })), "dsl-search");
+        assert_eq!(model_label(&json!({ "worker": "llm-pool:fake/dsl-search@fake-1" })), "llm-pool:fake/dsl-search@fake-1");
+        assert_eq!(pool_sha256(&old), None);
+        assert_eq!(pool_sha256(&json!({ "pool_sha256": null })), None);
+        assert_eq!(pool_sha256(&json!({ "pool_sha256": "ab" })).as_deref(), Some("ab"));
     }
 }

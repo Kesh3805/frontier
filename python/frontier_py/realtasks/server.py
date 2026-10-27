@@ -1,15 +1,18 @@
 """JSONL worker/verifier service for the Rust runner (protocol version 2).
 
     python -m frontier_py.realtasks.server [--suite-version 1|2] [--sandbox none|docker] [--fail-fast]
+        [--worker dsl|llm-pool --pool POOL.jsonl]
 
 One JSON object per line on stdin, one reply per line on stdout:
 
     {"op": "hello"}
-        -> {"ok": true, "protocol": 2, "suite_version": ..., "hidden_seed": ..., "sandbox": ...}
+        -> {"ok": true, "protocol": 2, "suite_version": ..., "hidden_seed": ..., "sandbox": ...,
+            "worker": STR, "pool_sha256": HEX|null}
     {"op": "attempt", "task": NAME, "seed": INT, "k": INT [, "library": [{"name": STR, "source": STR}, ...]]}
-        -> {"ok": true, "source": STR, "gen_units": FLOAT, "samples": INT, "visible_pass": BOOL}
+        -> {"ok": true, "source": STR, "gen_units": FLOAT, "samples": INT, "visible_pass": BOOL|null [, "j": INT]}
     {"op": "verify", "task": NAME, "source": STR, "spec_digest": HEX, "artifact_digest": HEX}
-        -> {"ok": true, "receipt": {...}, "extended_ok": BOOL, "wall_seconds": FLOAT}
+        -> {"ok": true, "receipt": {...}, "extended_ok": BOOL, "wall_seconds": FLOAT,
+            "child_cpu_seconds": FLOAT|null}
 
 Protocol 2 adds the optional `library` of an attempt: the verified helpers
 of a dependent (catalog v3) task, one per direct prerequisite, named
@@ -46,6 +49,30 @@ Sandbox modes (`--sandbox`, default `none`):
   The service refuses to start if the sandbox is unusable, and a verify
   request whose extended check could not run in the sandbox gets an error
   reply rather than a guessed `extended_ok`.
+
+Workers (`--worker`, default `dsl`):
+
+* `dsl`: the deterministic DSL search (`worker.attempt`). `hello` reports
+  `"worker": "dsl-search"` and `"pool_sha256": null`.
+* `llm-pool`: replay of a recorded sample pool (`pool.Pool`, ADR-0008).
+  `attempt(task, seed, k)` returns pool sample j = pi(task, seed)(k), a
+  SHA-256-seeded permutation of the task's sample indices that does not
+  depend on the policy; k beyond the pool is an error. `gen_units` is the
+  pool's rate card applied to the call's recorded token usage, so replay is
+  deterministic. `visible_pass` is null (computing it would execute model
+  code here) and `j` is the sample used. The pool's integrity is checked at
+  start-up. This mode has no transport and needs no API key. It refuses
+  `--sandbox none`, because model-written code may only run sandboxed,
+  unless `--allow-unsandboxed-for-tests` is given AND the pool came from
+  the fake transport (DSL programs, trusted). `hello` reports
+  `"worker": "llm-pool:<provider>/<model>@<revision>"` and the pool's
+  SHA-256; the Rust runner records that label on every submission.
+
+Measured cost: each fresh `verify` reply carries its wall time and, on
+POSIX, the CPU time of the verifier's child processes (`getrusage`
+children delta; null elsewhere). With `--sandbox docker` the child is the
+docker CLI, so container CPU is not included. Memoised replies report 0
+for both. The runner keeps both out of the deterministic log.
 """
 
 from __future__ import annotations
@@ -56,10 +83,16 @@ import sys
 import time
 from typing import Any
 
+try:
+    import resource as _resource
+except ImportError:  # Windows
+    _resource = None  # type: ignore[assignment]
+
 from ..tasks import TaskDef
 from ..verifiers import property_tests
 from ..verifiers.property_tests import SANDBOXES, verify
 from . import deps
+from .pool import Pool, PoolError, sandbox_policy
 from .catalog import correct_on, extended_cases
 from .suite import BY_NAME, HIDDEN_SEED, SUITE_VERSION, SUITE_VERSIONS, RealTask
 from .worker import LibEntry, attempt
@@ -70,6 +103,8 @@ VERIFY_UNITS_PER_CASE = 0.005
 _suite_version = SUITE_VERSION
 _sandbox = "none"
 _fail_fast = False  # charge FAILs only up to the first failing case
+_pool: Pool | None = None  # --worker llm-pool
+DSL_WORKER_LABEL = "dsl-search"
 _verify_cache: dict[tuple[str, str, str, str], dict[str, Any]] = {}
 _extended: dict[str, list] = {}
 
@@ -91,7 +126,9 @@ def library_for(task: RealTask, raw: Any) -> list[LibEntry]:
 def handle(req: dict[str, Any]) -> dict[str, Any]:
     op = req.get("op")
     if op == "hello":
-        return {"ok": True, "protocol": PROTOCOL, "suite_version": _suite_version, "hidden_seed": HIDDEN_SEED, "sandbox": _sandbox, "fail_fast": _fail_fast}
+        return {"ok": True, "protocol": PROTOCOL, "suite_version": _suite_version, "hidden_seed": HIDDEN_SEED, "sandbox": _sandbox,
+                "fail_fast": _fail_fast, "worker": DSL_WORKER_LABEL if _pool is None else _pool.label,
+                "pool_sha256": None if _pool is None else _pool.sha256}
     name = req.get("task", "")
     task: RealTask | None = BY_NAME.get(name) or deps.BY_NAME.get(name)
     if task is None:
@@ -101,23 +138,38 @@ def handle(req: dict[str, Any]) -> dict[str, Any]:
             lib = library_for(task, req.get("library"))
         except ValueError as e:
             return {"ok": False, "error": str(e)}
+        if _pool is not None:
+            try:
+                return {"ok": True, **_pool.attempt(task.name, int(req["seed"]), int(req["k"]))}
+            except PoolError as e:
+                return {"ok": False, "error": str(e)}
         return {"ok": True, **attempt(task, int(req["seed"]), int(req["k"]), lib)}
     if op == "verify":
         key = (task.name, req["source"], req["spec_digest"], req["artifact_digest"])
         if key not in _verify_cache:
-            t0 = time.perf_counter()
+            t0, cpu0 = time.perf_counter(), _children_cpu()
             receipt = verify(task.task_def(_suite_version), {"source": req["source"]}, spec_digest=req["spec_digest"], seed=HIDDEN_SEED,
                              artifact_digest=req["artifact_digest"], charge_per_case=VERIFY_UNITS_PER_CASE, sandbox=_sandbox,
                              fail_fast=_fail_fast)
-            wall = time.perf_counter() - t0
+            wall, cpu1 = time.perf_counter() - t0, _children_cpu()
             if task.name not in _extended:
                 _extended[task.name] = extended_cases(task)
             _verify_cache[key] = {"ok": True, "receipt": json.loads(receipt.to_json()),
-                                  "extended_ok": extended_ok(task, req["source"], _extended[task.name]), "wall_seconds": round(wall, 6)}
+                                  "extended_ok": extended_ok(task, req["source"], _extended[task.name]), "wall_seconds": round(wall, 6),
+                                  "child_cpu_seconds": None if cpu0 is None or cpu1 is None else round(cpu1 - cpu0, 6)}
             return _verify_cache[key]
         # Memoised: the receipt is identical, but no verification time was spent now.
-        return {**_verify_cache[key], "wall_seconds": 0.0, "cached": True}
+        cached = _verify_cache[key]
+        return {**cached, "wall_seconds": 0.0, "child_cpu_seconds": None if cached["child_cpu_seconds"] is None else 0.0, "cached": True}
     return {"ok": False, "error": f"unknown op {op!r}"}
+
+
+def _children_cpu() -> float | None:
+    """User + system CPU seconds of reaped child processes (POSIX), else None."""
+    if _resource is None:
+        return None
+    r = _resource.getrusage(_resource.RUSAGE_CHILDREN)
+    return r.ru_utime + r.ru_stime
 
 
 def extended_task(task: Any, cases: list[tuple[list[int], Any]]) -> TaskDef:
@@ -157,17 +209,31 @@ def extended_ok(task: Any, source: str, cases: list[tuple[list[int], Any]]) -> b
 
 def configure(argv: list[str]) -> None:
     """Parse arguments and set the service mode; exit if the sandbox is unusable (fail closed)."""
-    global _suite_version, _sandbox, _fail_fast
+    global _suite_version, _sandbox, _fail_fast, _pool
     ap = argparse.ArgumentParser(prog="server")
     ap.add_argument("--suite-version", choices=SUITE_VERSIONS, default=SUITE_VERSION)
     ap.add_argument("--sandbox", choices=SANDBOXES, default="none")
     ap.add_argument("--fail-fast", action="store_true", help="charge a failing verification only up to its first failing case")
+    ap.add_argument("--worker", choices=("dsl", "llm-pool"), default="dsl")
+    ap.add_argument("--pool", help="transcript store to replay (--worker llm-pool)")
+    ap.add_argument("--allow-unsandboxed-for-tests", action="store_true", help=argparse.SUPPRESS)
     ns = ap.parse_args(argv)
+    pool = None
+    if ns.worker == "llm-pool":
+        if not ns.pool:
+            sys.exit("server: --worker llm-pool needs --pool PATH")
+        try:
+            pool = Pool(ns.pool)
+            sandbox_policy(pool, ns.sandbox, ns.allow_unsandboxed_for_tests)
+        except (PoolError, OSError, ValueError) as e:
+            sys.exit(f"server: refusing --worker llm-pool: {e}")
+    elif ns.pool or ns.allow_unsandboxed_for_tests:
+        sys.exit("server: --pool and --allow-unsandboxed-for-tests need --worker llm-pool")
     if ns.sandbox == "docker":
         ok, detail = property_tests.docker_status()
         if not ok:
             sys.exit(f"server: --sandbox docker requested but unusable: {detail}")
-    _suite_version, _sandbox, _fail_fast = ns.suite_version, ns.sandbox, ns.fail_fast
+    _suite_version, _sandbox, _fail_fast, _pool = ns.suite_version, ns.sandbox, ns.fail_fast, pool
     _verify_cache.clear()
 
 
