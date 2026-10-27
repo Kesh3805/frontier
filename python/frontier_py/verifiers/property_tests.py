@@ -89,6 +89,7 @@ self-reported confidence) has no effect on the verdict.
 from __future__ import annotations
 
 import copy
+import dataclasses
 import json
 import os
 import re
@@ -100,7 +101,7 @@ import sys
 import tempfile
 import threading
 import time
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Any, Literal
 
@@ -154,10 +155,21 @@ def _main():
     lock = threading.Lock()
     def emit(body):
         lock.acquire()
+        try:
+            put(body)
+        finally:
+            exit_(0)
+    def put(body):
         data = ('{"nonce":' + dumps(nonce) + "," + body + "}\n").encode("utf-8")
         while data:
             data = data[write(out, data):]
-        exit_(0)
+    def send(body):
+        lock.acquire()
+        try:
+            put(body)
+        except OSError:
+            exit_(0)  # the parent stopped reading: it has seen a failing case
+        lock.release()
     def name(e):
         n = type(e).__name__
         return n if n.isidentifier() and len(n) <= 64 else "Exception"
@@ -174,7 +186,7 @@ def _main():
             resource.setrlimit(resource.RLIMIT_NPROC, (0, 0))
         except (ImportError, ValueError, OSError, AttributeError):
             pass
-    inputs, fname = req["inputs"], req["function"]
+    inputs, fname, stream = req["inputs"], req["function"], req.get("stream", False)
     ns = {"__name__": "candidate"}
     try:
         exec(compile(req["source"], "<candidate>", "exec"), ns)
@@ -190,11 +202,16 @@ def _main():
         state["case"] = i
         state["deadline"] = mono() + limit
         try:
-            parts.append(dumps(fn(*args), allow_nan=False))
+            part = dumps(fn(*args), allow_nan=False)
         except MemoryError:
             emit('"status":"resource","case":' + str(i) + ',"error":"MemoryError"')
         except BaseException as e:
             emit('"status":"error","case":' + str(i) + ',"error":' + dumps(name(e)))
+        if stream:
+            state["deadline"] = float("inf")
+            send('"status":"case","case":' + str(i) + ',"output":' + part)
+        else:
+            parts.append(part)
     state["deadline"] = float("inf")
     emit('"status":"ok","outputs":[' + ",".join(parts) + "]")
 try:
@@ -203,7 +220,8 @@ except MemoryError:
     os._exit(86)
 """
 
-Kind = Literal["ok", "timeout", "resource", "error", "malformed", "sandbox"]
+Kind = Literal["ok", "timeout", "resource", "error", "malformed", "sandbox", "mismatch"]
+EARLY_STOP_GRACE_S = 1.0  # after a failing streamed case: time for the child to exit before it is killed
 _RESOURCE_SIGNALS = {getattr(signal, s) for s in ("SIGXCPU", "SIGXFSZ", "SIGKILL") if hasattr(signal, s)}
 # `docker run` exit statuses: 125 = docker/daemon error, 126 = command cannot be
 # invoked, 127 = command not found. 128+N = container process killed by signal N
@@ -219,6 +237,7 @@ class ChildOutcome:
     detail: str
     outputs: list[Any] | None = None
     case: int | None = None
+    matched: int | None = None  # streamed runs: cases received and matched before the outcome
 
 
 def child_env() -> dict[str, str]:
@@ -246,6 +265,30 @@ def _posix_limits(memory_mb: int, cpu_s: int) -> Any:
             resource.setrlimit(lim, (val, val))
 
     return apply
+
+
+def _process_cpu_seconds(proc: subprocess.Popen[bytes]) -> float | None:
+    """User + kernel CPU seconds of an exited child on Windows (GetProcessTimes), else None."""
+    if os.name != "nt":
+        return None
+    import ctypes
+    from ctypes import wintypes
+
+    times = [wintypes.FILETIME() for _ in range(4)]  # creation, exit, kernel, user
+    handle = wintypes.HANDLE(int(proc._handle))  # type: ignore[attr-defined]
+    if not ctypes.windll.kernel32.GetProcessTimes(handle, *(ctypes.byref(t) for t in times)):  # type: ignore[attr-defined]
+        return None
+    return sum((t.dwHighDateTime << 32 | t.dwLowDateTime) for t in times[2:]) / 1e7
+
+
+def _children_cpu() -> float | None:
+    """User + system CPU seconds of reaped child processes (POSIX), else None."""
+    try:
+        import resource
+    except ImportError:
+        return None
+    r = resource.getrusage(resource.RUSAGE_CHILDREN)
+    return r.ru_utime + r.ru_stime
 
 
 def _kill_tree(proc: subprocess.Popen[bytes]) -> None:
@@ -331,11 +374,27 @@ def run_candidate(
     memory_limit_mb: int,
     max_output_bytes: int = MAX_OUTPUT_BYTES,
     sandbox: Sandbox = "none",
+    expected: Callable[[int], bytes] | None = None,
+    stats: dict[str, Any] | None = None,
 ) -> ChildOutcome:
     """Run untrusted `source` on `inputs` in an isolated child; return raw outputs.
 
     `sandbox="docker"` runs the child in the pinned container image; if that
     is not possible the outcome is kind "sandbox" and nothing was executed.
+
+    With `expected` (canonical expected output of case i, computed on demand
+    by the caller), the run is streamed and stops early: the child reports
+    each output as it is computed, the parent compares it at once, and at
+    the first mismatch it stops reading, so the child exits at its next
+    write (or is killed after `EARLY_STOP_GRACE_S`). The outcome is then
+    kind "mismatch" at that case. A run that completes is kind "ok" with
+    `outputs=None` and `matched` = the number of cases that matched; error,
+    timeout and resource outcomes are as without streaming, with `matched`.
+    The child still never sees an expected value.
+
+    `stats`, if given, receives `child_cpu_seconds`: the child's CPU time
+    (Windows: GetProcessTimes; POSIX: RUSAGE_CHILDREN delta, so not safe
+    with concurrent calls; with docker, the CLI's CPU, not the container's).
     """
     _check_sandbox(sandbox)
     if sandbox == "docker":
@@ -343,9 +402,11 @@ def run_candidate(
         if not ok:
             return ChildOutcome("sandbox", f"docker sandbox unavailable: {detail}")
     nonce = secrets.token_hex(16)
-    payload = json.dumps(
-        {"nonce": nonce, "source": source, "function": function_name, "inputs": inputs, "per_call_timeout": per_call_timeout_s}
-    ).encode("utf-8")
+    req: dict[str, Any] = {"nonce": nonce, "source": source, "function": function_name, "inputs": inputs, "per_call_timeout": per_call_timeout_s}
+    if expected is not None:
+        req["stream"] = True
+    payload = json.dumps(req).encode("utf-8")
+    cpu0 = _children_cpu() if POSIX else None
     container = f"frontier-verify-{secrets.token_hex(8)}"
     with tempfile.TemporaryDirectory(prefix="frontier-verify-") as cwd:
         kwargs: dict[str, Any] = {}
@@ -389,6 +450,9 @@ def run_candidate(
         assert proc.stdin is not None and proc.stdout is not None
         buf = bytearray()
         overflow = threading.Event()
+        drained = threading.Event()
+        failed: list[int] = []  # streamed: the first mismatching case
+        received = [0]  # streamed: cases received and matched
 
         def feed() -> None:
             try:
@@ -405,21 +469,71 @@ def run_candidate(
                     return
                 buf.extend(chunk)
 
-        threads = [threading.Thread(target=feed, daemon=True), threading.Thread(target=drain, daemon=True)]
+        def drain_stream() -> None:
+            # Consume leading case lines as they arrive; whatever follows the
+            # last one (the terminal line, or anything malformed) stays in buf.
+            total = 0
+            try:
+                while chunk := proc.stdout.read1(65536):  # type: ignore[union-attr]
+                    total += len(chunk)
+                    if total > max_output_bytes:
+                        overflow.set()
+                        stop()
+                        return
+                    buf.extend(chunk)
+                    while (j := buf.find(b"\n")) >= 0:
+                        out = _stream_case(bytes(buf[:j]), nonce, received[0])
+                        if out is None:
+                            break
+                        del buf[: j + 1]
+                        if _canon(out[0]) != expected(received[0]):  # type: ignore[misc]
+                            failed.append(received[0])
+                            proc.stdout.close()  # type: ignore[union-attr]
+                            return
+                        received[0] += 1
+            finally:
+                drained.set()
+
+        threads = [threading.Thread(target=feed, daemon=True),
+                   threading.Thread(target=drain if expected is None else drain_stream, daemon=True)]
         for t in threads:
             t.start()
         try:
-            rc = proc.wait(timeout=wall)
+            if expected is None:
+                rc = proc.wait(timeout=wall)
+            else:
+                deadline = time.monotonic() + wall
+                drained.wait(wall)
+                if failed:
+                    try:
+                        proc.wait(timeout=EARLY_STOP_GRACE_S)
+                    except subprocess.TimeoutExpired:
+                        stop()
+                        proc.wait()
+                    return ChildOutcome("mismatch", "output mismatch", case=failed[0], matched=received[0])
+                rc = proc.wait(timeout=max(deadline - time.monotonic(), 0.0))
         except subprocess.TimeoutExpired:
             stop()
             proc.wait()
-            return ChildOutcome("timeout", f"wall timeout {wall:g}s exceeded")
+            return ChildOutcome("timeout", f"wall timeout {wall:g}s exceeded", matched=None if expected is None else received[0])
         finally:
             for t in threads:
                 t.join(timeout=2.0)
             proc.stdout.close()
+            if stats is not None:
+                if POSIX:
+                    cpu1 = _children_cpu()
+                    stats["child_cpu_seconds"] = None if cpu0 is None or cpu1 is None else cpu1 - cpu0
+                else:
+                    stats["child_cpu_seconds"] = _process_cpu_seconds(proc)
     if overflow.is_set():
         return ChildOutcome("malformed", f"output exceeded {max_output_bytes} bytes")
+    if expected is not None:
+        return _with_matched(_finish(rc, bytes(buf), nonce, sandbox), received[0], len(inputs))
+    return _finish(rc, bytes(buf), nonce, sandbox)
+
+
+def _finish(rc: int, raw: bytes, nonce: str, sandbox: str) -> ChildOutcome:
     if sandbox == "docker" and rc in _DOCKER_INFRA_STATUSES:
         return ChildOutcome("sandbox", f"docker run exited {rc} ({_DOCKER_INFRA_STATUSES[rc]}) without a result")
     if sandbox == "docker" and rc in _DOCKER_RESOURCE_STATUSES:
@@ -430,7 +544,30 @@ def run_candidate(
         if rc == 86:
             return ChildOutcome("resource", "MemoryError in harness")
         return ChildOutcome("malformed", f"child exited with status {rc} without a result")
-    return _parse(bytes(buf), nonce)
+    return _parse(raw, nonce)
+
+
+def _stream_case(line: bytes, nonce: str, index: int) -> list[Any] | None:
+    """[output] of a streamed case line for case `index`, else None (the list
+    keeps a JSON null output distinct from 'not a case line')."""
+    try:
+        msg = json.loads(line)
+    except (ValueError, RecursionError):
+        return None
+    if (isinstance(msg, dict) and len(msg) == 4 and msg.get("nonce") == nonce and msg.get("status") == "case"
+            and type(msg.get("case")) is int and msg["case"] == index and "output" in msg):
+        return [msg["output"]]
+    return None
+
+
+def _with_matched(out: ChildOutcome, matched: int, n: int) -> ChildOutcome:
+    """A streamed run's terminal outcome: "ok" only if every case was streamed and
+    matched and the terminal line carries no outputs of its own."""
+    if out.kind == "ok":
+        if matched != n or out.outputs != []:
+            return ChildOutcome("malformed", f"streamed {matched} of {n} cases before the end", matched=matched)
+        return ChildOutcome("ok", "", outputs=None, matched=matched)
+    return dataclasses.replace(out, matched=matched)
 
 
 def _parse(raw: bytes, nonce: str) -> ChildOutcome:
@@ -487,6 +624,8 @@ def verify(
     charge_per_case: float | None = None,
     sandbox: Sandbox = "none",
     fail_fast: bool = False,
+    early_stop: bool = False,
+    stats: dict[str, Any] | None = None,
 ) -> VerifierReceipt:
     """Verify an artifact body {"source": str, ...} against `task`; return a receipt.
 
@@ -498,6 +637,14 @@ def verify(
     including the first failing one, in suite order (visible, then hidden),
     as a test runner that stops at the first failure would be. Verdicts are
     unchanged; PASS and INCONCLUSIVE are always charged in full.
+
+    `early_stop` makes that physical: expected outputs are computed one case
+    at a time and the candidate's run is streamed and stopped at the first
+    mismatch (`run_candidate(expected=...)`). It implies `fail_fast`
+    charging. PASS verdicts are unchanged. A FAIL's reason no longer counts
+    all mismatching cases, and a candidate that fails one case and would
+    later time out or exhaust a resource is FAIL instead of INCONCLUSIVE.
+    `stats`, if given, receives `child_cpu_seconds` (see `run_candidate`).
 
     `sandbox="docker"` executes the candidate in the pinned container and
     yields trust class V2, but only if it actually ran there; otherwise the
@@ -535,7 +682,12 @@ def verify(
         return receipt("FAIL", "artifact body has no string 'source'")
     inputs = [list(a) for a, _ in task.visible] + task.hidden_inputs(seed)
     n_vis = len(task.visible)
-    expected = [json.loads(canonical_json(task.reference(*copy.deepcopy(a)))) for a in inputs]
+    fail_fast = fail_fast or early_stop
+
+    def expected_at(i: int) -> Any:
+        return json.loads(canonical_json(task.reference(*copy.deepcopy(inputs[i]))))
+
+    expected = None if early_stop else [expected_at(i) for i in range(len(inputs))]
     out = run_candidate(
         source,
         task.function_name,
@@ -544,6 +696,8 @@ def verify(
         wall_timeout_s=task.wall_timeout_s,
         memory_limit_mb=task.memory_limit_mb,
         sandbox=sandbox,
+        expected=(lambda i: canonical_json(expected_at(i))) if early_stop else None,
+        stats=stats,
     )
     if out.kind == "sandbox":
         return receipt("INCONCLUSIVE", f"sandbox failure ({out.detail})")
@@ -556,7 +710,13 @@ def verify(
         if fail_fast and charge_per_case is not None and out.case is not None:
             charge = round(charge_per_case * (out.case + 1), 9)
         return receipt("FAIL", f"candidate raised {out.detail} {_where(out.case, n_vis)}")
-    if out.kind == "malformed" or out.outputs is None:
+    if out.kind == "mismatch" and out.case is not None:
+        if charge_per_case is not None:
+            charge = round(charge_per_case * (out.case + 1), 9)
+        return receipt("FAIL", f"output mismatch (first {_where(out.case, n_vis)}; stopped early)")
+    if early_stop and out.kind == "ok":
+        return receipt("PASS", f"all {len(inputs)} cases match ({n_vis} visible, {len(inputs) - n_vis} hidden, seed {seed})")
+    if out.kind != "ok" or out.outputs is None or expected is None:
         return receipt("FAIL", f"malformed result: {out.detail}")
     if len(out.outputs) != len(expected):
         return receipt("FAIL", f"malformed result: {len(out.outputs)} outputs for {len(expected)} cases")
