@@ -263,6 +263,9 @@ tasks (exp-007), the V2 sandbox, and corrected re-runs after errata E1/E2.
    - a hard dollar cap.
 
    *Requires an explicit spending authorisation (provider, model, cap).*
+   Phase 0 (no spend) is implemented: pool store, replay service, ledger,
+   prompt and parser, tested with a fake transport only
+   ([ADR-0008](docs/decisions/ADR-0008-record-once-replay-for-model-workers.md)).
    The plan and cost estimate (about $0.20–$13, recommended cap $10) are in
    [`docs/research/stage2-plan.md`](docs/research/stage2-plan.md).
 4. **HybridAgent:** reproduce the released 8B checkpoint, profile latent
