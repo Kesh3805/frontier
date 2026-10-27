@@ -1,0 +1,580 @@
+{
+ "b120": {
+  "sim_true_solved": {
+   "random": {
+    "diff": -0.57,
+    "ci": [
+     -0.82,
+     -0.31
+    ],
+    "mean_a": 2.78,
+    "mean_b": 3.35
+   },
+   "greedy_prior": {
+    "diff": 4.26,
+    "ci": [
+     3.95,
+     4.57
+    ],
+    "mean_a": 7.61,
+    "mean_b": 3.35
+   },
+   "thompson(k=2,hints=true)": {
+    "diff": 4.44,
+    "ci": [
+     4.12,
+     4.76
+    ],
+    "mean_a": 7.79,
+    "mean_b": 3.35
+   },
+   "thompson(k=2,hints=false)": {
+    "diff": 0.82,
+    "ci": [
+     0.64,
+     1.02
+    ],
+    "mean_a": 4.17,
+    "mean_b": 3.35
+   },
+   "oracle_index": {
+    "diff": 7.02,
+    "ci": [
+     6.7,
+     7.35
+    ],
+    "mean_a": 10.37,
+    "mean_b": 3.35
+   }
+  },
+  "solved": {
+   "random": {
+    "diff": -0.57,
+    "ci": [
+     -0.82,
+     -0.31
+    ],
+    "mean_a": 2.78,
+    "mean_b": 3.35
+   },
+   "greedy_prior": {
+    "diff": 4.26,
+    "ci": [
+     3.95,
+     4.57
+    ],
+    "mean_a": 7.61,
+    "mean_b": 3.35
+   },
+   "thompson(k=2,hints=true)": {
+    "diff": 4.44,
+    "ci": [
+     4.12,
+     4.76
+    ],
+    "mean_a": 7.79,
+    "mean_b": 3.35
+   },
+   "thompson(k=2,hints=false)": {
+    "diff": 0.82,
+    "ci": [
+     0.64,
+     1.02
+    ],
+    "mean_a": 4.17,
+    "mean_b": 3.35
+   },
+   "oracle_index": {
+    "diff": 7.02,
+    "ci": [
+     6.7,
+     7.35
+    ],
+    "mean_a": 10.37,
+    "mean_b": 3.35
+   }
+  },
+  "sim_dead_attempts": {
+   "random": {
+    "diff": -0.89,
+    "ci": [
+     -1.33,
+     -0.45
+    ],
+    "mean_a": 7.93,
+    "mean_b": 8.82
+   },
+   "greedy_prior": {
+    "diff": -0.42,
+    "ci": [
+     -0.77,
+     -0.08
+    ],
+    "mean_a": 8.4,
+    "mean_b": 8.82
+   },
+   "thompson(k=2,hints=true)": {
+    "diff": -2.25,
+    "ci": [
+     -2.59,
+     -1.91
+    ],
+    "mean_a": 6.57,
+    "mean_b": 8.82
+   },
+   "thompson(k=2,hints=false)": {
+    "diff": 3.26,
+    "ci": [
+     2.9998,
+     3.51
+    ],
+    "mean_a": 12.08,
+    "mean_b": 8.82
+   },
+   "oracle_index": {
+    "diff": -8.82,
+    "ci": [
+     -8.9,
+     -8.74
+    ],
+    "mean_a": 0.0,
+    "mean_b": 8.82
+   }
+  },
+  "committed_units": {
+   "random": {
+    "diff": 0.4069,
+    "ci": [
+     0.1138,
+     0.6978
+    ],
+    "mean_a": 117.6351,
+    "mean_b": 117.2282
+   },
+   "greedy_prior": {
+    "diff": -0.1744,
+    "ci": [
+     -0.45,
+     0.099
+    ],
+    "mean_a": 117.0538,
+    "mean_b": 117.2282
+   },
+   "thompson(k=2,hints=true)": {
+    "diff": 0.0793,
+    "ci": [
+     -0.1727,
+     0.3157
+    ],
+    "mean_a": 117.3075,
+    "mean_b": 117.2282
+   },
+   "thompson(k=2,hints=false)": {
+    "diff": 0.4559,
+    "ci": [
+     0.188,
+     0.721
+    ],
+    "mean_a": 117.6841,
+    "mean_b": 117.2282
+   },
+   "oracle_index": {
+    "diff": 0.1311,
+    "ci": [
+     -0.1352,
+     0.3889
+    ],
+    "mean_a": 117.3593,
+    "mean_b": 117.2282
+   }
+  }
+ },
+ "b480": {
+  "sim_true_solved": {
+   "random": {
+    "diff": 0.26,
+    "ci": [
+     -0.02,
+     0.54
+    ],
+    "mean_a": 10.47,
+    "mean_b": 10.21
+   },
+   "greedy_prior": {
+    "diff": 4.03,
+    "ci": [
+     3.7,
+     4.36
+    ],
+    "mean_a": 14.24,
+    "mean_b": 10.21
+   },
+   "thompson(k=2,hints=true)": {
+    "diff": 4.45,
+    "ci": [
+     4.13,
+     4.78
+    ],
+    "mean_a": 14.66,
+    "mean_b": 10.21
+   },
+   "thompson(k=2,hints=false)": {
+    "diff": -1.5,
+    "ci": [
+     -1.76,
+     -1.24
+    ],
+    "mean_a": 8.71,
+    "mean_b": 10.21
+   },
+   "oracle_index": {
+    "diff": 6.85,
+    "ci": [
+     6.53,
+     7.18
+    ],
+    "mean_a": 17.06,
+    "mean_b": 10.21
+   }
+  },
+  "solved": {
+   "random": {
+    "diff": 0.26,
+    "ci": [
+     -0.02,
+     0.54
+    ],
+    "mean_a": 10.47,
+    "mean_b": 10.21
+   },
+   "greedy_prior": {
+    "diff": 4.03,
+    "ci": [
+     3.7,
+     4.36
+    ],
+    "mean_a": 14.24,
+    "mean_b": 10.21
+   },
+   "thompson(k=2,hints=true)": {
+    "diff": 4.45,
+    "ci": [
+     4.13,
+     4.78
+    ],
+    "mean_a": 14.66,
+    "mean_b": 10.21
+   },
+   "thompson(k=2,hints=false)": {
+    "diff": -1.5,
+    "ci": [
+     -1.76,
+     -1.24
+    ],
+    "mean_a": 8.71,
+    "mean_b": 10.21
+   },
+   "oracle_index": {
+    "diff": 6.85,
+    "ci": [
+     6.53,
+     7.18
+    ],
+    "mean_a": 17.06,
+    "mean_b": 10.21
+   }
+  },
+  "sim_dead_attempts": {
+   "random": {
+    "diff": -1.98,
+    "ci": [
+     -2.8,
+     -1.19
+    ],
+    "mean_a": 46.58,
+    "mean_b": 48.56
+   },
+   "greedy_prior": {
+    "diff": 11.08,
+    "ci": [
+     9.58,
+     12.63
+    ],
+    "mean_a": 59.64,
+    "mean_b": 48.56
+   },
+   "thompson(k=2,hints=true)": {
+    "diff": 3.49,
+    "ci": [
+     2.35,
+     4.65
+    ],
+    "mean_a": 52.05,
+    "mean_b": 48.56
+   },
+   "thompson(k=2,hints=false)": {
+    "diff": 7.75,
+    "ci": [
+     7.12,
+     8.38
+    ],
+    "mean_a": 56.31,
+    "mean_b": 48.56
+   },
+   "oracle_index": {
+    "diff": -19.88,
+    "ci": [
+     -22.4,
+     -17.32
+    ],
+    "mean_a": 28.68,
+    "mean_b": 48.56
+   }
+  },
+  "committed_units": {
+   "random": {
+    "diff": 0.0592,
+    "ci": [
+     -0.2302,
+     0.3435
+    ],
+    "mean_a": 477.6813,
+    "mean_b": 477.6221
+   },
+   "greedy_prior": {
+    "diff": -0.2507,
+    "ci": [
+     -0.5132,
+     0.0115
+    ],
+    "mean_a": 477.3714,
+    "mean_b": 477.6221
+   },
+   "thompson(k=2,hints=true)": {
+    "diff": -0.2213,
+    "ci": [
+     -0.5232,
+     0.0789
+    ],
+    "mean_a": 477.4008,
+    "mean_b": 477.6221
+   },
+   "thompson(k=2,hints=false)": {
+    "diff": -0.0538,
+    "ci": [
+     -0.3179,
+     0.2093
+    ],
+    "mean_a": 477.5683,
+    "mean_b": 477.6221
+   },
+   "oracle_index": {
+    "diff": -0.0304,
+    "ci": [
+     -0.308,
+     0.2408
+    ],
+    "mean_a": 477.5917,
+    "mean_b": 477.6221
+   }
+  }
+ },
+ "b1920": {
+  "sim_true_solved": {
+   "random": {
+    "diff": 0.36,
+    "ci": [
+     0.22,
+     0.5
+    ],
+    "mean_a": 18.01,
+    "mean_b": 17.65
+   },
+   "greedy_prior": {
+    "diff": -1.92,
+    "ci": [
+     -2.14,
+     -1.7
+    ],
+    "mean_a": 15.73,
+    "mean_b": 17.65
+   },
+   "thompson(k=2,hints=true)": {
+    "diff": 0.48,
+    "ci": [
+     0.29,
+     0.68
+    ],
+    "mean_a": 18.13,
+    "mean_b": 17.65
+   },
+   "thompson(k=2,hints=false)": {
+    "diff": 0.44,
+    "ci": [
+     0.31,
+     0.57
+    ],
+    "mean_a": 18.09,
+    "mean_b": 17.65
+   },
+   "oracle_index": {
+    "diff": 1.14,
+    "ci": [
+     0.93,
+     1.35
+    ],
+    "mean_a": 18.79,
+    "mean_b": 17.65
+   }
+  },
+  "solved": {
+   "random": {
+    "diff": 0.36,
+    "ci": [
+     0.22,
+     0.5
+    ],
+    "mean_a": 18.01,
+    "mean_b": 17.65
+   },
+   "greedy_prior": {
+    "diff": -1.92,
+    "ci": [
+     -2.14,
+     -1.7
+    ],
+    "mean_a": 15.73,
+    "mean_b": 17.65
+   },
+   "thompson(k=2,hints=true)": {
+    "diff": 0.48,
+    "ci": [
+     0.29,
+     0.68
+    ],
+    "mean_a": 18.13,
+    "mean_b": 17.65
+   },
+   "thompson(k=2,hints=false)": {
+    "diff": 0.44,
+    "ci": [
+     0.31,
+     0.57
+    ],
+    "mean_a": 18.09,
+    "mean_b": 17.65
+   },
+   "oracle_index": {
+    "diff": 1.14,
+    "ci": [
+     0.93,
+     1.35
+    ],
+    "mean_a": 18.79,
+    "mean_b": 17.65
+   }
+  },
+  "sim_dead_attempts": {
+   "random": {
+    "diff": 2.42,
+    "ci": [
+     -0.1102,
+     4.96
+    ],
+    "mean_a": 348.76,
+    "mean_b": 346.34
+   },
+   "greedy_prior": {
+    "diff": -9.6,
+    "ci": [
+     -18.99,
+     -0.6698
+    ],
+    "mean_a": 336.74,
+    "mean_b": 346.34
+   },
+   "thompson(k=2,hints=true)": {
+    "diff": 62.81,
+    "ci": [
+     57.46,
+     68.04
+    ],
+    "mean_a": 409.15,
+    "mean_b": 346.34
+   },
+   "thompson(k=2,hints=false)": {
+    "diff": -12.59,
+    "ci": [
+     -14.84,
+     -10.38
+    ],
+    "mean_a": 333.75,
+    "mean_b": 346.34
+   },
+   "oracle_index": {
+    "diff": 70.38,
+    "ci": [
+     63.9395,
+     76.7002
+    ],
+    "mean_a": 416.72,
+    "mean_b": 346.34
+   }
+  },
+  "committed_units": {
+   "random": {
+    "diff": 0.0833,
+    "ci": [
+     -0.1867,
+     0.3455
+    ],
+    "mean_a": 1917.6659,
+    "mean_b": 1917.5826
+   },
+   "greedy_prior": {
+    "diff": 0.1094,
+    "ci": [
+     -0.1471,
+     0.3648
+    ],
+    "mean_a": 1917.692,
+    "mean_b": 1917.5826
+   },
+   "thompson(k=2,hints=true)": {
+    "diff": 0.0517,
+    "ci": [
+     -0.2378,
+     0.3389
+    ],
+    "mean_a": 1917.6343,
+    "mean_b": 1917.5826
+   },
+   "thompson(k=2,hints=false)": {
+    "diff": 0.2609,
+    "ci": [
+     -0.0304,
+     0.5497
+    ],
+    "mean_a": 1917.8435,
+    "mean_b": 1917.5826
+   },
+   "oracle_index": {
+    "diff": 0.1172,
+    "ci": [
+     -0.1588,
+     0.3966
+    ],
+    "mean_a": 1917.6998,
+    "mean_b": 1917.5826
+   }
+  }
+ },
+ "verdicts": {
+  "D1 hinted Thompson beats RR at b120 (CI > 0)": true,
+  "D2 hint-free Thompson beats RR at b120 (CI > 0)": true,
+  "D3 |TH - RR| < 1 at b1920": true,
+  "D4 greedy_prior beats RR at b120 (CI > 0)": true,
+  "D5 TH spends more dead attempts than RR at b480 (CI > 0)": true,
+  "H1-deps (pilot)": "supported"
+ }
+}

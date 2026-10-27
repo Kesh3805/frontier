@@ -1,0 +1,53 @@
+[
+ {
+  "experiment_id": "exp-007-b120",
+  "kind": "real-tasks",
+  "catalog_sha256": "6c63d226d405975517d67fc87f48e4d8345f6f315886cc59d87c35a9b70ef686",
+  "verify_wall_seconds": 3151.4013590000004,
+  "config_digest": "e7d6ad4b7419bb7034b5eb36321f16dd9439b6df144c089b48b655251508ec31",
+  "results_sha256": "d0f96d409ff572c06d5dc59ca90c80a4d3ab95c86710f5f39a384e2b4ed484ea",
+  "records": 600,
+  "kernel_version": "0.3.0",
+  "source_commit": "af2a78b5c5aa54dc773a1e124980161eb2a6bc71",
+  "source_dirty": false,
+  "host_os": "windows",
+  "host_arch": "x86_64",
+  "host_threads": 8,
+  "threads_used": 8,
+  "wall_seconds": 544.7354503
+ },
+ {
+  "experiment_id": "exp-007-b480",
+  "kind": "real-tasks",
+  "catalog_sha256": "6c63d226d405975517d67fc87f48e4d8345f6f315886cc59d87c35a9b70ef686",
+  "verify_wall_seconds": 7481.305736000001,
+  "config_digest": "b9add1c26a79f62ca3371406aabf6bdab93852c19cf1a990731716737dd13b70",
+  "results_sha256": "922f75894c678e81420ccdffec1781bc54867021b17e287e2bcba1529022b190",
+  "records": 600,
+  "kernel_version": "0.3.0",
+  "source_commit": "af2a78b5c5aa54dc773a1e124980161eb2a6bc71",
+  "source_dirty": false,
+  "host_os": "windows",
+  "host_arch": "x86_64",
+  "host_threads": 8,
+  "threads_used": 8,
+  "wall_seconds": 1450.1836952
+ },
+ {
+  "experiment_id": "exp-007-b1920",
+  "kind": "real-tasks",
+  "catalog_sha256": "6c63d226d405975517d67fc87f48e4d8345f6f315886cc59d87c35a9b70ef686",
+  "verify_wall_seconds": 20630.82044000001,
+  "config_digest": "0faf465f5130d9a4f9e6ed1d4fe4f89b82db034a18d5d23bf9adacdcdd3d9f7a",
+  "results_sha256": "59a315b1f0a199e7cd4bd734afe142342ddaabf34d941ff4d00ff79c99cab43e",
+  "records": 600,
+  "kernel_version": "0.3.0",
+  "source_commit": "af2a78b5c5aa54dc773a1e124980161eb2a6bc71",
+  "source_dirty": false,
+  "host_os": "windows",
+  "host_arch": "x86_64",
+  "host_threads": 8,
+  "threads_used": 8,
+  "wall_seconds": 5144.142564
+ }
+]
