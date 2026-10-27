@@ -37,6 +37,7 @@ failed predictions.
 | [exp-005](results/exp-005/README.md) | verification | The 40-case hidden suite accepted 1.8% of wrong programs (boundary bugs). 40 cases with small values accepted none. | frozen verdict **refuted** (floor effect); led to suite v2 |
 | [exp-006](results/exp-006/README.md) | real tasks | A stronger hidden suite (199 checks, 4.6× the cost) removed every false solve, but **cost 1–4 true solves per run**; with expensive verification, hinted Thompson's scarce-budget margin roughly doubles (+3.41). | strong verification **costs yield** |
 | [exp-007](results/exp-007/README.md) | real tasks, dependencies | On 24 lemma-structured problems, hinted Thompson **more than doubles** round-robin's verified yield at a scarce budget (**+4.44 [4.12, 4.76]** of 19 live problems) and gains +4.45 at a moderate one. A static hint index matches it early but falls behind at a large budget (−1.92). | H1-deps pilot **supported** |
+| [exp-008](research/preregistration/exp-008/protocol.md) | real tasks | Does fail-fast verification charging recover the yield lost to the stronger suite (single-step and dependency tasks)? | protocol frozen; **running** |
 | [rerun-k0.3](results/rerun-k0.3/README.md) | all | Corrected re-runs after errata E1/E2. **No frozen verdict changed**; exp-004's P3/P4 now hold; some magnitudes moved (exp-000 R2-scarce +1.46 → +0.33; real-task hint-free loss −0.95 → −0.12, n.s.). | errata applied |
 
 **Takeaways so far, each with its uncertainty:**
@@ -110,8 +111,12 @@ flowchart LR
 - **Claims are tiered:** `plausible_candidate` < `mechanically_verified` <
   `empirically_reproduced` < `independently_reviewed` <
   `scientifically_accepted`. Software can reach `mechanically_verified` at
-  most. Real-task receipts are currently **trust class V1**: subprocess
-  isolation without an OS sandbox.
+  most. All published real-task results use **trust class V1**: subprocess
+  isolation without an OS sandbox, which is acceptable only because the
+  programs are the project's own DSL output. A **V2** mode (Docker sandbox:
+  no network, read-only filesystem, resource limits, fails closed) exists
+  and is tested in CI ([ADR-0007](docs/decisions/ADR-0007-v2-sandboxed-verifier.md)).
+  It is required before any model-written code is run.
 - **Every reported metric is recomputed from the event log** (`frontier
   audit`). The audit rejects tampering, budget overruns, unsupported
   acceptances and double solves.
@@ -214,7 +219,7 @@ python research/preregistration/exp-004/evaluate_primary.py runs/exp-004
 | `crates/frontier-sim` | Synthetic environment, discrete-event runner, external real-task backend, audit, experiment grids |
 | `crates/frontier-cli` | The `frontier` binary |
 | `python/frontier_py` | Verifier, real-task suite and worker, worker service, statistics, model adapters |
-| `research/preregistration/` | Frozen protocols, configs and scoring scripts (exp-000 to exp-006) |
+| `research/preregistration/` | Frozen protocols, configs and scoring scripts (exp-000 to exp-008) |
 | `research/realtasks/` | Task catalogs (v1, v2; v3 = dependency-structured problems with lemma routes) with hashed hidden-suite commitments |
 | `results/` | Executed results, scorecards, per-run data, manifests |
 | `docs/research/` | Scope, source audit, literature review, simulator calibration |
@@ -226,25 +231,45 @@ python research/preregistration/exp-004/evaluate_primary.py runs/exp-004
 
 - **Worker:** the real-task worker is DSL program search, not an LLM. LLM
   attempts may have very different success and cost distributions.
-- **Task suite:** 34 small list-processing tasks written by the project.
-  Single-step only; no dependency structure on real tasks yet.
-- **Verifier isolation:** V1 only. Network and filesystem are not isolated,
-  so model-generated code must not be run until a sandboxed (V2) image
-  exists.
-- **Cost:** costs are in deterministic compute units, not dollars. No paid
-  compute has been used.
+- **Task suites:** 34 single-step tasks (catalogs v1/v2) and 24
+  dependency-structured problems (catalog v3), all written by the project,
+  including which routes are traps. The task definitions and hidden-suite
+  generators are in this repository. That is fine for reproducing
+  deterministic experiments, but it is **not** a sealed benchmark for a
+  model-backed study.
+- **Verifier isolation:** published results ran in V1. V2 (Docker) is
+  CI-tested on Linux but has not been used for an experiment, and has not
+  been tested on Windows. Containers share the host kernel; gVisor is the
+  documented next step.
+- **Cost:** costs are modelled compute units (per sample and per test case),
+  not measured CPU time or dollars. No paid compute has been used.
+- **Hypotheses:** H2 and H3 (hybrid latent/text reasoning) are untested.
+  HybridAgent inference is not integrated: the adapter's `generate()` is a
+  stub, and there is no GPU here.
 
 ## Roadmap
 
-1. exp-006: the cost of stronger verification (running); then fail-fast
-   verification charging.
-2. **Stage 2:** an LLM worker on a harder, held-out task set, with response
-   caching for exact replay. *Requires an explicit spending
-   authorisation.*
-3. A sandboxed (V2) verifier image; Lean tasks with a pinned
-   toolchain.
-4. HybridAgent reproduction and a matched text-only baseline. *Requires a
-   GPU and training budget.*
+Done: the cost of stronger verification (exp-006), dependency-structured
+tasks (exp-007), the V2 sandbox, and corrected re-runs after errata E1/E2.
+
+1. **exp-008** (running): does fail-fast verification charging recover the
+   yield lost to the stronger suite?
+2. **Measured cost:** record CPU and wall time per attempt and per
+   verification alongside the modelled compute units.
+3. **Stage 2, the first model-backed study:**
+   - a text-only LLM worker behind the V2 sandbox;
+   - a held-out task set the generator cannot see;
+   - recorded transcripts for exact replay;
+   - a hard dollar cap.
+
+   *Requires an explicit spending authorisation (provider, model, cap).*
+   The plan and cost estimate (about $0.20–$13, recommended cap $10) are in
+   [`docs/research/stage2-plan.md`](docs/research/stage2-plan.md).
+4. **HybridAgent:** reproduce the released 8B checkpoint, profile latent
+   inference, and build a matched text-only baseline before any H2/H3
+   claim. *Requires a GPU and, for the matched baseline, a training
+   budget.*
+5. Lean tasks with a pinned toolchain.
 
 ## License and attribution
 
