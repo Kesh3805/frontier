@@ -10,7 +10,10 @@ from __future__ import annotations
 import math
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
+
+if TYPE_CHECKING:
+    from .ledger import CampaignLedger
 
 FinishReason = Literal["stop", "length", "latent_cap", "tool_cap", "timeout", "error"]
 
@@ -114,7 +117,15 @@ class WorkerAdapter(ABC):
 
 @dataclass
 class BudgetGuard:
-    """Wraps an adapter; refuses any call whose worst case exceeds what is left."""
+    """Wraps an adapter; refuses any call whose worst case exceeds what is left.
+
+    With a `ledger` (a `CampaignLedger`), every call is also reserved at its
+    worst-case USD in the campaign's crash-safe ledger before it is made and
+    settled with the actual USD afterwards. If the adapter raises, the
+    reservation stays unsettled and keeps counting at its worst case (the
+    call may still have been billed). Without a ledger the behaviour is
+    exactly as before.
+    """
 
     adapter: WorkerAdapter
     max_tokens: int
@@ -124,6 +135,7 @@ class BudgetGuard:
     calls: int = 0
     refused: int = 0
     overruns: list[str] = field(default_factory=list)
+    ledger: CampaignLedger | None = None
 
     def __post_init__(self) -> None:
         if self.max_tokens < 0 or not (self.max_usd >= 0 and math.isfinite(self.max_usd)):
@@ -145,9 +157,12 @@ class BudgetGuard:
                 f"worst case {worst.tokens} tokens / ${worst.usd:.6f} exceeds remaining "
                 f"{self.remaining_tokens} tokens / ${self.remaining_usd:.6f}"
             )
+        rid = None if self.ledger is None else self.ledger.reserve(worst.usd, label=f"call {self.calls + 1}")
         self.calls += 1
         result = self.adapter.generate(req)
         u = result.usage
+        if self.ledger is not None and rid is not None:
+            self.ledger.settle(rid, u.usd)
         # Charge what was actually used, even if the adapter's bound was wrong.
         self.spent_tokens += u.tokens
         self.spent_usd += u.usd
