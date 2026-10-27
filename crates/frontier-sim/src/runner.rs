@@ -541,7 +541,7 @@ impl<'a> Sim<'a> {
                 let sub = Submission {
                     attempt_id: id,
                     worker_id: format!("worker-{}", fl.attempt.worker),
-                    model: if self.external.is_some() { "dsl-search".into() } else { "synthetic".into() },
+                    model: self.external.as_ref().map_or_else(|| "synthetic".into(), |w| w.model_label.clone()),
                     self_reported_confidence: confidence,
                 };
                 let out = self.store.submit(artifact, sub).map_err(|e| SimError::Invariant(e.to_string()))?;

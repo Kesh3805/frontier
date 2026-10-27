@@ -337,11 +337,55 @@ pub fn check_service_matches(worker: &ExternalWorker, cat: &Catalog) -> Result<(
     Ok(())
 }
 
-/// Per-thread output: records grouped by seed, plus verifier wall seconds.
-type ThreadOutput = (Vec<(u64, Vec<ResultRecord>)>, f64);
+/// Measured (non-deterministic) cost of the worker services, summed over
+/// threads, and the identity of what they served. Kept out of the event log.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ServiceStats {
+    pub verify_wall_seconds: f64,
+    /// `None` when no service reported child CPU time (e.g. on Windows).
+    pub verify_child_cpu_seconds: Option<f64>,
+    pub verify_calls: u64,
+    /// SHA-256 of the replayed sample pool (`--worker llm-pool`), if any.
+    pub pool_sha256: Option<String>,
+    /// Submission model label the services reported.
+    pub worker: String,
+}
+
+impl ServiceStats {
+    fn of(w: &ExternalWorker) -> Self {
+        Self {
+            verify_wall_seconds: w.verify_wall_seconds,
+            verify_child_cpu_seconds: w.verify_child_cpu_seconds,
+            verify_calls: w.verify_calls,
+            pool_sha256: w.pool_sha256.clone(),
+            worker: w.model_label.clone(),
+        }
+    }
+
+    fn merge(&mut self, o: Self) -> Result<(), SimError> {
+        if self.worker.is_empty() {
+            self.worker.clone_from(&o.worker);
+            self.pool_sha256.clone_from(&o.pool_sha256);
+        } else if self.worker != o.worker || self.pool_sha256 != o.pool_sha256 {
+            return Err(SimError::Invariant(format!(
+                "worker services disagree: {} / {:?} vs {} / {:?}",
+                self.worker, self.pool_sha256, o.worker, o.pool_sha256
+            )));
+        }
+        self.verify_wall_seconds += o.verify_wall_seconds;
+        self.verify_calls += o.verify_calls;
+        if let Some(c) = o.verify_child_cpu_seconds {
+            *self.verify_child_cpu_seconds.get_or_insert(0.0) += c;
+        }
+        Ok(())
+    }
+}
+
+/// Per-thread output: records grouped by seed, plus that thread's service stats.
+type ThreadOutput = (Vec<(u64, Vec<ResultRecord>)>, ServiceStats);
 
 /// Run every (seed, policy) cell. Each thread owns one service process.
-pub fn run_real_experiment(cfg: &RealExperimentConfig, base: &Path, threads: usize) -> Result<(Vec<ResultRecord>, f64), SimError> {
+pub fn run_real_experiment(cfg: &RealExperimentConfig, base: &Path, threads: usize) -> Result<(Vec<ResultRecord>, ServiceStats), SimError> {
     if cfg.schema_version != REAL_EXPERIMENT_VERSION {
         return Err(SimError::Config("unsupported real experiment schema_version".into()));
     }
@@ -354,7 +398,7 @@ pub fn run_real_experiment(cfg: &RealExperimentConfig, base: &Path, threads: usi
     let threads = threads.max(1).min(seeds.len().max(1));
     let chunks: Vec<Vec<u64>> = (0..threads).map(|i| seeds.iter().copied().skip(i).step_by(threads).collect()).collect();
     let mut out: Vec<(u64, Vec<ResultRecord>)> = Vec::new();
-    let mut wall = 0.0;
+    let mut stats = ServiceStats::default();
     std::thread::scope(|scope| -> Result<(), SimError> {
         let handles: Vec<_> = chunks
             .into_iter()
@@ -394,17 +438,17 @@ pub fn run_real_experiment(cfg: &RealExperimentConfig, base: &Path, threads: usi
                         }
                         local.push((seed, recs));
                     }
-                    Ok((local, worker.verify_wall_seconds))
+                    Ok((local, ServiceStats::of(&worker)))
                 })
             })
             .collect();
         for h in handles {
-            let (recs, w) = h.join().expect("worker thread panicked")?;
+            let (recs, s) = h.join().expect("worker thread panicked")?;
             out.extend(recs);
-            wall += w;
+            stats.merge(s)?;
         }
         Ok(())
     })?;
     out.sort_by_key(|(s, _)| *s);
-    Ok((out.into_iter().flat_map(|(_, r)| r).collect(), wall))
+    Ok((out.into_iter().flat_map(|(_, r)| r).collect(), stats))
 }
