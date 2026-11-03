@@ -1,6 +1,7 @@
 """JSONL worker/verifier service for the Rust runner (protocol version 2).
 
     python -m frontier_py.realtasks.server [--suite-version 1|2] [--sandbox none|docker] [--fail-fast | --early-stop]
+        [--charge-model per-case|measured]
         [--worker dsl|llm-pool --pool POOL.jsonl]
 
 One JSON object per line on stdin, one reply per line on stdout:
@@ -77,6 +78,13 @@ only FAIL reasons differ (they no longer count every mismatching case), as
 would a candidate that fails a case and later times out (FAIL, not
 INCONCLUSIVE; not seen with DSL programs).
 
+Charge model (`--charge-model`, default `per-case`): `per-case` charges
+`VERIFY_UNITS_PER_CASE` per case charged. `measured` charges
+`MEASURED_VERIFY_FIXED_UNITS` plus `MEASURED_VERIFY_UNITS_PER_CASE` per case
+charged, the cost exp-009 measured on its host, in the worker's unit. It
+combines with `--fail-fast` / `--early-stop`, which set how many cases are
+charged.
+
 Measured cost: each fresh `verify` reply carries its wall time and the CPU
 time of the verifier's child process (POSIX: `getrusage` children delta;
 Windows: GetProcessTimes, in 15.6 ms ticks; a candidate that never started
@@ -88,11 +96,13 @@ for both. The runner keeps both out of the deterministic log.
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import json
 import sys
 import time
 from typing import Any
 
+from ..receipt import VerifierReceipt
 from ..tasks import TaskDef
 from ..verifiers import property_tests
 from ..verifiers.property_tests import SANDBOXES, verify
@@ -104,11 +114,19 @@ from .worker import LibEntry, attempt
 
 PROTOCOL = 2
 VERIFY_UNITS_PER_CASE = 0.005
+# `--charge-model measured`: verification priced from exp-009's measurements
+# (results/exp-009) in the worker's own unit. One DSL sample is charged
+# 0.01 CU and measured 0.1133 ms, so 1 s = 88.30 CU. A verification measured
+# 120.5 ms fixed + 0.0516 ms per case run: 10.64 CU + 0.00456 CU per case.
+MEASURED_VERIFY_FIXED_UNITS = 10.64
+MEASURED_VERIFY_UNITS_PER_CASE = 0.00456
+CHARGE_MODELS = ("per-case", "measured")
 
 _suite_version = SUITE_VERSION
 _sandbox = "none"
 _fail_fast = False  # charge FAILs only up to the first failing case
 _early_stop = False  # also stop the candidate's run at the first failing case
+_charge_model = "per-case"
 _pool: Pool | None = None  # --worker llm-pool
 DSL_WORKER_LABEL = "dsl-search"
 _verify_cache: dict[tuple[str, str, str, str], dict[str, Any]] = {}
@@ -133,7 +151,7 @@ def handle(req: dict[str, Any]) -> dict[str, Any]:
     op = req.get("op")
     if op == "hello":
         return {"ok": True, "protocol": PROTOCOL, "suite_version": _suite_version, "hidden_seed": HIDDEN_SEED, "sandbox": _sandbox,
-                "fail_fast": _fail_fast, "early_stop": _early_stop, "worker": DSL_WORKER_LABEL if _pool is None else _pool.label,
+                "fail_fast": _fail_fast, "early_stop": _early_stop, "charge_model": _charge_model, "worker": DSL_WORKER_LABEL if _pool is None else _pool.label,
                 "pool_sha256": None if _pool is None else _pool.sha256}
     name = req.get("task", "")
     task: RealTask | None = BY_NAME.get(name) or deps.BY_NAME.get(name)
@@ -158,6 +176,7 @@ def handle(req: dict[str, Any]) -> dict[str, Any]:
                              artifact_digest=req["artifact_digest"], charge_per_case=VERIFY_UNITS_PER_CASE, sandbox=_sandbox,
                              fail_fast=_fail_fast, early_stop=_early_stop, stats=stats)
             wall, cpu = time.perf_counter() - t0, stats.get("child_cpu_seconds")
+            receipt = measured_charge(receipt) if _charge_model == "measured" else receipt
             if task.name not in _extended:
                 _extended[task.name] = extended_cases(task)
             _verify_cache[key] = {"ok": True, "receipt": json.loads(receipt.to_json()),
@@ -168,6 +187,13 @@ def handle(req: dict[str, Any]) -> dict[str, Any]:
         cached = _verify_cache[key]
         return {**cached, "wall_seconds": 0.0, "child_cpu_seconds": None if cached["child_cpu_seconds"] is None else 0.0, "cached": True}
     return {"ok": False, "error": f"unknown op {op!r}"}
+
+
+def measured_charge(receipt: VerifierReceipt) -> VerifierReceipt:
+    """Re-price a per-case receipt: a fixed cost plus the measured cost of each
+    case it was charged for (all cases, or up to the first failure)."""
+    cases = round(receipt.cost_units / VERIFY_UNITS_PER_CASE)
+    return dataclasses.replace(receipt, cost_units=round(MEASURED_VERIFY_FIXED_UNITS + MEASURED_VERIFY_UNITS_PER_CASE * cases, 9))
 
 
 def extended_task(task: Any, cases: list[tuple[list[int], Any]]) -> TaskDef:
@@ -207,13 +233,15 @@ def extended_ok(task: Any, source: str, cases: list[tuple[list[int], Any]]) -> b
 
 def configure(argv: list[str]) -> None:
     """Parse arguments and set the service mode; exit if the sandbox is unusable (fail closed)."""
-    global _suite_version, _sandbox, _fail_fast, _early_stop, _pool
+    global _suite_version, _sandbox, _fail_fast, _early_stop, _charge_model, _pool
     ap = argparse.ArgumentParser(prog="server")
     ap.add_argument("--suite-version", choices=SUITE_VERSIONS, default=SUITE_VERSION)
     ap.add_argument("--sandbox", choices=SANDBOXES, default="none")
     mode = ap.add_mutually_exclusive_group()
     mode.add_argument("--fail-fast", action="store_true", help="charge a failing verification only up to its first failing case")
     mode.add_argument("--early-stop", action="store_true", help="as --fail-fast, and stop the candidate's run at that case")
+    ap.add_argument("--charge-model", choices=CHARGE_MODELS, default="per-case",
+                    help="verification charge: per case (default) or measured (fixed + per case, exp-009)")
     ap.add_argument("--worker", choices=("dsl", "llm-pool"), default="dsl")
     ap.add_argument("--pool", help="transcript store to replay (--worker llm-pool)")
     ap.add_argument("--allow-unsandboxed-for-tests", action="store_true", help=argparse.SUPPRESS)
@@ -234,6 +262,7 @@ def configure(argv: list[str]) -> None:
         if not ok:
             sys.exit(f"server: --sandbox docker requested but unusable: {detail}")
     _suite_version, _sandbox, _fail_fast, _early_stop, _pool = ns.suite_version, ns.sandbox, ns.fail_fast, ns.early_stop, pool
+    _charge_model = ns.charge_model
     _verify_cache.clear()
 
 

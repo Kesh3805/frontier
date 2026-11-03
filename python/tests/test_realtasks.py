@@ -85,6 +85,13 @@ def test_fail_fast_charges_less_only_for_failures():
     assert [r["verdict"] for r in full] == [r["verdict"] for r in fast] == [r["verdict"] for r in early] == ["PASS", "FAIL", "FAIL"]
     assert [r["cost_units"] for r in fast] == [r["cost_units"] for r in early]
     assert "stopped early" in early[1]["reason"]
+    from frontier_py.realtasks.server import MEASURED_VERIFY_FIXED_UNITS as A, MEASURED_VERIFY_UNITS_PER_CASE as B
+
+    measured, measured_fast = run("--charge-model", "measured"), run("--charge-model", "measured", "--fail-fast")
+    assert [r["verdict"] for r in measured] == [r["verdict"] for r in measured_fast] == ["PASS", "FAIL", "FAIL"]
+    assert all(r["cost_units"] == round(A + B * 199, 9) for r in measured)
+    for m, f in zip(measured_fast, fast):  # same cases charged, re-priced
+        assert m["cost_units"] == round(A + B * round(f["cost_units"] / 0.005), 9)
     assert full[0]["cost_units"] == fast[0]["cost_units"] == 0.995  # PASS: all 199 checks charged
     assert all(r["cost_units"] == 0.995 for r in full)
     assert 0 < fast[1]["cost_units"] < 0.995  # output mismatch
