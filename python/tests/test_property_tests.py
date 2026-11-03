@@ -295,3 +295,114 @@ def test_receipt_states_isolation_limits():
 
 def test_runs_with_current_interpreter():
     assert run("import sys\ndef f():\n    return sys.version_info[:2]", [[]]).outputs == [list(sys.version_info[:2])]
+
+
+# --- early-stop robustness (review fixes) ------------------------------------
+
+# Patches the harness's own `put` (shared by `send` and `emit`) through the
+# closure of `emit`, found in the caller's frame: hostile, but reachable.
+PATCH_PUT = """
+import sys
+def f(x):
+    emit = sys._getframe(1).f_locals["emit"]
+    cell = emit.__closure__[emit.__code__.co_freevars.index("put")]
+    put = cell.cell_contents
+    def patched(body):
+        if body.startswith('"status":"ok"'):
+            {action}
+        put(body)
+    cell.cell_contents = patched
+    return 0
+"""
+
+
+def test_slow_reference_does_not_fail_an_honest_candidate():
+    import time
+
+    def slow(i):
+        time.sleep(0.4)
+        return canonical_json(i)
+
+    # 4 s of comparisons against a 1 s wall: longer than the wall plus the
+    # 2 s thread join, which used to mask the bug for shorter runs.
+    out = run("def f(i):\n    return i", [[i] for i in range(10)], wall_timeout_s=1.0, expected=slow)
+    assert out.kind == "ok" and out.matched == 10, out
+
+
+def test_slow_reference_same_verdict_with_early_stop():
+    import time
+
+    def slow_sorted(xs):
+        time.sleep(0.02)
+        return sorted(xs)
+
+    task = dataclasses.replace(SORT, reference=slow_sorted, wall_timeout_s=1.0)
+    for es in (False, True):
+        r = verify(task, {"source": CORRECT[0][1]}, spec_digest=SPEC, seed=7, early_stop=es)
+        assert r.verdict == "PASS", (es, r.reason)
+
+
+def test_reference_exception_propagates_and_does_not_hang():
+    import time
+
+    class Boom(Exception):
+        pass
+
+    def bad(i):
+        if i == 2:
+            raise Boom
+        return canonical_json(i)
+
+    t0 = time.perf_counter()
+    with pytest.raises(Boom):
+        run("def f(i):\n    return i", [[i] for i in range(5)], expected=bad)
+    with pytest.raises(Boom):  # the child blocks on a full pipe unless it is stopped
+        run("def f(i):\n    return 'x' * 1_000_000", [[i] for i in range(5)], expected=lambda i: bad(2))
+    assert time.perf_counter() - t0 < 10, "must not wait out the 15 s wall timeout"
+
+    def raising(xs):
+        raise Boom
+
+    task = dataclasses.replace(SORT, reference=raising)
+    for es in (False, True):
+        with pytest.raises(Boom):
+            verify(task, {"source": CORRECT[0][1]}, spec_digest=SPEC, seed=7, early_stop=es)
+
+
+def test_non_case_line_is_parsed_once(monkeypatch):
+    # A large junk line followed by many small chunks used to be re-copied and
+    # re-parsed on every chunk (seconds of parent CPU for a 3 MB line).
+    from frontier_py.verifiers import property_tests as pt
+
+    calls = []
+    real = pt._stream_case
+    monkeypatch.setattr(pt, "_stream_case", lambda *a: calls.append(1) or real(*a))
+    src = (
+        "import os, time\n"
+        "def f():\n"
+        "    for fd in range(3, 32):\n"
+        "        try:\n"
+        "            os.write(fd, b'x' * 3_000_000 + b'\\n')\n"
+        "            for _ in range(30):\n"
+        "                time.sleep(0.01)\n"
+        "                os.write(fd, b'y')\n"
+        "        except OSError:\n"
+        "            pass\n"
+        "    return 0\n"
+    )
+    out = run(src, [[]], expected=lambda i: canonical_json(0))
+    assert out.kind == "malformed", out
+    assert len(calls) == 1
+
+
+def test_stray_case_line_after_last_case_is_malformed():
+    src = PATCH_PUT.format(action="""put('"status":"case","case":1,"output":0')""")
+    out = run(src, [[0]], expected=[canonical_json(0)].__getitem__)
+    assert out.kind == "malformed", out
+    r = verify(SORT, {"source": src.replace("def f(x)", "def sort_ints(x)")}, spec_digest=SPEC, seed=7, early_stop=True)
+    assert r.verdict == "FAIL", r.reason
+
+
+def test_memory_error_in_final_write_is_resource():
+    out = run(PATCH_PUT.format(action="raise MemoryError"), [[0]])
+    assert out.kind == "resource" and "MemoryError" in out.detail, out
