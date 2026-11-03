@@ -1,0 +1,1314 @@
+{
+ "S": {
+  "b330": {
+   "v2_minus_v1": {
+    "fifo": {
+     "diff": -0.14,
+     "ci": [
+      -0.21,
+      -0.08
+     ],
+     "a": 5.87,
+     "b": 6.01
+    },
+    "greedy_prior": {
+     "diff": -0.15,
+     "ci": [
+      -0.23,
+      -0.08
+     ],
+     "a": 9.06,
+     "b": 9.21
+    },
+    "oracle_index": {
+     "diff": -0.41,
+     "ci": [
+      -0.55,
+      -0.27
+     ],
+     "a": 14.58,
+     "b": 14.99
+    },
+    "random": {
+     "diff": -0.3,
+     "ci": [
+      -0.44,
+      -0.17
+     ],
+     "a": 8.24,
+     "b": 8.54
+    },
+    "round_robin": {
+     "diff": -0.55,
+     "ci": [
+      -0.68,
+      -0.43
+     ],
+     "a": 8.62,
+     "b": 9.17
+    },
+    "thompson(k=2,hints=false)": {
+     "diff": -0.48,
+     "ci": [
+      -0.6,
+      -0.36
+     ],
+     "a": 8.67,
+     "b": 9.15
+    },
+    "thompson(k=2,hints=true)": {
+     "diff": -0.3,
+     "ci": [
+      -0.43,
+      -0.18
+     ],
+     "a": 11.09,
+     "b": 11.39
+    }
+   },
+   "v2ff_minus_v2": {
+    "fifo": {
+     "diff": 0.17,
+     "ci": [
+      0.1,
+      0.25
+     ],
+     "a": 6.04,
+     "b": 5.87
+    },
+    "greedy_prior": {
+     "diff": 0.1,
+     "ci": [
+      0.04,
+      0.17
+     ],
+     "a": 9.16,
+     "b": 9.06
+    },
+    "oracle_index": {
+     "diff": 0.3,
+     "ci": [
+      0.19,
+      0.41
+     ],
+     "a": 14.88,
+     "b": 14.58
+    },
+    "random": {
+     "diff": 0.09,
+     "ci": [
+      -0.22,
+      0.39
+     ],
+     "a": 8.33,
+     "b": 8.24
+    },
+    "round_robin": {
+     "diff": 0.38,
+     "ci": [
+      0.28,
+      0.49
+     ],
+     "a": 9.0,
+     "b": 8.62
+    },
+    "thompson(k=2,hints=false)": {
+     "diff": 0.21,
+     "ci": [
+      -0.01,
+      0.41
+     ],
+     "a": 8.88,
+     "b": 8.67
+    },
+    "thompson(k=2,hints=true)": {
+     "diff": 0.09,
+     "ci": [
+      -0.06,
+      0.23
+     ],
+     "a": 11.18,
+     "b": 11.09
+    }
+   },
+   "vs_rr": {
+    "S-v1": {
+     "fifo": {
+      "diff": -3.16,
+      "ci": [
+       -3.63,
+       -2.69
+      ],
+      "a": 6.01,
+      "b": 9.17
+     },
+     "greedy_prior": {
+      "diff": 0.04,
+      "ci": [
+       -0.33,
+       0.41
+      ],
+      "a": 9.21,
+      "b": 9.17
+     },
+     "oracle_index": {
+      "diff": 5.82,
+      "ci": [
+       5.46,
+       6.19
+      ],
+      "a": 14.99,
+      "b": 9.17
+     },
+     "random": {
+      "diff": -0.63,
+      "ci": [
+       -0.99,
+       -0.27
+      ],
+      "a": 8.54,
+      "b": 9.17
+     },
+     "thompson(k=2,hints=false)": {
+      "diff": -0.02,
+      "ci": [
+       -0.36,
+       0.33
+      ],
+      "a": 9.15,
+      "b": 9.17
+     },
+     "thompson(k=2,hints=true)": {
+      "diff": 2.22,
+      "ci": [
+       1.88,
+       2.56
+      ],
+      "a": 11.39,
+      "b": 9.17
+     }
+    },
+    "S-v2": {
+     "fifo": {
+      "diff": -2.75,
+      "ci": [
+       -3.2,
+       -2.31
+      ],
+      "a": 5.87,
+      "b": 8.62
+     },
+     "greedy_prior": {
+      "diff": 0.44,
+      "ci": [
+       0.08,
+       0.8
+      ],
+      "a": 9.06,
+      "b": 8.62
+     },
+     "oracle_index": {
+      "diff": 5.96,
+      "ci": [
+       5.65,
+       6.27
+      ],
+      "a": 14.58,
+      "b": 8.62
+     },
+     "random": {
+      "diff": -0.38,
+      "ci": [
+       -0.75,
+       -0.01
+      ],
+      "a": 8.24,
+      "b": 8.62
+     },
+     "thompson(k=2,hints=false)": {
+      "diff": 0.05,
+      "ci": [
+       -0.34,
+       0.44
+      ],
+      "a": 8.67,
+      "b": 8.62
+     },
+     "thompson(k=2,hints=true)": {
+      "diff": 2.47,
+      "ci": [
+       2.14,
+       2.81
+      ],
+      "a": 11.09,
+      "b": 8.62
+     }
+    },
+    "S-v2ff": {
+     "fifo": {
+      "diff": -2.96,
+      "ci": [
+       -3.42,
+       -2.5
+      ],
+      "a": 6.04,
+      "b": 9.0
+     },
+     "greedy_prior": {
+      "diff": 0.16,
+      "ci": [
+       -0.2,
+       0.51
+      ],
+      "a": 9.16,
+      "b": 9.0
+     },
+     "oracle_index": {
+      "diff": 5.88,
+      "ci": [
+       5.55,
+       6.21
+      ],
+      "a": 14.88,
+      "b": 9.0
+     },
+     "random": {
+      "diff": -0.67,
+      "ci": [
+       -1.07,
+       -0.27
+      ],
+      "a": 8.33,
+      "b": 9.0
+     },
+     "thompson(k=2,hints=false)": {
+      "diff": -0.12,
+      "ci": [
+       -0.45,
+       0.23
+      ],
+      "a": 8.88,
+      "b": 9.0
+     },
+     "thompson(k=2,hints=true)": {
+      "diff": 2.18,
+      "ci": [
+       1.87,
+       2.48
+      ],
+      "a": 11.18,
+      "b": 9.0
+     }
+    }
+   },
+   "dead_attempts_vs_rr_v2": {
+    "fifo": {
+     "diff": 3.45,
+     "ci": [
+      2.53,
+      4.43
+     ],
+     "a": 9.37,
+     "b": 5.92
+    },
+    "greedy_prior": {
+     "diff": 10.16,
+     "ci": [
+      9.27,
+      11.11
+     ],
+     "a": 16.08,
+     "b": 5.92
+    },
+    "oracle_index": {
+     "diff": -5.92,
+     "ci": [
+      -6.15,
+      -5.69
+     ],
+     "a": 0.0,
+     "b": 5.92
+    },
+    "random": {
+     "diff": 0.39,
+     "ci": [
+      -0.05,
+      0.83
+     ],
+     "a": 6.31,
+     "b": 5.92
+    },
+    "thompson(k=2,hints=false)": {
+     "diff": 0.21,
+     "ci": [
+      -0.14,
+      0.56
+     ],
+     "a": 6.13,
+     "b": 5.92
+    },
+    "thompson(k=2,hints=true)": {
+     "diff": 1.36,
+     "ci": [
+      0.9,
+      1.85
+     ],
+     "a": 7.28,
+     "b": 5.92
+    }
+   },
+   "verification_share_rr": {
+    "S-v1": 0.8892,
+    "S-v2": 0.8957,
+    "S-v2ff": 0.8912
+   },
+   "mean_true_solved": {
+    "S-v1": {
+     "fifo": 6.01,
+     "greedy_prior": 9.21,
+     "oracle_index": 14.99,
+     "random": 8.54,
+     "round_robin": 9.17,
+     "thompson(k=2,hints=false)": 9.15,
+     "thompson(k=2,hints=true)": 11.39
+    },
+    "S-v2": {
+     "fifo": 5.87,
+     "greedy_prior": 9.06,
+     "oracle_index": 14.58,
+     "random": 8.24,
+     "round_robin": 8.62,
+     "thompson(k=2,hints=false)": 8.67,
+     "thompson(k=2,hints=true)": 11.09
+    },
+    "S-v2ff": {
+     "fifo": 6.04,
+     "greedy_prior": 9.16,
+     "oracle_index": 14.88,
+     "random": 8.33,
+     "round_robin": 9.0,
+     "thompson(k=2,hints=false)": 8.88,
+     "thompson(k=2,hints=true)": 11.18
+    }
+   }
+  },
+  "b1320": {
+   "v2_minus_v1": {
+    "fifo": {
+     "diff": -0.28,
+     "ci": [
+      -0.38,
+      -0.18
+     ],
+     "a": 12.47,
+     "b": 12.75
+    },
+    "greedy_prior": {
+     "diff": -0.27,
+     "ci": [
+      -0.3702,
+      -0.17
+     ],
+     "a": 17.87,
+     "b": 18.14
+    },
+    "oracle_index": {
+     "diff": -0.14,
+     "ci": [
+      -0.23,
+      -0.06
+     ],
+     "a": 21.9,
+     "b": 22.04
+    },
+    "random": {
+     "diff": -0.37,
+     "ci": [
+      -0.5,
+      -0.24
+     ],
+     "a": 19.29,
+     "b": 19.66
+    },
+    "round_robin": {
+     "diff": -0.29,
+     "ci": [
+      -0.4,
+      -0.19
+     ],
+     "a": 19.5,
+     "b": 19.79
+    },
+    "thompson(k=2,hints=false)": {
+     "diff": -0.26,
+     "ci": [
+      -0.38,
+      -0.14
+     ],
+     "a": 19.16,
+     "b": 19.42
+    },
+    "thompson(k=2,hints=true)": {
+     "diff": -0.28,
+     "ci": [
+      -0.41,
+      -0.16
+     ],
+     "a": 18.57,
+     "b": 18.85
+    }
+   },
+   "v2ff_minus_v2": {
+    "fifo": {
+     "diff": 0.27,
+     "ci": [
+      0.18,
+      0.37
+     ],
+     "a": 12.74,
+     "b": 12.47
+    },
+    "greedy_prior": {
+     "diff": 0.22,
+     "ci": [
+      0.14,
+      0.31
+     ],
+     "a": 18.09,
+     "b": 17.87
+    },
+    "oracle_index": {
+     "diff": 0.21,
+     "ci": [
+      0.12,
+      0.31
+     ],
+     "a": 22.11,
+     "b": 21.9
+    },
+    "random": {
+     "diff": 0.29,
+     "ci": [
+      0.09,
+      0.49
+     ],
+     "a": 19.58,
+     "b": 19.29
+    },
+    "round_robin": {
+     "diff": 0.28,
+     "ci": [
+      0.18,
+      0.39
+     ],
+     "a": 19.78,
+     "b": 19.5
+    },
+    "thompson(k=2,hints=false)": {
+     "diff": 0.34,
+     "ci": [
+      0.2,
+      0.48
+     ],
+     "a": 19.5,
+     "b": 19.16
+    },
+    "thompson(k=2,hints=true)": {
+     "diff": 0.37,
+     "ci": [
+      0.22,
+      0.53
+     ],
+     "a": 18.94,
+     "b": 18.57
+    }
+   },
+   "vs_rr": {
+    "S-v1": {
+     "fifo": {
+      "diff": -7.04,
+      "ci": [
+       -7.73,
+       -6.3598
+      ],
+      "a": 12.75,
+      "b": 19.79
+     },
+     "greedy_prior": {
+      "diff": -1.65,
+      "ci": [
+       -1.98,
+       -1.32
+      ],
+      "a": 18.14,
+      "b": 19.79
+     },
+     "oracle_index": {
+      "diff": 2.25,
+      "ci": [
+       1.96,
+       2.55
+      ],
+      "a": 22.04,
+      "b": 19.79
+     },
+     "random": {
+      "diff": -0.13,
+      "ci": [
+       -0.32,
+       0.05
+      ],
+      "a": 19.66,
+      "b": 19.79
+     },
+     "thompson(k=2,hints=false)": {
+      "diff": -0.37,
+      "ci": [
+       -0.52,
+       -0.23
+      ],
+      "a": 19.42,
+      "b": 19.79
+     },
+     "thompson(k=2,hints=true)": {
+      "diff": -0.94,
+      "ci": [
+       -1.26,
+       -0.62
+      ],
+      "a": 18.85,
+      "b": 19.79
+     }
+    },
+    "S-v2": {
+     "fifo": {
+      "diff": -7.03,
+      "ci": [
+       -7.72,
+       -6.35
+      ],
+      "a": 12.47,
+      "b": 19.5
+     },
+     "greedy_prior": {
+      "diff": -1.63,
+      "ci": [
+       -1.94,
+       -1.32
+      ],
+      "a": 17.87,
+      "b": 19.5
+     },
+     "oracle_index": {
+      "diff": 2.4,
+      "ci": [
+       2.11,
+       2.7
+      ],
+      "a": 21.9,
+      "b": 19.5
+     },
+     "random": {
+      "diff": -0.21,
+      "ci": [
+       -0.4,
+       -0.03
+      ],
+      "a": 19.29,
+      "b": 19.5
+     },
+     "thompson(k=2,hints=false)": {
+      "diff": -0.34,
+      "ci": [
+       -0.5,
+       -0.19
+      ],
+      "a": 19.16,
+      "b": 19.5
+     },
+     "thompson(k=2,hints=true)": {
+      "diff": -0.93,
+      "ci": [
+       -1.24,
+       -0.61
+      ],
+      "a": 18.57,
+      "b": 19.5
+     }
+    },
+    "S-v2ff": {
+     "fifo": {
+      "diff": -7.04,
+      "ci": [
+       -7.72,
+       -6.36
+      ],
+      "a": 12.74,
+      "b": 19.78
+     },
+     "greedy_prior": {
+      "diff": -1.69,
+      "ci": [
+       -2.01,
+       -1.36
+      ],
+      "a": 18.09,
+      "b": 19.78
+     },
+     "oracle_index": {
+      "diff": 2.33,
+      "ci": [
+       2.03,
+       2.63
+      ],
+      "a": 22.11,
+      "b": 19.78
+     },
+     "random": {
+      "diff": -0.2,
+      "ci": [
+       -0.36,
+       -0.04
+      ],
+      "a": 19.58,
+      "b": 19.78
+     },
+     "thompson(k=2,hints=false)": {
+      "diff": -0.28,
+      "ci": [
+       -0.42,
+       -0.14
+      ],
+      "a": 19.5,
+      "b": 19.78
+     },
+     "thompson(k=2,hints=true)": {
+      "diff": -0.84,
+      "ci": [
+       -1.13,
+       -0.55
+      ],
+      "a": 18.94,
+      "b": 19.78
+     }
+    }
+   },
+   "dead_attempts_vs_rr_v2": {
+    "fifo": {
+     "diff": 39.67,
+     "ci": [
+      34.6197,
+      44.9602
+     ],
+     "a": 83.44,
+     "b": 43.77
+    },
+    "greedy_prior": {
+     "diff": 73.68,
+     "ci": [
+      70.62,
+      76.6202
+     ],
+     "a": 117.45,
+     "b": 43.77
+    },
+    "oracle_index": {
+     "diff": -15.15,
+     "ci": [
+      -17.81,
+      -12.4298
+     ],
+     "a": 28.62,
+     "b": 43.77
+    },
+    "random": {
+     "diff": 3.51,
+     "ci": [
+      2.68,
+      4.38
+     ],
+     "a": 47.28,
+     "b": 43.77
+    },
+    "thompson(k=2,hints=false)": {
+     "diff": 8.93,
+     "ci": [
+      7.95,
+      9.93
+     ],
+     "a": 52.7,
+     "b": 43.77
+    },
+    "thompson(k=2,hints=true)": {
+     "diff": 58.05,
+     "ci": [
+      55.15,
+      60.95
+     ],
+     "a": 101.82,
+     "b": 43.77
+    }
+   },
+   "verification_share_rr": {
+    "S-v1": 0.8591,
+    "S-v2": 0.868,
+    "S-v2ff": 0.8599
+   },
+   "mean_true_solved": {
+    "S-v1": {
+     "fifo": 12.75,
+     "greedy_prior": 18.14,
+     "oracle_index": 22.04,
+     "random": 19.66,
+     "round_robin": 19.79,
+     "thompson(k=2,hints=false)": 19.42,
+     "thompson(k=2,hints=true)": 18.85
+    },
+    "S-v2": {
+     "fifo": 12.47,
+     "greedy_prior": 17.87,
+     "oracle_index": 21.9,
+     "random": 19.29,
+     "round_robin": 19.5,
+     "thompson(k=2,hints=false)": 19.16,
+     "thompson(k=2,hints=true)": 18.57
+    },
+    "S-v2ff": {
+     "fifo": 12.74,
+     "greedy_prior": 18.09,
+     "oracle_index": 22.11,
+     "random": 19.58,
+     "round_robin": 19.78,
+     "thompson(k=2,hints=false)": 19.5,
+     "thompson(k=2,hints=true)": 18.94
+    }
+   }
+  },
+  "b2640": {
+   "v2_minus_v1": {
+    "fifo": {
+     "diff": -0.46,
+     "ci": [
+      -0.6,
+      -0.33
+     ],
+     "a": 17.22,
+     "b": 17.68
+    },
+    "greedy_prior": {
+     "diff": -0.23,
+     "ci": [
+      -0.33,
+      -0.14
+     ],
+     "a": 21.46,
+     "b": 21.69
+    },
+    "oracle_index": {
+     "diff": -0.1,
+     "ci": [
+      -0.19,
+      -0.02
+     ],
+     "a": 23.88,
+     "b": 23.98
+    },
+    "random": {
+     "diff": -0.06,
+     "ci": [
+      -0.15,
+      0.02
+     ],
+     "a": 22.7,
+     "b": 22.76
+    },
+    "round_robin": {
+     "diff": -0.14,
+     "ci": [
+      -0.24,
+      -0.05
+     ],
+     "a": 22.79,
+     "b": 22.93
+    },
+    "thompson(k=2,hints=false)": {
+     "diff": -0.1,
+     "ci": [
+      -0.2,
+      -0.01
+     ],
+     "a": 22.72,
+     "b": 22.82
+    },
+    "thompson(k=2,hints=true)": {
+     "diff": -0.31,
+     "ci": [
+      -0.47,
+      -0.16
+     ],
+     "a": 22.13,
+     "b": 22.44
+    }
+   },
+   "v2ff_minus_v2": {
+    "fifo": {
+     "diff": 0.43,
+     "ci": [
+      0.31,
+      0.56
+     ],
+     "a": 17.65,
+     "b": 17.22
+    },
+    "greedy_prior": {
+     "diff": 0.23,
+     "ci": [
+      0.14,
+      0.33
+     ],
+     "a": 21.69,
+     "b": 21.46
+    },
+    "oracle_index": {
+     "diff": 0.16,
+     "ci": [
+      0.09,
+      0.23
+     ],
+     "a": 24.04,
+     "b": 23.88
+    },
+    "random": {
+     "diff": 0.16,
+     "ci": [
+      0.07,
+      0.25
+     ],
+     "a": 22.86,
+     "b": 22.7
+    },
+    "round_robin": {
+     "diff": 0.17,
+     "ci": [
+      0.1,
+      0.25
+     ],
+     "a": 22.96,
+     "b": 22.79
+    },
+    "thompson(k=2,hints=false)": {
+     "diff": 0.14,
+     "ci": [
+      0.06,
+      0.23
+     ],
+     "a": 22.86,
+     "b": 22.72
+    },
+    "thompson(k=2,hints=true)": {
+     "diff": 0.19,
+     "ci": [
+      0.01,
+      0.37
+     ],
+     "a": 22.32,
+     "b": 22.13
+    }
+   },
+   "vs_rr": {
+    "S-v1": {
+     "fifo": {
+      "diff": -5.25,
+      "ci": [
+       -5.96,
+       -4.59
+      ],
+      "a": 17.68,
+      "b": 22.93
+     },
+     "greedy_prior": {
+      "diff": -1.24,
+      "ci": [
+       -1.52,
+       -0.96
+      ],
+      "a": 21.69,
+      "b": 22.93
+     },
+     "oracle_index": {
+      "diff": 1.05,
+      "ci": [
+       0.85,
+       1.25
+      ],
+      "a": 23.98,
+      "b": 22.93
+     },
+     "random": {
+      "diff": -0.17,
+      "ci": [
+       -0.28,
+       -0.07
+      ],
+      "a": 22.76,
+      "b": 22.93
+     },
+     "thompson(k=2,hints=false)": {
+      "diff": -0.11,
+      "ci": [
+       -0.21,
+       -0.01
+      ],
+      "a": 22.82,
+      "b": 22.93
+     },
+     "thompson(k=2,hints=true)": {
+      "diff": -0.49,
+      "ci": [
+       -0.74,
+       -0.24
+      ],
+      "a": 22.44,
+      "b": 22.93
+     }
+    },
+    "S-v2": {
+     "fifo": {
+      "diff": -5.57,
+      "ci": [
+       -6.2702,
+       -4.91
+      ],
+      "a": 17.22,
+      "b": 22.79
+     },
+     "greedy_prior": {
+      "diff": -1.33,
+      "ci": [
+       -1.62,
+       -1.06
+      ],
+      "a": 21.46,
+      "b": 22.79
+     },
+     "oracle_index": {
+      "diff": 1.09,
+      "ci": [
+       0.89,
+       1.29
+      ],
+      "a": 23.88,
+      "b": 22.79
+     },
+     "random": {
+      "diff": -0.09,
+      "ci": [
+       -0.19,
+       0.01
+      ],
+      "a": 22.7,
+      "b": 22.79
+     },
+     "thompson(k=2,hints=false)": {
+      "diff": -0.07,
+      "ci": [
+       -0.18,
+       0.04
+      ],
+      "a": 22.72,
+      "b": 22.79
+     },
+     "thompson(k=2,hints=true)": {
+      "diff": -0.66,
+      "ci": [
+       -0.92,
+       -0.4098
+      ],
+      "a": 22.13,
+      "b": 22.79
+     }
+    },
+    "S-v2ff": {
+     "fifo": {
+      "diff": -5.31,
+      "ci": [
+       -6.01,
+       -4.65
+      ],
+      "a": 17.65,
+      "b": 22.96
+     },
+     "greedy_prior": {
+      "diff": -1.27,
+      "ci": [
+       -1.56,
+       -0.99
+      ],
+      "a": 21.69,
+      "b": 22.96
+     },
+     "oracle_index": {
+      "diff": 1.08,
+      "ci": [
+       0.88,
+       1.28
+      ],
+      "a": 24.04,
+      "b": 22.96
+     },
+     "random": {
+      "diff": -0.1,
+      "ci": [
+       -0.2,
+       -0.01
+      ],
+      "a": 22.86,
+      "b": 22.96
+     },
+     "thompson(k=2,hints=false)": {
+      "diff": -0.1,
+      "ci": [
+       -0.21,
+       0.01
+      ],
+      "a": 22.86,
+      "b": 22.96
+     },
+     "thompson(k=2,hints=true)": {
+      "diff": -0.64,
+      "ci": [
+       -0.9,
+       -0.38
+      ],
+      "a": 22.32,
+      "b": 22.96
+     }
+    }
+   },
+   "dead_attempts_vs_rr_v2": {
+    "fifo": {
+     "diff": 59.07,
+     "ci": [
+      51.73,
+      66.3202
+     ],
+     "a": 209.37,
+     "b": 150.3
+    },
+    "greedy_prior": {
+     "diff": 85.51,
+     "ci": [
+      81.74,
+      89.37
+     ],
+     "a": 235.81,
+     "b": 150.3
+    },
+    "oracle_index": {
+     "diff": 30.89,
+     "ci": [
+      27.1395,
+      34.3302
+     ],
+     "a": 181.19,
+     "b": 150.3
+    },
+    "random": {
+     "diff": 11.82,
+     "ci": [
+      10.2598,
+      13.4
+     ],
+     "a": 162.12,
+     "b": 150.3
+    },
+    "thompson(k=2,hints=false)": {
+     "diff": 25.85,
+     "ci": [
+      23.95,
+      27.81
+     ],
+     "a": 176.15,
+     "b": 150.3
+    },
+    "thompson(k=2,hints=true)": {
+     "diff": 83.86,
+     "ci": [
+      80.3698,
+      87.39
+     ],
+     "a": 234.16,
+     "b": 150.3
+    }
+   },
+   "verification_share_rr": {
+    "S-v1": 0.8371,
+    "S-v2": 0.8471,
+    "S-v2ff": 0.8371
+   },
+   "mean_true_solved": {
+    "S-v1": {
+     "fifo": 17.68,
+     "greedy_prior": 21.69,
+     "oracle_index": 23.98,
+     "random": 22.76,
+     "round_robin": 22.93,
+     "thompson(k=2,hints=false)": 22.82,
+     "thompson(k=2,hints=true)": 22.44
+    },
+    "S-v2": {
+     "fifo": 17.22,
+     "greedy_prior": 21.46,
+     "oracle_index": 23.88,
+     "random": 22.7,
+     "round_robin": 22.79,
+     "thompson(k=2,hints=false)": 22.72,
+     "thompson(k=2,hints=true)": 22.13
+    },
+    "S-v2ff": {
+     "fifo": 17.65,
+     "greedy_prior": 21.69,
+     "oracle_index": 24.04,
+     "random": 22.86,
+     "round_robin": 22.96,
+     "thompson(k=2,hints=false)": 22.86,
+     "thompson(k=2,hints=true)": 22.32
+    }
+   }
+  }
+ },
+ "D": {
+  "b660": {
+   "vs_rr": {
+    "greedy_prior": {
+     "diff": 3.68,
+     "ci": [
+      3.38,
+      3.98
+     ],
+     "a": 7.35,
+     "b": 3.67
+    },
+    "oracle_index": {
+     "diff": 6.52,
+     "ci": [
+      6.22,
+      6.83
+     ],
+     "a": 10.19,
+     "b": 3.67
+    },
+    "random": {
+     "diff": -0.25,
+     "ci": [
+      -0.58,
+      0.08
+     ],
+     "a": 3.42,
+     "b": 3.67
+    },
+    "thompson(k=2,hints=false)": {
+     "diff": 1.42,
+     "ci": [
+      1.19,
+      1.66
+     ],
+     "a": 5.09,
+     "b": 3.67
+    },
+    "thompson(k=2,hints=true)": {
+     "diff": 3.99,
+     "ci": [
+      3.69,
+      4.3
+     ],
+     "a": 7.66,
+     "b": 3.67
+    }
+   },
+   "verification_share_rr": 0.8635,
+   "mean_true_solved": {
+    "greedy_prior": 7.35,
+    "oracle_index": 10.19,
+    "random": 3.42,
+    "round_robin": 3.67,
+    "thompson(k=2,hints=false)": 5.09,
+    "thompson(k=2,hints=true)": 7.66
+   }
+  },
+  "b2640": {
+   "vs_rr": {
+    "greedy_prior": {
+     "diff": 2.35,
+     "ci": [
+      2.02,
+      2.67
+     ],
+     "a": 14.37,
+     "b": 12.02
+    },
+    "oracle_index": {
+     "diff": 5.38,
+     "ci": [
+      5.08,
+      5.68
+     ],
+     "a": 17.4,
+     "b": 12.02
+    },
+    "random": {
+     "diff": -0.06,
+     "ci": [
+      -0.3,
+      0.19
+     ],
+     "a": 11.96,
+     "b": 12.02
+    },
+    "thompson(k=2,hints=false)": {
+     "diff": -2.1,
+     "ci": [
+      -2.35,
+      -1.84
+     ],
+     "a": 9.92,
+     "b": 12.02
+    },
+    "thompson(k=2,hints=true)": {
+     "diff": 2.95,
+     "ci": [
+      2.63,
+      3.27
+     ],
+     "a": 14.97,
+     "b": 12.02
+    }
+   },
+   "verification_share_rr": 0.8407,
+   "mean_true_solved": {
+    "greedy_prior": 14.37,
+    "oracle_index": 17.4,
+    "random": 11.96,
+    "round_robin": 12.02,
+    "thompson(k=2,hints=false)": 9.92,
+    "thompson(k=2,hints=true)": 14.97
+   }
+  }
+ },
+ "false_solve_runs": {
+  "S-v1": 70,
+  "S-v2": 0,
+  "S-v2ff": 0,
+  "D-v2": 0
+ },
+ "verdicts": {
+  "G1 RR v2 - v1 at S-b330 > -1.0 (point)": true,
+  "G2 |RR v2ff - v2| at S-b330 < 0.75 (point)": true,
+  "G3 TH - RR at S-b330 (v2): CI > 0 and point > 1.86": true,
+  "G4 TH - RR at D-b660: CI > 0": true,
+  "G5 no false solve with suite v2; at least one with suite v1": true,
+  "G6 RR verification share at S-b330 (v2) >= 0.80": true,
+  "Decision (suite cost)": "the stronger suite no longer costs yield under measured cost",
+  "Decision (allocation)": "adaptive allocation's scarce-budget gain is robust to measured cost"
+ }
+}
