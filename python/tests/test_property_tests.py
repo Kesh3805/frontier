@@ -8,7 +8,15 @@ import pytest
 
 from frontier_py.receipt import VerifierReceipt, canonical_json
 from frontier_py.tasks import TASKS
-from frontier_py.verifiers.property_tests import POSIX, artifact_digest_for, run_candidate, verify
+from frontier_py.verifiers.property_tests import (
+    ISOLATION_NOTE,
+    POSIX,
+    PRESPAWN_NOTE,
+    PrespawnPool,
+    artifact_digest_for,
+    run_candidate,
+    verify,
+)
 
 SPEC = "5" * 64
 SORT, GCD, LIS = TASKS["sort_ints"], TASKS["gcd"], TASKS["lis_length"]
@@ -406,3 +414,107 @@ def test_stray_case_line_after_last_case_is_malformed():
 def test_memory_error_in_final_write_is_resource():
     out = run(PATCH_PUT.format(action="raise MemoryError"), [[0]])
     assert out.kind == "resource" and "MemoryError" in out.detail, out
+
+
+# --- warm mode (prespawned single-use children) ------------------------------
+
+@pytest.fixture(scope="module")
+def pool():
+    with PrespawnPool(size=2) as p:
+        yield p
+
+
+def body_of(reason):
+    return reason.split("] ", 1)[1]
+
+
+@pytest.mark.parametrize("task,source", CORRECT + [(SORT, s) for _, s in ADVERSARIAL])
+@pytest.mark.parametrize("early_stop", [False, True])
+def test_prespawn_matches_cold_verdicts_and_charges(pool, task, source, early_stop):
+    kw = dict(spec_digest=SPEC, seed=7, charge_per_case=0.005, early_stop=early_stop)
+    cold = verify(task, {"source": source}, **kw)
+    warm = verify(task, {"source": source}, **kw, prespawn=pool)
+    assert (warm.verdict, warm.cost_units, warm.trust_class) == (cold.verdict, cold.cost_units, cold.trust_class)
+    assert body_of(warm.reason) == body_of(cold.reason)
+    assert cold.reason.startswith(ISOLATION_NOTE) and warm.reason.startswith(PRESPAWN_NOTE)
+
+
+POLLUTE = """
+import builtins, json, os, sys, threading, time
+builtins.sorted = lambda xs, **k: list(xs)
+builtins.LEAKED = "from previous candidate"
+json.dumps = lambda *a, **k: "true"
+sys.modules["leaked_module"] = sys
+sys.path.insert(0, os.getcwd())
+open("leaked.txt", "w").write("x")
+os.environ["LEAKED"] = "1"
+keep = os.open(os.devnull, os.O_RDONLY)
+threading.Thread(target=time.sleep, args=(60,)).start()
+def f():
+    return [os.getpid(), os.getcwd()]
+"""
+
+PROBE = """
+import builtins, json, os, sys, threading
+def f():
+    return [os.getpid(), os.getcwd(), sorted([2, 1]), hasattr(builtins, "LEAKED"), json.dumps([1]),
+            "leaked_module" in sys.modules, sys.path, os.listdir("."), "LEAKED" in os.environ,
+            threading.active_count()]
+"""
+
+
+def test_prespawn_does_not_leak_state_between_candidates(pool):
+    cold_probe = run(PROBE, [[]])
+    a = run(POLLUTE, [[]], prespawn=pool)
+    b = run(PROBE, [[]], prespawn=pool)
+    assert a.kind == "ok" and b.kind == "ok", (a, b)
+    (pid_a, cwd_a), (pid_b, cwd_b, srt, leaked_builtin, dumped, leaked_mod, path, files, leaked_env, threads) = a.outputs[0], b.outputs[0]
+    assert pid_a != pid_b and cwd_a != cwd_b
+    assert srt == [1, 2] and not leaked_builtin and dumped == "[1]" and not leaked_mod
+    assert files == [] and not leaked_env
+    assert not any(os.path.normcase(p) == os.path.normcase(cwd_a) for p in path)
+    assert threads == cold_probe.outputs[0][-1]  # main + the harness watchdog, nothing inherited
+    assert not os.path.exists(cwd_a), "the polluting candidate's cwd must be removed"
+
+
+def test_prespawn_children_are_single_use(pool):
+    pids = [run("import os\ndef f():\n    return os.getpid()", [[]], prespawn=pool).outputs[0] for _ in range(4)]
+    assert len(set(pids)) == 4
+
+
+def test_prespawn_replaces_a_child_that_died_while_idle():
+    with PrespawnPool(size=1) as p:
+        assert run("def f():\n    return 1", [[]], prespawn=p).outputs == [1]
+        key = (512, 16)
+        idle, _ = p._slots[key][0].result()
+        idle.kill()
+        idle.wait()
+        out = run("import os\ndef f():\n    return os.getpid()", [[]], prespawn=p)
+        assert out.kind == "ok" and out.outputs[0] != idle.pid
+
+
+def test_prespawn_close_removes_idle_children_and_dirs():
+    p = PrespawnPool(size=2)
+    run("def f():\n    return 1", [[]], prespawn=p)
+    idle = [f.result() for q in p._slots.values() for f in q]
+    assert len(idle) == 2 and all(proc.poll() is None for proc, _ in idle)
+    p.close()
+    assert all(proc.poll() is not None for proc, _ in idle)
+    assert not any(os.path.exists(td.name) for _, td in idle)
+    with pytest.raises(RuntimeError):
+        p.take(512, 16)
+
+
+def test_prespawn_rejects_docker_and_bad_size(pool):
+    with pytest.raises(ValueError):
+        run("def f():\n    return 1", [[]], sandbox="docker", prespawn=pool)
+    with pytest.raises(ValueError):
+        verify(SORT, {"source": CORRECT[0][1]}, spec_digest=SPEC, seed=1, sandbox="docker", prespawn=pool)
+    with pytest.raises(ValueError):
+        PrespawnPool(size=0)
+
+
+def test_prespawn_timeouts_still_inconclusive(pool):
+    task = dataclasses.replace(SORT, **FAST)
+    r = verify(task, {"source": "def sort_ints(xs):\n    while True:\n        pass"}, spec_digest=SPEC, seed=7, prespawn=pool)
+    assert r.verdict == "INCONCLUSIVE" and "timeout" in r.reason

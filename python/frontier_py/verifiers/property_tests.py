@@ -75,6 +75,19 @@ child never sees. For these reasons every `sandbox="none"` receipt is
 trust class V1, never V2. (The nonce caveat also applies inside the docker
 sandbox; the parent-side comparison is the defence there too.)
 
+Warm mode (opt-in, `sandbox="none"` only): `run_candidate` / `verify` take
+`prespawn=PrespawnPool(...)`. The pool starts the same V1 child (same argv,
+environment, rlimits and a fresh temporary cwd) ahead of time, while the
+previous candidate runs; the child imports the harness's modules and then
+blocks reading stdin. Each child still serves exactly one candidate and is
+then reaped, so no interpreter state is shared between candidates. What
+changes: start-up overlaps other work instead of being on the critical
+path, the wall timeout no longer includes interpreter start-up, and an
+idle, not-yet-used child is alive while a candidate runs, so a hostile
+candidate can reach it as the same OS user (signals, and on POSIX ptrace or
+/proc access where the host allows it; see ADR-0009). Receipts stay trust
+class V1 and say "prespawned" in `reason`.
+
 Verdicts (both backends): PASS iff every visible and hidden case matches
 exactly (canonical JSON equality, so 1 != 1.0 != true). FAIL on mismatch,
 exception, missing function, malformed or oversized output, or early exit.
@@ -88,6 +101,9 @@ self-reported confidence) has no effect on the verdict.
 
 from __future__ import annotations
 
+import collections
+import concurrent.futures
+import contextlib
 import copy
 import dataclasses
 import json
@@ -139,7 +155,8 @@ DOCKER_ISOLATION_NOTE = (
     f"[V2 docker sandbox {SANDBOX_IMAGE}: --network none, --ipc none, read-only rootfs, {SANDBOX_TMPFS_MB}m noexec tmpfs /tmp only, "
     f"no host mounts or env, memory+swap {{memory}}m, pids {SANDBOX_PIDS}, 1 cpu, cap-drop ALL, no-new-privileges, uid 65534]"
 )
-DOCKER_NOT_RUN_NOTE = "[docker sandbox requested; candidate NOT executed, no sandbox claimed]"
+PRESPAWN_NOTE = ISOLATION_NOTE[:-1] + "; child prespawned while the previous candidate ran]"
+DOCKER_NOT_RUN_NOTE ="[docker sandbox requested; candidate NOT executed, no sandbox claimed]"
 
 # Runs inside the child. Kept dependency-free (stdlib only, no site).
 HARNESS = r"""
@@ -305,6 +322,110 @@ def _kill_tree(proc: subprocess.Popen[bytes]) -> None:
     proc.kill()
 
 
+def _v1_popen(memory_limit_mb: int, cpu_s: int, cwd: str) -> subprocess.Popen[bytes]:
+    """Start the V1 harness child in `cwd`. Cold runs and `PrespawnPool` both use this."""
+    if POSIX:
+        kwargs: dict[str, Any] = {"preexec_fn": _posix_limits(memory_limit_mb, cpu_s), "start_new_session": True}
+    else:
+        kwargs = {"creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0)}
+    return subprocess.Popen(
+        [sys.executable, "-I", "-S", "-c", HARNESS],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        cwd=cwd,
+        env=child_env(),
+        close_fds=True,
+        **kwargs,
+    )
+
+
+_Spawned = tuple[subprocess.Popen[bytes], tempfile.TemporaryDirectory[str]]
+
+
+def _spawn_v1(memory_limit_mb: int, cpu_s: int) -> _Spawned:
+    td = tempfile.TemporaryDirectory(prefix="frontier-verify-")
+    try:
+        return _v1_popen(memory_limit_mb, cpu_s, td.name), td
+    except BaseException:
+        td.cleanup()
+        raise
+
+
+def _discard(item: _Spawned) -> None:
+    proc, td = item
+    _kill_tree(proc)
+    proc.wait()
+    for f in (proc.stdin, proc.stdout):
+        if f is not None:
+            f.close()
+    td.cleanup()
+
+
+class PrespawnPool:
+    """Opt-in warm mode for `sandbox="none"`: single-use V1 children started ahead of time.
+
+    For each (memory limit, CPU limit) pair the pool keeps `size` children
+    starting or idle. `take` hands one out and at once starts a replacement
+    in a background thread, so the next interpreter boots while the current
+    candidate runs. A child serves one candidate and is never reused. The
+    start-up CPU is still paid; only its latency is hidden, and only as far
+    as `size` and free cores allow. Use the pool as a context manager (or
+    call `close`) so idle children and their temporary directories are
+    removed. An idle child that is left behind exits when this process does,
+    because its stdin then reaches end of file.
+    """
+
+    def __init__(self, size: int = 1) -> None:
+        if size < 1:
+            raise ValueError("size must be >= 1")
+        self.size = size
+        self._lock = threading.Lock()
+        self._slots: dict[tuple[int, int], collections.deque[concurrent.futures.Future[_Spawned]]] = {}
+        self._spawner = concurrent.futures.ThreadPoolExecutor(max_workers=size, thread_name_prefix="frontier-prespawn")
+        self._closed = False
+
+    def take(self, memory_limit_mb: int, cpu_s: int) -> _Spawned:
+        """A fresh, unused child and its cwd. The caller owns both from here on."""
+        key = (memory_limit_mb, cpu_s)
+        with self._lock:
+            if self._closed:
+                raise RuntimeError("PrespawnPool is closed")
+            q = self._slots.setdefault(key, collections.deque())
+            fut = q.popleft() if q else None
+            while len(q) < self.size:
+                q.append(self._spawner.submit(_spawn_v1, memory_limit_mb, cpu_s))
+        if fut is not None:
+            try:
+                item = fut.result()
+            except OSError:
+                item = None
+            if item is not None:
+                if item[0].poll() is None:
+                    return item
+                _discard(item)  # died while idle (e.g. killed by another process): never hand it out
+        return _spawn_v1(memory_limit_mb, cpu_s)
+
+    def close(self) -> None:
+        with self._lock:
+            self._closed = True
+            futs = [f for q in self._slots.values() for f in q]
+            self._slots.clear()
+        self._spawner.shutdown(wait=True)
+        for f in futs:
+            try:
+                item = f.result()
+            except OSError:
+                continue
+            _discard(item)
+
+    def __enter__(self) -> PrespawnPool:
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        self.close()
+
+
 def _check_sandbox(sandbox: str) -> None:
     if sandbox not in SANDBOXES:
         raise ValueError(f"unknown sandbox {sandbox!r}; expected one of {SANDBOXES}")
@@ -377,6 +498,7 @@ def run_candidate(
     sandbox: Sandbox = "none",
     expected: Callable[[int], bytes] | None = None,
     stats: dict[str, Any] | None = None,
+    prespawn: PrespawnPool | None = None,
 ) -> ChildOutcome:
     """Run untrusted `source` on `inputs` in an isolated child; return raw outputs.
 
@@ -401,8 +523,13 @@ def run_candidate(
     `stats`, if given, receives `child_cpu_seconds`: the child's CPU time
     (Windows: GetProcessTimes; POSIX: RUSAGE_CHILDREN delta, so not safe
     with concurrent calls; with docker, the CLI's CPU, not the container's).
+
+    `prespawn` (warm mode, `sandbox="none"` only) takes an already started,
+    unused child from the pool instead of starting one. See `PrespawnPool`.
     """
     _check_sandbox(sandbox)
+    if prespawn is not None and sandbox != "none":
+        raise ValueError('prespawn is only supported with sandbox="none"')
     if sandbox == "docker":
         ok, detail = docker_status()
         if not ok:
@@ -414,39 +541,34 @@ def run_candidate(
     payload = json.dumps(req).encode("utf-8")
     cpu0 = _children_cpu() if POSIX else None
     container = f"frontier-verify-{secrets.token_hex(8)}"
-    with tempfile.TemporaryDirectory(prefix="frontier-verify-") as cwd:
-        kwargs: dict[str, Any] = {}
-        if sandbox == "docker":
+    with contextlib.ExitStack() as scope:
+        if prespawn is not None:
+            proc, td = prespawn.take(memory_limit_mb, int(wall_timeout_s) + 1)
+            scope.enter_context(td)
+            wall = wall_timeout_s
+        elif sandbox == "docker":
+            cwd = scope.enter_context(tempfile.TemporaryDirectory(prefix="frontier-verify-"))
             # The docker CLI is trusted and needs the parent's DOCKER_*/PATH/HOME;
             # none of it reaches the container. Limits are applied by the engine,
             # not by rlimits on the CLI process.
-            argv = docker_command(container, memory_limit_mb, int(wall_timeout_s) + 1)
-            env: dict[str, str] | None = None
             wall = wall_timeout_s + DOCKER_STARTUP_GRACE_S
-            kwargs = {"start_new_session": True} if POSIX else {"creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0)}
-        else:
-            argv = [sys.executable, "-I", "-S", "-c", HARNESS]
-            env = child_env()
-            wall = wall_timeout_s
-            if POSIX:
-                kwargs = {"preexec_fn": _posix_limits(memory_limit_mb, int(wall_timeout_s) + 1), "start_new_session": True}
-            else:
-                kwargs = {"creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0)}
-        try:
-            proc = subprocess.Popen(
-                argv,
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.DEVNULL,
-                cwd=cwd,
-                env=env,
-                close_fds=True,
-                **kwargs,
-            )
-        except OSError as e:
-            if sandbox == "docker":
+            try:
+                proc = subprocess.Popen(
+                    docker_command(container, memory_limit_mb, int(wall_timeout_s) + 1),
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.DEVNULL,
+                    cwd=cwd,
+                    env=None,
+                    close_fds=True,
+                    **({"start_new_session": True} if POSIX else {"creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0)}),
+                )
+            except OSError as e:
                 return ChildOutcome("sandbox", f"cannot start docker: {type(e).__name__}")
-            raise
+        else:
+            cwd = scope.enter_context(tempfile.TemporaryDirectory(prefix="frontier-verify-"))
+            wall = wall_timeout_s
+            proc = _v1_popen(memory_limit_mb, int(wall_timeout_s) + 1, cwd)
 
         def stop() -> None:
             if sandbox == "docker":
@@ -660,6 +782,7 @@ def verify(
     fail_fast: bool = False,
     early_stop: bool = False,
     stats: dict[str, Any] | None = None,
+    prespawn: PrespawnPool | None = None,
 ) -> VerifierReceipt:
     """Verify an artifact body {"source": str, ...} against `task`; return a receipt.
 
@@ -685,8 +808,15 @@ def verify(
     yields trust class V2, but only if it actually ran there; otherwise the
     receipt is INCONCLUSIVE, trust class V1, and says the candidate was not
     executed. It never falls back to `sandbox="none"`.
+
+    `prespawn` (warm mode, `sandbox="none"` only) runs the candidate in a
+    child the pool started ahead of time. Verdicts and `charge_per_case`
+    charges are those of a cold run; wall-clock `cost_units` is lower, and
+    the receipt reason says "prespawned". See `PrespawnPool` and ADR-0009.
     """
     _check_sandbox(sandbox)
+    if prespawn is not None and sandbox != "none":
+        raise ValueError('prespawn is only supported with sandbox="none"')
     start = time.perf_counter()
     if artifact_digest is None:
         artifact_digest = artifact_digest_for(spec_digest, task_id or task.name, body)
@@ -694,7 +824,7 @@ def verify(
 
     def receipt(verdict: str, reason: str) -> VerifierReceipt:
         if sandbox == "none":
-            trust, note = TRUST_CLASS, ISOLATION_NOTE
+            trust, note = TRUST_CLASS, ISOLATION_NOTE if prespawn is None else PRESPAWN_NOTE
         elif executed_in_sandbox:
             trust, note = TRUST_CLASS_SANDBOXED, DOCKER_ISOLATION_NOTE.format(memory=task.memory_limit_mb)
         else:
@@ -736,6 +866,7 @@ def verify(
         sandbox=sandbox,
         expected=want.__getitem__ if early_stop else None,
         stats=stats,
+        prespawn=prespawn,
     )
     if out.kind == "sandbox":
         return receipt("INCONCLUSIVE", f"sandbox failure ({out.detail})")
