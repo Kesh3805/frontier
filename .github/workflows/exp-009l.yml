@@ -1,0 +1,108 @@
+# exp-009L: exp-009 part M (measured cost of verification, full execution vs
+# early stop) replicated on a GitHub-hosted Linux runner. Protocol:
+# research/preregistration/exp-009L/protocol.md.
+#
+# Manual only: experiments are never triggered by pushes or pull requests.
+# Security: no secrets, read-only token, third-party actions pinned to full
+# commit SHAs, checkouts do not persist credentials.
+
+name: exp-009L
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Commit to measure (the protocol fixes exp-009's run commit)"
+        required: true
+        default: bad09c9f497524c1ee6fc7146b4a541b4fbf9667
+
+permissions:
+  contents: read
+
+concurrency:
+  group: exp-009L
+  cancel-in-progress: false
+
+env:
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+
+jobs:
+  measure:
+    name: exp-009L part M (Linux)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      # Frozen protocol, scoring script and Windows baseline: the dispatching commit.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Measured harness: exactly the commit exp-009 ran.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          path: src
+          persist-credentials: false
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies (as in ci.yml)
+        run: python -m pip install "numpy==2.*" "jsonschema==4.25.1" "pytest==9.0.2" pyyaml
+
+      - name: Check frozen hashes
+        run: |
+          sums=research/preregistration/exp-009L/SHA256SUMS
+          pat='exp-009L/\|results/exp-009/\|exp-009/evaluate.py'
+          # Scoring tree: score.py, exp-009's evaluate.py, the Windows baseline.
+          grep "$pat" "$sums" > /tmp/scoring.sums
+          sha256sum -c /tmp/scoring.sums
+          # Measured tree: the harness exp-009 froze.
+          grep -v "$pat" "$sums" > /tmp/harness.sums
+          (cd src && sha256sum -c /tmp/harness.sums)
+
+      - name: Describe the runner
+        env:
+          MEASURED_REF: ${{ inputs.ref }}
+        run: |
+          mkdir -p runs/exp-009L
+          python - <<'EOF'
+          import json, os, platform, subprocess
+          def sh(*a):
+              return subprocess.run(a, capture_output=True, text=True).stdout.strip()
+          cpu = [l.split(":", 1)[1].strip() for l in open("/proc/cpuinfo") if l.startswith("model name")]
+          info = {
+              "image_os": os.environ.get("ImageOS"), "image_version": os.environ.get("ImageVersion"),
+              "runner_name": os.environ.get("RUNNER_NAME"), "runner_environment": os.environ.get("RUNNER_ENVIRONMENT"),
+              "cpu_model": cpu[0] if cpu else None, "logical_cpus": os.cpu_count(), "kernel": platform.release(),
+              "os_release": sh("sh", "-c", ". /etc/os-release && echo $PRETTY_NAME"), "python": sh("python", "--version"),
+              "mem_total": [l.split(":", 1)[1].strip() for l in open("/proc/meminfo") if l.startswith("MemTotal")][0],
+              "loadavg_before": open("/proc/loadavg").read().strip(),
+              "workflow_sha": os.environ["GITHUB_SHA"], "measured_ref": os.environ["MEASURED_REF"],
+              "run_id": os.environ["GITHUB_RUN_ID"], "run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
+              "event": os.environ["GITHUB_EVENT_NAME"],
+          }
+          json.dump(info, open("runs/exp-009L/runner.json", "w"), indent=1)
+          print(json.dumps(info, indent=1))
+          EOF
+
+      - name: Measure (exp-009 measure.py, unchanged)
+        run: python src/research/preregistration/exp-009/measure.py runs/exp-009L/M
+
+      - name: Record load after
+        run: cat /proc/loadavg | tee runs/exp-009L/loadavg_after.txt
+
+      - name: Score (frozen)
+        run: |
+          python research/preregistration/exp-009L/score.py runs/exp-009L/M runs/exp-009L/runner.json > runs/exp-009L/evaluation.json
+          python -c "import json; d = json.load(open('runs/exp-009L/evaluation.json')); print(json.dumps(d['invalidation'], indent=1))"
+
+      - name: Upload outputs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: exp-009L
+          path: runs/exp-009L/
+          retention-days: 90
+          if-no-files-found: error
