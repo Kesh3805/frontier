@@ -157,8 +157,9 @@ def _main():
         lock.acquire()
         try:
             put(body)
-        finally:
-            exit_(0)
+        except OSError:
+            pass  # the parent stopped reading; a MemoryError still reaches the exit-86 handler
+        exit_(0)
     def put(body):
         data = ('{"nonce":' + dumps(nonce) + "," + body + "}\n").encode("utf-8")
         while data:
@@ -390,7 +391,12 @@ def run_candidate(
     kind "mismatch" at that case. A run that completes is kind "ok" with
     `outputs=None` and `matched` = the number of cases that matched; error,
     timeout and resource outcomes are as without streaming, with `matched`.
-    The child still never sees an expected value.
+    The child still never sees an expected value. `expected` runs in a
+    reader thread. The wall timeout bounds the child only: once the child
+    has exited, the parent waits for the comparisons to finish however long
+    they take. An exception from `expected` kills the child and is re-raised
+    here. Keep `expected` cheap, because a slow one stops the pipe being
+    read and can stall the child until the wall timeout.
 
     `stats`, if given, receives `child_cpu_seconds`: the child's CPU time
     (Windows: GetProcessTimes; POSIX: RUSAGE_CHILDREN delta, so not safe
@@ -453,6 +459,7 @@ def run_candidate(
         drained = threading.Event()
         failed: list[int] = []  # streamed: the first mismatching case
         received = [0]  # streamed: cases received and matched
+        error: list[BaseException] = []  # streamed: an exception raised by `expected`
 
         def feed() -> None:
             try:
@@ -470,9 +477,10 @@ def run_candidate(
                 buf.extend(chunk)
 
         def drain_stream() -> None:
-            # Consume leading case lines as they arrive; whatever follows the
-            # last one (the terminal line, or anything malformed) stays in buf.
-            total = 0
+            # Consume leading case lines as they arrive. From the first line that
+            # is not the next case line (the terminal line, or anything malformed)
+            # on, nothing more is parsed: the rest is only collected in buf.
+            total, scanned, tail = 0, 0, False
             try:
                 while chunk := proc.stdout.read1(65536):  # type: ignore[union-attr]
                     total += len(chunk)
@@ -481,16 +489,25 @@ def run_candidate(
                         stop()
                         return
                     buf.extend(chunk)
-                    while (j := buf.find(b"\n")) >= 0:
-                        out = _stream_case(bytes(buf[:j]), nonce, received[0])
+                    while not tail:
+                        j = buf.find(b"\n", scanned)
+                        if j < 0:
+                            scanned = len(buf)
+                            break
+                        out = _stream_case(bytes(buf[:j]), nonce, received[0], len(inputs))
                         if out is None:
+                            tail = True
                             break
                         del buf[: j + 1]
+                        scanned = 0
                         if _canon(out[0]) != expected(received[0]):  # type: ignore[misc]
                             failed.append(received[0])
                             proc.stdout.close()  # type: ignore[union-attr]
                             return
                         received[0] += 1
+            except BaseException as e:  # from `expected` (trusted code): re-raised in the parent
+                error.append(e)
+                stop()
             finally:
                 drained.set()
 
@@ -502,20 +519,35 @@ def run_candidate(
             if expected is None:
                 rc = proc.wait(timeout=wall)
             else:
+                # The wall clock bounds the child, not the comparisons: once the
+                # child has exited, wait for the drain thread however long the
+                # (trusted) `expected` takes. buf/received are read only after.
                 deadline = time.monotonic() + wall
-                drained.wait(wall)
+                if not drained.wait(wall) and proc.poll() is None:
+                    raise subprocess.TimeoutExpired(proc.args, wall)
+                drained.wait()
+                if error:
+                    proc.wait()
+                    raise error[0]
                 if failed:
                     try:
                         proc.wait(timeout=EARLY_STOP_GRACE_S)
                     except subprocess.TimeoutExpired:
                         stop()
                         proc.wait()
+                    if sandbox == "docker":
+                        _docker_kill(container)  # the CLI exits when its stdout closes; the container may not
                     return ChildOutcome("mismatch", "output mismatch", case=failed[0], matched=received[0])
                 rc = proc.wait(timeout=max(deadline - time.monotonic(), 0.0))
         except subprocess.TimeoutExpired:
             stop()
             proc.wait()
-            return ChildOutcome("timeout", f"wall timeout {wall:g}s exceeded", matched=None if expected is None else received[0])
+            if expected is None:
+                return ChildOutcome("timeout", f"wall timeout {wall:g}s exceeded")
+            drained.wait()
+            if error:
+                raise error[0] from None
+            return ChildOutcome("timeout", f"wall timeout {wall:g}s exceeded", matched=received[0])
         finally:
             for t in threads:
                 t.join(timeout=2.0)
@@ -547,9 +579,11 @@ def _finish(rc: int, raw: bytes, nonce: str, sandbox: str) -> ChildOutcome:
     return _parse(raw, nonce)
 
 
-def _stream_case(line: bytes, nonce: str, index: int) -> list[Any] | None:
-    """[output] of a streamed case line for case `index`, else None (the list
-    keeps a JSON null output distinct from 'not a case line')."""
+def _stream_case(line: bytes, nonce: str, index: int, n: int) -> list[Any] | None:
+    """[output] of a streamed case line for case `index` (< `n`), else None (the
+    list keeps a JSON null output distinct from 'not a case line')."""
+    if index >= n:
+        return None
     try:
         msg = json.loads(line)
     except (ValueError, RecursionError):
@@ -638,9 +672,10 @@ def verify(
     as a test runner that stops at the first failure would be. Verdicts are
     unchanged; PASS and INCONCLUSIVE are always charged in full.
 
-    `early_stop` makes that physical: expected outputs are computed one case
-    at a time and the candidate's run is streamed and stopped at the first
-    mismatch (`run_candidate(expected=...)`). It implies `fail_fast`
+    `early_stop` makes that physical: the candidate's run is streamed and
+    stopped at the first mismatch (`run_candidate(expected=...)`). Expected
+    outputs are still all computed before the run, as without early stop,
+    so the reference's time is never charged to the candidate's wall budget. It implies `fail_fast`
     charging. PASS verdicts are unchanged. A FAIL's reason no longer counts
     all mismatching cases, and a candidate that fails one case and would
     later time out or exhaust a resource is FAIL instead of INCONCLUSIVE.
@@ -687,7 +722,10 @@ def verify(
     def expected_at(i: int) -> Any:
         return json.loads(canonical_json(task.reference(*copy.deepcopy(inputs[i]))))
 
-    expected = None if early_stop else [expected_at(i) for i in range(len(inputs))]
+    # Computed before the candidate runs, in both modes, so the reference's
+    # time never counts against the candidate's wall budget.
+    expected = [expected_at(i) for i in range(len(inputs))]
+    want = [canonical_json(e) for e in expected] if early_stop else []
     out = run_candidate(
         source,
         task.function_name,
@@ -696,7 +734,7 @@ def verify(
         wall_timeout_s=task.wall_timeout_s,
         memory_limit_mb=task.memory_limit_mb,
         sandbox=sandbox,
-        expected=(lambda i: canonical_json(expected_at(i))) if early_stop else None,
+        expected=want.__getitem__ if early_stop else None,
         stats=stats,
     )
     if out.kind == "sandbox":

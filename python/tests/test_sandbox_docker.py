@@ -15,6 +15,7 @@ from pathlib import Path
 
 import pytest
 
+from frontier_py.receipt import canonical_json
 from frontier_py.tasks import TASKS
 from frontier_py.verifiers import property_tests as pt
 
@@ -233,6 +234,16 @@ def test_gil_hog_is_killed_from_the_parent():
     out = pt.run_candidate(src, "f", [[]], per_call_timeout_s=1.0, wall_timeout_s=3.0, memory_limit_mb=256, sandbox="docker")
     assert out.kind in ("timeout", "resource"), out
     assert time.monotonic() - t0 < 3.0 + pt.DOCKER_STARTUP_GRACE_S + 15
+    assert _no_containers_left()
+
+
+def test_early_stop_mismatch_kills_the_container():
+    # Closing the pipe at the mismatch makes the docker CLI exit; the container
+    # itself is stuck in a GIL-holding loop that starves its watchdog.
+    src = "def f(x):\n    if x:\n        return sum(range(10 ** 13))\n    return 1\n"
+    out = pt.run_candidate(src, "f", [[0], [1]], per_call_timeout_s=10.0, wall_timeout_s=30.0, memory_limit_mb=256,
+                           sandbox="docker", expected=lambda i: canonical_json(0))
+    assert out.kind == "mismatch" and out.case == 0, out
     assert _no_containers_left()
 
 
