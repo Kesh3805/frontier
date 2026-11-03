@@ -28,10 +28,12 @@ Nothing in the measured harness changes. The workflow checks out two trees:
 - **The measured harness:** exp-009's own run commit,
   `bad09c9f497524c1ee6fc7146b4a541b4fbf9667`, checked out into `src/`.
   `measure.py` runs from there unchanged: same corpus, seeds, modes,
-  repetitions, warm-up and order seed. The hash-checked harness files are
-  identical at `bad09c9` and at the freeze commit. `measure.py` needed no
-  change for Linux. Its only OS-dependent call, `platform.processor()`,
-  returns an empty string there, which is harmless.
+  repetitions, warm-up and order seed. When this protocol was written, the
+  hash-checked harness files were identical at `bad09c9` and on `main`.
+  By inspection, `measure.py` needs no change for Linux; it was not run
+  there before freezing. Its only OS-dependent call,
+  `platform.processor()`, may return an empty string there, which is
+  harmless. The verifier's POSIX path is covered by CI's Linux unit tests.
 - **The scoring tree:** the commit the workflow is dispatched from, which
   carries this protocol, `score.py` and the Windows baseline in
   `results/exp-009/`.
