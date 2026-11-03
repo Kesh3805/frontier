@@ -449,7 +449,10 @@ sys.path.insert(0, os.getcwd())
 open("leaked.txt", "w").write("x")
 os.environ["LEAKED"] = "1"
 keep = os.open(os.devnull, os.O_RDONLY)
-threading.Thread(target=time.sleep, args=(60,)).start()
+try:
+    threading.Thread(target=time.sleep, args=(60,)).start()
+except RuntimeError:
+    pass  # POSIX: RLIMIT_NPROC = 0 blocks new threads too
 def f():
     return [os.getpid(), os.getcwd()]
 """
