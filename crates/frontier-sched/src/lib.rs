@@ -154,6 +154,15 @@ pub enum PolicyConfig {
         per_novel_cost: bool,
         reuse_is_failure: bool,
     },
+    /// Hinted `Thompson` with extreme hints pulled towards 0.5 before they
+    /// enter the prior: a hint m >= `HIGH_HINT` becomes 0.5 + `high` (m - 0.5),
+    /// and a hint m <= `LOW_HINT` becomes 0.5 + `low` (m - 0.5). A factor of 1
+    /// leaves that tail unchanged. Membership is by hint value only.
+    ThompsonTempered {
+        prior_strength: f64,
+        high: f64,
+        low: f64,
+    },
     /// Uses ground truth. Simulation-only diagnostic, not an upper bound.
     OracleIndex,
 }
@@ -172,11 +181,11 @@ impl PolicyConfig {
                 label: format!("ucb(k={prior_strength},hints={use_hints},beta={beta})"),
             }),
             PolicyConfig::Thompson { prior_strength, use_hints } => Box::new(IndexPolicy {
-                estimator: Estimator::Thompson { prior_strength, use_hints, flat_cost: false },
+                estimator: Estimator::Thompson { prior_strength, use_hints, flat_cost: false, temper: (1.0, 1.0) },
                 label: format!("thompson(k={prior_strength},hints={use_hints})"),
             }),
             PolicyConfig::ThompsonFlat { prior_strength, use_hints } => Box::new(IndexPolicy {
-                estimator: Estimator::Thompson { prior_strength, use_hints, flat_cost: true },
+                estimator: Estimator::Thompson { prior_strength, use_hints, flat_cost: true, temper: (1.0, 1.0) },
                 label: format!("thompson_flat(k={prior_strength},hints={use_hints})"),
             }),
             PolicyConfig::ThompsonNovel { prior_strength, use_hints, per_novel_cost, reuse_is_failure } => Box::new(IndexPolicy {
@@ -186,6 +195,10 @@ impl PolicyConfig {
                     if per_novel_cost { "novel" } else { "observed" },
                     if reuse_is_failure { "failure" } else { "ignored" }
                 ),
+            }),
+            PolicyConfig::ThompsonTempered { prior_strength, high, low } => Box::new(IndexPolicy {
+                estimator: Estimator::Thompson { prior_strength, use_hints: true, flat_cost: false, temper: (high, low) },
+                label: format!("thompson_tempered(k={prior_strength},high={high},low={low})"),
             }),
             PolicyConfig::OracleIndex => Box::new(IndexPolicy { estimator: Estimator::Oracle, label: "oracle_index".into() }),
         }
@@ -300,13 +313,35 @@ impl Policy for HopelessElimination {
 enum Estimator {
     Prior,
     Ucb { prior_strength: f64, use_hints: bool, beta: f64 },
-    Thompson { prior_strength: f64, use_hints: bool, flat_cost: bool },
+    Thompson { prior_strength: f64, use_hints: bool, flat_cost: bool, temper: (f64, f64) },
     ThompsonNovel { prior_strength: f64, use_hints: bool, per_novel_cost: bool, reuse_is_failure: bool },
     Oracle,
 }
 
+/// Hints at or above this value are the high tail for `ThompsonTempered`.
+pub const HIGH_HINT: f64 = 0.9;
+/// Hints at or below this value are the low tail for `ThompsonTempered`.
+pub const LOW_HINT: f64 = 0.1;
+
+/// Pulls a hint in the high or low tail towards 0.5 by the tail's factor.
+/// A factor of exactly 1 returns the hint unchanged (bit for bit).
+fn temper_hint(m: f64, (high, low): (f64, f64)) -> f64 {
+    let f = if m >= HIGH_HINT {
+        high
+    } else if m <= LOW_HINT {
+        low
+    } else {
+        1.0
+    };
+    if f == 1.0 { m } else { 0.5 + f * (m - 0.5) }
+}
+
 fn beta_params(s: &TaskStats, prior_strength: f64, use_hints: bool) -> (f64, f64) {
-    let m = if use_hints { s.prior_hint.clamp(1e-3, 1.0 - 1e-3) } else { 0.5 };
+    beta_params_tempered(s, prior_strength, use_hints, (1.0, 1.0))
+}
+
+fn beta_params_tempered(s: &TaskStats, prior_strength: f64, use_hints: bool, temper: (f64, f64)) -> (f64, f64) {
+    let m = if use_hints { temper_hint(s.prior_hint, temper).clamp(1e-3, 1.0 - 1e-3) } else { 0.5 };
     let a = prior_strength * m + if s.verified { 1.0 } else { 0.0 };
     let b = prior_strength * (1.0 - m) + s.failures as f64;
     (a, b)
@@ -347,8 +382,8 @@ impl IndexPolicy {
                     let sd = (a * b / (((a + b) * (a + b)) * (a + b + 1.0))).sqrt();
                     ((mean + beta * sd).min(1.0), view.cost_estimate(t))
                 }
-                Estimator::Thompson { prior_strength, use_hints, flat_cost } => {
-                    let (a, b) = beta_params(s, *prior_strength, *use_hints);
+                Estimator::Thompson { prior_strength, use_hints, flat_cost, temper } => {
+                    let (a, b) = beta_params_tempered(s, *prior_strength, *use_hints, *temper);
                     (rng.beta(a, b), if *flat_cost { view.prior_cost } else { view.cost_estimate(t) })
                 }
                 Estimator::ThompsonNovel { prior_strength, use_hints, per_novel_cost, reuse_is_failure } => {
@@ -525,6 +560,36 @@ mod tests {
     }
 
     #[test]
+    fn tempered_thompson_moves_only_the_tails() {
+        assert_eq!(temper_hint(0.999, (0.5, 1.0)), 0.7495);
+        assert_eq!(temper_hint(0.001, (1.0, 0.5)), 0.2505);
+        assert_eq!(temper_hint(0.722854, (0.5, 0.5)), 0.722854, "middle hints are untouched");
+        assert_eq!(temper_hint(0.001, (0.5, 1.0)), 0.001, "factor 1 leaves a tail alone");
+        // Task 0: cheap, hint 0.999, 20 fresh failures (a dead task the hint is
+        // wrong about). Task 1: full price, hint 0.001, never tried.
+        let tasks = vec![
+            TaskStats { prior_hint: 0.999, attempts: 20, failures: 20, cost_sum: 5.0, cost_n: 20, ..Default::default() },
+            TaskStats { problem: 1, prior_hint: 0.001, ..Default::default() },
+        ];
+        let approaches = vec![Approach { problem: 0, tasks: vec![0] }, Approach { problem: 1, tasks: vec![1] }];
+        let problems = vec![ProblemStats::default(), ProblemStats::default()];
+        let r = [0, 1];
+        let picks = |c: PolicyConfig| {
+            let mut pol = c.build();
+            (0..400).filter(|&s| pol.select(&view(&tasks, &approaches, &problems, &r), &mut SplitMix64::new(s)) == Some(1)).count()
+        };
+        let tempered = |high, low| PolicyConfig::ThompsonTempered { prior_strength: 2.0, high, low };
+        // Factors of 1 are exactly hinted Thompson.
+        assert_eq!(picks(tempered(1.0, 1.0)), picks(PolicyConfig::Thompson { prior_strength: 2.0, use_hints: true }));
+        let (none, high, low, both) =
+            (picks(tempered(1.0, 1.0)), picks(tempered(0.5, 1.0)), picks(tempered(1.0, 0.5)), picks(tempered(0.5, 0.5)));
+        // Raising the low hint is what lets the untried task in.
+        assert!(low > none + 100 && both > none + 100, "none {none}, high {high}, low {low}, both {both}");
+        assert!(high >= none, "none {none}, high {high}");
+        assert_eq!(tempered(0.5, 1.0).build().name(), "thompson_tempered(k=2,high=0.5,low=1)");
+    }
+
+    #[test]
     fn round_robin_rotates_and_fixed_slice_caps() {
         let (t, a, mut p) = view_fixture();
         let r = [0, 1];
@@ -563,6 +628,7 @@ mod tests {
             PolicyConfig::Thompson { prior_strength: 2.0, use_hints: true },
             PolicyConfig::ThompsonFlat { prior_strength: 2.0, use_hints: true },
             PolicyConfig::ThompsonNovel { prior_strength: 2.0, use_hints: true, per_novel_cost: true, reuse_is_failure: false },
+            PolicyConfig::ThompsonTempered { prior_strength: 2.0, high: 0.5, low: 0.5 },
             PolicyConfig::OracleIndex,
         ];
         for c in configs {

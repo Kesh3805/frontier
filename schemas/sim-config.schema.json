@@ -104,6 +104,7 @@
             "thompson",
             "thompson_flat",
             "thompson_novel",
+            "thompson_tempered",
             "oracle_index"
           ]
         }
@@ -149,6 +150,19 @@
               "use_hints": { "type": "boolean" },
               "per_novel_cost": { "type": "boolean" },
               "reuse_is_failure": { "type": "boolean" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "thompson_tempered" } } },
+          "then": {
+            "additionalProperties": false,
+            "required": ["prior_strength", "high", "low"],
+            "properties": {
+              "kind": true,
+              "prior_strength": { "type": "number" },
+              "high": { "type": "number" },
+              "low": { "type": "number" }
             }
           }
         },
