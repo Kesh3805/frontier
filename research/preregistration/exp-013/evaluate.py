@@ -12,8 +12,10 @@ import json
 import sys
 from pathlib import Path
 
+import numpy as np
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "python"))
-from frontier_py.analysis import Record, paired_bootstrap  # noqa: E402
+from frontier_py.analysis import DEFAULT_REPLICATES, DEFAULT_SEED, Record, _cluster_means, paired_bootstrap  # noqa: E402
 
 CATALOG = Path(__file__).resolve().parents[2] / "realtasks" / "catalog-v2.json"
 HIGH, LOW = 0.9, 0.1  # tail thresholds, as in thompson_tempered
@@ -26,6 +28,7 @@ HL = "thompson_tempered(k=2,high=0.5,low=0.5)"
 NH = "thompson(k=2,hints=false)"
 POLICIES = (RR, TH, H, L, HL, NH)
 BUDGETS = (330, 1320, 2640)
+SEEDS = range(9001, 9101)
 METRICS = (
     "sim_true_solved",
     "attempts",
@@ -51,7 +54,16 @@ def strata():
 
 
 def rows(path, st):
-    rs = {(r["seed"], r["policy"]): r for r in map(json.loads, open(path, encoding="utf-8"))}
+    recs = list(map(json.loads, open(path, encoding="utf-8")))
+    rs = {(r["seed"], r["policy"]): r for r in recs}
+    # Fail closed on bookkeeping problems.
+    assert len(rs) == len(recs), f"{path}: duplicate (seed, policy) rows"
+    assert set(rs) == {(s, p) for s in SEEDS for p in POLICIES}, f"{path}: missing or extra seeds or policies"
+    for r in rs.values():
+        assert set(r["sim_task_attempts"]) == set(st), f"{path}: unknown or missing task ids"
+        assert set(r["sim_true_solved_tasks"]) <= set(st), f"{path}: unknown solved task id"
+        assert sum(r["sim_task_attempts"].values()) == r["attempts"], f"{path}: per-task attempts do not sum"
+        assert len(r["sim_true_solved_tasks"]) == r["sim_true_solved"], f"{path}: solved ids do not match count"
     for r in rs.values():
         n = r["attempts"]
         by = {}
@@ -83,6 +95,20 @@ def contrast(rs, plus, minus, metric="sim_true_solved", level=0.95, scale=1.0):
     return ci(paired_bootstrap(recs, "plus", "minus", level=level), scale)
 
 
+def two_sided_p(rs, plus, minus, metric="sim_true_solved"):
+    """Bootstrap two-sided p-value of a contrast, from the same resamples as
+    `paired_bootstrap` (same seed and replicates), checked against it."""
+    recs = [Record(s, "plus" if p in plus else "minus", float(r[metric])) for (s, p), r in rs.items() if p in plus + minus]
+    means = _cluster_means(recs)
+    keys = sorted(means, key=repr)
+    d = np.array([means[c]["plus"] - means[c]["minus"] for c in keys])
+    rng = np.random.default_rng(DEFAULT_SEED)
+    boot = d[rng.integers(0, len(d), size=(DEFAULT_REPLICATES, len(d)))].mean(axis=1)
+    ref = paired_bootstrap(recs, "plus", "minus")
+    assert np.isclose(np.quantile(boot, 0.025), ref.ci_low) and np.isclose(np.quantile(boot, 0.975), ref.ci_high)
+    return float(min(1.0, 2 * min((boot <= 0).mean(), (boot >= 0).mean())))
+
+
 def mean(rs, policy, metric):
     v = [r[metric] for (s, p), r in rs.items() if p == policy]
     return round(sum(v) / len(v), 4)
@@ -112,29 +138,40 @@ def main(root):
             "factorial_solves": factorial(rs, "sim_true_solved"),
             "factorial_solves_97.5": factorial(rs, "sim_true_solved", level=0.975),
             "factorial_high_dead_share": factorial(rs, "high_dead_share"),
+            "factorial_high_dead_attempts": factorial(rs, "high_dead_attempts"),
             "factorial_low_solvable_share": factorial(rs, "low_solvable_share"),
+            "factorial_low_solvable_attempts": factorial(rs, "low_solvable_attempts"),
             "factorial_low_solvable_solved": factorial(rs, "low_solvable_solved"),
             "factorial_dead_share": factorial(rs, "dead_share"),
         }
+        if b == 1320:
+            pvals = {
+                "high_main": two_sided_p(rs, (H, HL), (TH, L)),
+                "low_main": two_sided_p(rs, (L, HL), (TH, H)),
+            }
     res["false_solve_runs"] = false_runs
     m, s = res["b1320"], res["b330"]
 
-    # Holm over the two primary solve contrasts (positive direction): a
-    # contrast whose 97.5% CI lies above 0 is significant; if either is, the
-    # other is then tested with its 95% CI.
-    strict = {k: m["factorial_solves_97.5"][k]["ci"][0] > 0 for k in ("high_main", "low_main")}
-    holm = {k: strict[k] or (any(strict.values()) and m["factorial_solves"][k]["ci"][0] > 0) for k in strict}
-    # A contrast's Holm-adjusted lower bound: the 97.5% bound unless the
-    # other contrast was significant at 97.5%, then the 95% bound.
+    # Holm over the two primary solve contrasts at family-wise two-sided
+    # alpha 0.05 (the same convention as every other "CI > 0" here). The
+    # contrast with the smaller bootstrap p-value is tested with its 97.5% CI;
+    # if it is significant, the other is tested with its 95% CI, otherwise
+    # with its 97.5% CI. The same bound is used for the +0.3 materiality rule.
+    first, second = sorted(pvals, key=lambda k: (pvals[k], k))
+    first_sig = m["factorial_solves_97.5"][first]["ci"][0] > 0
+    bound = {first: m["factorial_solves_97.5"][first]["ci"][0]}
+    bound[second] = m["factorial_solves" if first_sig else "factorial_solves_97.5"][second]["ci"][0]
+    holm = {first: first_sig, second: first_sig and bound[second] > 0}
+
     def holm_low(k):
-        other = "low_main" if k == "high_main" else "high_main"
-        lvl = "factorial_solves" if strict[other] else "factorial_solves_97.5"
-        return m[lvl][k]["ci"][0]
+        return bound[k]
 
     v = {
         "P0 TH - RR at b1320: CI < 0 (the loss replicates)": m["vs_rr"][TH]["ci"][1] < 0,
-        "P1 high-tail main effect on high-hint dead share at b1320: CI < 0": m["factorial_high_dead_share"]["high_main"]["ci"][1] < 0,
-        "P2 low-tail main effect on low-hint solvable share at b1320: CI > 0": m["factorial_low_solvable_share"]["low_main"]["ci"][0] > 0,
+        "P1 high-tail main effect on high-hint dead share and count at b1320: both CI < 0": m["factorial_high_dead_share"]["high_main"]["ci"][1] < 0
+        and m["factorial_high_dead_attempts"]["high_main"]["ci"][1] < 0,
+        "P2 low-tail main effect on low-hint solvable share and count at b1320: both CI > 0": m["factorial_low_solvable_share"]["low_main"]["ci"][0] > 0
+        and m["factorial_low_solvable_attempts"]["low_main"]["ci"][0] > 0,
         "P3 high-tail main effect on solves at b1320: Holm CI > 0": holm["high_main"],
         "P4 low-tail main effect on solves at b1320: Holm CI > 0": holm["low_main"],
         "P5 HL - TH at b1320: CI > 0": m["vs_thompson"][HL]["ci"][0] > 0,
@@ -160,8 +197,8 @@ def main(root):
     else:
         v["Decision (high tail: optimistic hints on dead tasks)"] = verdict(p1, p3, holm_low("high_main"))
         v["Decision (low tail: pessimistic hints on solvable tasks)"] = verdict(p2, p4, holm_low("low_main"))
-        v["Closes the gap: HL - RR at b1320 >= -0.3 (point) and P5"] = vals[5] and m["vs_rr"][HL]["diff"] >= -0.3
-    res["holm_lower_bounds_b1320"] = {k: round(holm_low(k), 4) for k in ("high_main", "low_main")}
+        v["Closes the gap: P5 and HL - RR at b1320 CI lower > -0.3"] = vals[5] and m["vs_rr"][HL]["ci"][0] > -0.3
+    res["holm_b1320"] = {k: {"p": round(pvals[k], 4), "adjusted_lower": round(holm_low(k), 4)} for k in ("high_main", "low_main")}
     res["verdicts"] = v
     json.dump(res, sys.stdout, indent=1)
 

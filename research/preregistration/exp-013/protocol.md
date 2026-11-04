@@ -1,7 +1,7 @@
 # exp-013: Which tail of the hint prior costs hinted Thompson its moderate-budget yield?
 
-Status: **DRAFT, under review.** It will be frozen before any exp-013
-outcome on the preregistered seeds is generated. The scoring script
+Status: **FROZEN** before any exp-013 outcome on the preregistered seeds
+was generated. The scoring script
 [`evaluate.py`](evaluate.py) is frozen with this protocol.
 Kind: **real tasks, pilot** (non-LLM DSL worker; trust class V1). Not
 confirmatory.
@@ -98,21 +98,36 @@ TH, H, L and HL form a 2 × 2. Paired by seed with the frozen
 - **Low-tail main effect:** mean(L, HL) − mean(TH, H).
 - **Interaction:** (HL − L) − (H − TH).
 
-**Mechanism metrics**, each a per-run share of attempts, so that fewer
-total attempts cannot pass for better allocation:
+**Mechanism metrics.** Each is required both as a per-run share of
+attempts and as an absolute count per run:
 
-- high-hint dead share: attempts on the 3 high-hint dead tasks;
-- low-hint solvable share: attempts on the 8 low-hint solvable tasks.
+- high-hint dead: attempts on the 3 high-hint dead tasks;
+- low-hint solvable: attempts on the 8 low-hint solvable tasks.
 
-Counts per stratum, low-hint solvable solves and the overall dead-task
-share are also reported.
+The share stops fewer total attempts from passing for better allocation.
+The count stops a shift into another stratum from passing for suppression
+or rescue of the target one. Low-hint solvable solves and the overall
+dead-task share are also reported.
 
-**Multiplicity.** Holm over the two primary solve contrasts (P3, P4):
+**Multiplicity.** Holm over the two primary solve contrasts (P3, P4), at
+family-wise two-sided α = 0.05, the same convention as every other
+"CI > 0" here:
 
-- A contrast whose 97.5% CI lies above zero is significant.
-- If either is, the other is tested with its 95% CI.
-- The Holm-adjusted lower bound is the one used for "materially
-  beneficial".
+- The contrast with the smaller bootstrap p-value is tested first, with
+  its two-sided 97.5% CI. The p-value comes from the same resamples as the
+  frozen bootstrap, and the script checks that.
+- If the first is significant, the second is tested with its 95% CI.
+  Otherwise the second is tested with its 97.5% CI and cannot pass.
+- The bound each contrast was tested with is its Holm-adjusted lower bound,
+  used for "materially beneficial".
+
+`evaluate.py` fails closed on:
+
+- duplicate (seed, policy) rows;
+- missing or extra seeds or policies;
+- unknown or missing task ids;
+- per-task attempts that do not sum to the run's attempts;
+- solved ids that do not match the solve count.
 
 ## Frozen inputs
 
@@ -138,11 +153,28 @@ HASHES
 - **A dev smoke** of all six policies on dev seeds 1–2 at each budget.
   It checked only that configs load and the diagnostics are present.
 - **A scoring-script check.** The smoke data was scored with TH copied into
-  every tempered cell; every contrast was exactly 0. Synthetic data with
-  known effects gave the right main effects and interaction.
+  every tempered cell, with the seed range patched to the dev seeds; every
+  contrast was exactly 0. Synthetic data with known effects gave the right
+  main effects, interaction and p-value ordering. A duplicated row made the
+  script stop.
 - **A unit-test fixture:** a cheap 0.999-hint task with 20 fresh failures
   against an untried 0.001-hint task. Tempering the low tail is what lets
   the untried task in.
+
+## Amendments after review, before any data
+
+ChatGPT reviewed the draft (PR 25, second commit). Four changes were made
+before any run on the preregistered seeds:
+
+1. **Holm ordering.** The draft gave both contrasts 95% bounds when both
+   passed the first step. The contrasts are now ordered by bootstrap
+   p-value. Two-sided intervals were kept, to match the project's other
+   predictions; the reviewer had suggested one-sided bounds.
+2. **Counts as well as shares** for P1 and P2.
+3. **Fail-closed checks** in `evaluate.py`.
+4. **"Closes the gap"** uses the CI lower bound, not the point estimate.
+
+The reviewer judged P6's −0.3 margin attainable, and it was kept.
 
 ## Predictions
 
@@ -150,9 +182,11 @@ All at 1,320 CU unless stated.
 
 - **P0: the loss replicates.** TH − RR has CI < 0.
 - **P1: high-tail tempering moves attempts off high-hint dead tasks.** The
-  high-tail main effect on the high-hint dead share has CI < 0.
+  high-tail main effect on the high-hint dead share, and on the count, both
+  have CI < 0.
 - **P2: low-tail tempering moves attempts onto low-hint solvable tasks.**
-  The low-tail main effect on the low-hint solvable share has CI > 0.
+  The low-tail main effect on the low-hint solvable share, and on the
+  count, both have CI > 0.
 - **P3: high-tail tempering raises solves.** The high-tail main effect on
   solves has a Holm-adjusted CI > 0.
 - **P4: low-tail tempering raises solves.** The low-tail main effect on
@@ -176,8 +210,8 @@ one decision per tail. For the high tail:
 
 The low tail is decided the same way, with P2 and P4.
 
-Also reported: **"tempering closes the gap"** if P5 holds and HL − RR ≥
-−0.3 (point).
+Also reported: **"tempering closes the gap"** if P5 holds and the CI lower
+bound of HL − RR exceeds −0.3.
 
 The interaction, results at 2,640 CU, NH, and all means are reported
 descriptively. A factor of 0.5 is one point on a continuum, and the result
