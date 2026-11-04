@@ -579,6 +579,12 @@ impl<'a> Sim<'a> {
             _ => false,
         };
         let informative = matches!(outcome, AttemptOutcome::TimedOut) || reused_rejection;
+        let s = &mut self.stats[task];
+        s.reused += u32::from(reused_rejection);
+        if informative {
+            s.gen_sum += gen_units;
+            s.gen_n += 1;
+        }
         let fl = self.inflight.get_mut(&id).expect("present");
         if fl.attempt.state() == AttemptState::ArtifactSubmitted {
             let to = if reused_rejection { AttemptState::Rejected } else { AttemptState::Cancelled };
@@ -654,6 +660,11 @@ impl<'a> Sim<'a> {
                 self.log.append(Event::ProblemSolved { problem_id: spec.id().into(), at: self.now });
             }
         }
+        let s = &mut self.stats[task];
+        s.novel += 1;
+        s.gen_sum += gen_units;
+        s.gen_n += 1;
+        s.verify_sum += verify_units;
         self.finish(id, gen_units + verify_units, true, verified)
     }
 

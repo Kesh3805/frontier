@@ -32,6 +32,15 @@ pub struct TaskStats {
     /// model). May be badly wrong.
     pub prior_hint: f64,
     pub oracle: Option<OracleInfo>,
+    /// Informative attempts that produced a fresh candidate and were verified.
+    pub novel: u32,
+    /// Informative attempts whose candidate repeated an already-rejected one.
+    pub reused: u32,
+    /// Generation units over informative attempts (`gen_n` of them).
+    pub gen_sum: f64,
+    pub gen_n: u32,
+    /// Verification units over the `novel` attempts.
+    pub verify_sum: f64,
 }
 
 /// One way of solving a problem: a terminal task plus all its unverified
@@ -130,6 +139,21 @@ pub enum PolicyConfig {
         prior_strength: f64,
         use_hints: bool,
     },
+    /// `Thompson` factored by what an attempt buys. With `per_novel_cost`, a
+    /// task's cost is the expected cost of one *novel* candidate, G / q + V:
+    /// G is mean generation per informative attempt, q the novelty rate
+    /// (Thompson-sampled from Beta(1 + novel, 1 + other informative
+    /// attempts)), V mean verification of a novel candidate. Otherwise it is
+    /// the observed mean charge per attempt, as in `Thompson`. With
+    /// `reuse_is_failure`, a reused rejection is a failure in the success
+    /// posterior, as in `Thompson`; otherwise only fresh rejections and
+    /// timeouts are.
+    ThompsonNovel {
+        prior_strength: f64,
+        use_hints: bool,
+        per_novel_cost: bool,
+        reuse_is_failure: bool,
+    },
     /// Uses ground truth. Simulation-only diagnostic, not an upper bound.
     OracleIndex,
 }
@@ -154,6 +178,14 @@ impl PolicyConfig {
             PolicyConfig::ThompsonFlat { prior_strength, use_hints } => Box::new(IndexPolicy {
                 estimator: Estimator::Thompson { prior_strength, use_hints, flat_cost: true },
                 label: format!("thompson_flat(k={prior_strength},hints={use_hints})"),
+            }),
+            PolicyConfig::ThompsonNovel { prior_strength, use_hints, per_novel_cost, reuse_is_failure } => Box::new(IndexPolicy {
+                estimator: Estimator::ThompsonNovel { prior_strength, use_hints, per_novel_cost, reuse_is_failure },
+                label: format!(
+                    "thompson_novel(k={prior_strength},hints={use_hints},cost={},reuse={})",
+                    if per_novel_cost { "novel" } else { "observed" },
+                    if reuse_is_failure { "failure" } else { "ignored" }
+                ),
             }),
             PolicyConfig::OracleIndex => Box::new(IndexPolicy { estimator: Estimator::Oracle, label: "oracle_index".into() }),
         }
@@ -269,6 +301,7 @@ enum Estimator {
     Prior,
     Ucb { prior_strength: f64, use_hints: bool, beta: f64 },
     Thompson { prior_strength: f64, use_hints: bool, flat_cost: bool },
+    ThompsonNovel { prior_strength: f64, use_hints: bool, per_novel_cost: bool, reuse_is_failure: bool },
     Oracle,
 }
 
@@ -277,6 +310,16 @@ fn beta_params(s: &TaskStats, prior_strength: f64, use_hints: bool) -> (f64, f64
     let a = prior_strength * m + if s.verified { 1.0 } else { 0.0 };
     let b = prior_strength * (1.0 - m) + s.failures as f64;
     (a, b)
+}
+
+/// Mean of `sum / n` for a task, else pooled over tasks, else `fallback`.
+fn task_or_pooled(view: &SchedView, t: TaskIdx, f: impl Fn(&TaskStats) -> (f64, u32), fallback: f64) -> f64 {
+    let (sum, n) = f(&view.tasks[t]);
+    if n > 0 {
+        return sum / n as f64;
+    }
+    let (sum, n) = view.tasks.iter().map(&f).fold((0.0, 0u32), |(a, b), (s, k)| (a + s, b + k));
+    if n > 0 { sum / n as f64 } else { fallback }
 }
 
 /// Chooses the approach with the smallest estimated expected cost to finish
@@ -307,6 +350,23 @@ impl IndexPolicy {
                 Estimator::Thompson { prior_strength, use_hints, flat_cost } => {
                     let (a, b) = beta_params(s, *prior_strength, *use_hints);
                     (rng.beta(a, b), if *flat_cost { view.prior_cost } else { view.cost_estimate(t) })
+                }
+                Estimator::ThompsonNovel { prior_strength, use_hints, per_novel_cost, reuse_is_failure } => {
+                    let (a, mut b) = beta_params(s, *prior_strength, *use_hints);
+                    if !reuse_is_failure {
+                        b -= s.reused as f64;
+                    }
+                    let p = rng.beta(a, b);
+                    let cost = if *per_novel_cost {
+                        let other = s.attempts.saturating_sub(s.novel) as f64;
+                        let q = rng.beta(1.0 + s.novel as f64, 1.0 + other);
+                        let g = task_or_pooled(view, t, |s| (s.gen_sum, s.gen_n), view.prior_cost);
+                        let v = task_or_pooled(view, t, |s| (s.verify_sum, s.novel), view.prior_cost);
+                        g / q + v
+                    } else {
+                        view.cost_estimate(t)
+                    };
+                    (p, cost)
                 }
             })
             .collect()
@@ -409,6 +469,62 @@ mod tests {
     }
 
     #[test]
+    fn novel_cost_thompson_prices_stuck_tasks_per_novel_candidate() {
+        // Task 0 is stuck: 1 fresh rejection, then 15 cheap reused rejections.
+        // Task 1 had one fresh rejection at full price.
+        let stuck = TaskStats {
+            prior_hint: 0.5,
+            attempts: 16,
+            failures: 16,
+            novel: 1,
+            reused: 15,
+            cost_sum: 12.0 + 15.0 * 0.5,
+            cost_n: 16,
+            gen_sum: 8.0,
+            gen_n: 16,
+            verify_sum: 11.5,
+            ..Default::default()
+        };
+        let live = TaskStats {
+            problem: 1,
+            prior_hint: 0.5,
+            attempts: 1,
+            failures: 1,
+            novel: 1,
+            cost_sum: 12.0,
+            cost_n: 1,
+            gen_sum: 0.5,
+            gen_n: 1,
+            verify_sum: 11.5,
+            ..Default::default()
+        };
+        let tasks = vec![stuck, live];
+        let approaches = vec![Approach { problem: 0, tasks: vec![0] }, Approach { problem: 1, tasks: vec![1] }];
+        let problems = vec![ProblemStats::default(), ProblemStats::default()];
+        let r = [0, 1];
+        let picks = |c: PolicyConfig| {
+            let mut pol = c.build();
+            (0..400).filter(|&s| pol.select(&view(&tasks, &approaches, &problems, &r), &mut SplitMix64::new(s)) == Some(0)).count()
+        };
+        let novel = |per_novel_cost, reuse_is_failure| PolicyConfig::ThompsonNovel {
+            prior_strength: 2.0,
+            use_hints: true,
+            per_novel_cost,
+            reuse_is_failure,
+        };
+        // Observed cost with reuse as failure is exactly `Thompson`.
+        assert_eq!(picks(novel(false, true)), picks(PolicyConfig::Thompson { prior_strength: 2.0, use_hints: true }));
+        let (obs_ign, nov_ign, nov_fail, obs_fail) =
+            (picks(novel(false, false)), picks(novel(true, false)), picks(novel(true, true)), picks(novel(false, true)));
+        // Ignoring reuse alone makes the stuck task look both cheap and hopeful;
+        // pricing a novel candidate takes back much of that pull.
+        assert!(obs_ign > 300 && nov_ign < obs_ign - 100, "{obs_ign} vs {nov_ign}");
+        // Counting reuse as failure makes it less attractive still.
+        assert!(nov_fail < nov_ign && nov_fail < obs_fail - 100, "{nov_fail} vs {nov_ign}, {obs_fail}");
+        assert_eq!(novel(true, false).build().name(), "thompson_novel(k=2,hints=true,cost=novel,reuse=ignored)");
+    }
+
+    #[test]
     fn round_robin_rotates_and_fixed_slice_caps() {
         let (t, a, mut p) = view_fixture();
         let r = [0, 1];
@@ -446,6 +562,7 @@ mod tests {
             PolicyConfig::GreedyPrior,
             PolicyConfig::Thompson { prior_strength: 2.0, use_hints: true },
             PolicyConfig::ThompsonFlat { prior_strength: 2.0, use_hints: true },
+            PolicyConfig::ThompsonNovel { prior_strength: 2.0, use_hints: true, per_novel_cost: true, reuse_is_failure: false },
             PolicyConfig::OracleIndex,
         ];
         for c in configs {
