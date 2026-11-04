@@ -9,7 +9,7 @@
 //! which makes paired comparisons between policies far less noisy.
 
 use std::cmp::Reverse;
-use std::collections::{BTreeMap, BinaryHeap};
+use std::collections::{BTreeMap, BTreeSet, BinaryHeap};
 use std::time::Instant;
 
 use frontier_core::evidence::{RECEIPT_SCHEMA_VERSION, TrustClass};
@@ -115,6 +115,10 @@ pub struct SimTruth {
     pub false_accepted_tasks: usize,
     /// Attempts dispatched on obligations whose true success probability is 0.
     pub dead_attempts: usize,
+    /// Attempts dispatched per task id.
+    pub task_attempts: BTreeMap<String, u32>,
+    /// Task ids of terminal tasks counted in `true_solved`.
+    pub true_solved_tasks: BTreeSet<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -247,6 +251,9 @@ pub fn run_campaign(cfg: &SimConfig, campaign: &Campaign) -> Result<RunOutput, S
 pub fn run_campaign_with(cfg: &SimConfig, campaign: &Campaign, external: Option<&mut ExternalWorker>) -> Result<RunOutput, SimError> {
     let mut sim = Sim::new(cfg, campaign, external)?;
     sim.execute()?;
+    for (t, &n) in sim.started_per_task.iter().enumerate() {
+        sim.truth.task_attempts.insert(sim.graph.node(t).def.task_id.clone(), n);
+    }
     Ok(RunOutput {
         policy_name: sim.policy.name(),
         select_nanos: sim.select_nanos,
@@ -651,6 +658,7 @@ impl<'a> Sim<'a> {
             if self.graph.node(task).def.terminal {
                 if sound {
                     self.truth.true_solved += 1;
+                    self.truth.true_solved_tasks.insert(self.graph.node(task).def.task_id.clone());
                 } else {
                     self.truth.false_solved += 1;
                 }

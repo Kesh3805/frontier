@@ -3,6 +3,8 @@
 //! For a given (regime, seed) every policy faces the same generated campaign
 //! and the same per-attempt outcome streams, so comparisons are paired.
 
+use std::collections::{BTreeMap, BTreeSet};
+
 use frontier_sched::PolicyConfig;
 use serde::{Deserialize, Serialize};
 
@@ -48,6 +50,11 @@ pub struct ResultRecord {
     pub sim_false_solved: usize,
     pub sim_false_accepted_tasks: usize,
     pub sim_dead_attempts: usize,
+    /// Real-task runs only: attempts per task id, and the true-solved task ids.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub sim_task_attempts: BTreeMap<String, u32>,
+    #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
+    pub sim_true_solved_tasks: BTreeSet<String>,
 }
 
 impl ExperimentConfig {
@@ -100,6 +107,8 @@ pub fn run_experiment(cfg: &ExperimentConfig, threads: usize) -> Result<Vec<Resu
                                 sim_false_solved: output.truth.false_solved,
                                 sim_false_accepted_tasks: output.truth.false_accepted_tasks,
                                 sim_dead_attempts: output.truth.dead_attempts,
+                                sim_task_attempts: BTreeMap::new(),
+                                sim_true_solved_tasks: BTreeSet::new(),
                             });
                         }
                         local.push((ri, seed, recs));

@@ -434,6 +434,8 @@ pub fn run_real_experiment(cfg: &RealExperimentConfig, base: &Path, threads: usi
                                 sim_false_solved: output.truth.false_solved,
                                 sim_false_accepted_tasks: output.truth.false_accepted_tasks,
                                 sim_dead_attempts: output.truth.dead_attempts,
+                                sim_task_attempts: output.truth.task_attempts,
+                                sim_true_solved_tasks: output.truth.true_solved_tasks,
                             });
                         }
                         local.push((seed, recs));

@@ -43,6 +43,7 @@ failed predictions.
 | [exp-010](results/exp-010/README.md) | real tasks, measured cost | Charging verification at its measured cost (10.6 CU per call + 0.0046 CU per case) shrinks the strong suite's yield cost from −3.93 to **−0.55 [−0.68, −0.43]** and fail-fast's recovery from +2.78 to +0.38, with 0 false solves in 5,400 v2 runs. Hinted Thompson's scarce-budget gain holds (**+2.47** single-step, **+3.99** dependencies), but at moderate single-step budgets it now **loses** to round-robin (−0.93, −0.66; not preregistered). | suite-cost finding **was a charge artefact**; allocation gain **robust** (6/6 predictions) |
 | [exp-011](results/exp-011/README.md) | real tasks, measured cost | On fresh seeds, hinted Thompson's moderate-budget loss replicates (**−0.86 [−1.18, −0.54]** at 1,320 CU). A cost-blind index recovers only +0.10 [−0.09, 0.30] and cuts dead-task attempts by ~5%; most of the dead-task excess sits with the hints (descriptive). 0 false solves in 3,000 runs. | loss **replicated**; cost-bias explanation **unclear** (4/7 predictions) |
 | [exp-012](results/exp-012/README.md) | real tasks, measured cost | Pricing a task per *novel* candidate (G/q + V) and/or ignoring reused rejections, within hinted Thompson. The loss replicates again (**−0.70 [−1.03, −0.36]**); per-novel pricing gives +0.05 [−0.11, 0.22] at 1,320 CU (dead-task share −1.2 points) and +0.38 at 2,640 CU (descriptive). Ignoring reuse does not help. 0 false solves in 1,800 runs. | **unclear** (5/8 predictions); evidence points away from the cost index, towards the hint prior |
+| [exp-013](research/preregistration/exp-013/protocol.md) | real tasks, measured cost | Which tail of the hint prior costs hinted Thompson its moderate-budget yield? A 2×2 that pulls high (≥ 0.9) and low (≤ 0.1) hints half-way to 0.5, with per-task attempt diagnostics; fresh seeds. | protocol frozen |
 | [rerun-k0.3](results/rerun-k0.3/README.md) | all | Corrected re-runs after errata E1/E2. **No frozen verdict changed**; exp-004's P3/P4 now hold; some magnitudes moved (exp-000 R2-scarce +1.46 → +0.33; real-task hint-free loss −0.95 → −0.12, n.s.). | errata applied |
 
 **Takeaways so far, each with its uncertainty:**
@@ -232,7 +233,7 @@ python research/preregistration/exp-004/evaluate_primary.py runs/exp-004
 | `crates/frontier-sim` | Synthetic environment, discrete-event runner, external real-task backend, audit, experiment grids |
 | `crates/frontier-cli` | The `frontier` binary |
 | `python/frontier_py` | Verifier, real-task suite and worker, worker service, statistics, model adapters |
-| `research/preregistration/` | Frozen protocols, configs and scoring scripts (exp-000 to exp-012) |
+| `research/preregistration/` | Frozen protocols, configs and scoring scripts (exp-000 to exp-013) |
 | `research/realtasks/` | Task catalogs (v1, v2; v3 = dependency-structured problems with lemma routes) with hashed hidden-suite commitments |
 | `results/` | Executed results, scorecards, per-run data, manifests |
 | `docs/research/` | Scope, source audit, literature review, simulator calibration |
