@@ -51,7 +51,7 @@ That suggests two mechanisms (named in review by ChatGPT):
 
 ## Design
 
-**`thompson_tempered`** (harness commit `HARNESS`) is hinted,
+**`thompson_tempered`** (harness commit `5a302a9921cbf2e3188d4d0ffbe8dcd3937e6290`) is hinted,
 observed-cost Thompson with each tail of the hint pulled towards 0.5
 before it enters the prior:
 
@@ -131,9 +131,23 @@ family-wise two-sided α = 0.05, the same convention as every other
 
 ## Frozen inputs
 
-Harness commit `HARNESS`. SHA-256 of each file with LF line endings:
+Harness commit `5a302a9921cbf2e3188d4d0ffbe8dcd3937e6290`. SHA-256 of each file with LF line endings:
 
-HASHES
+| File | SHA-256 |
+|---|---|
+| `research/preregistration/exp-013/make_configs.py` | `77c646b83b39453dbc67bcf7a1d25aa39b675b625281894fee05e9f7f998f489` |
+| `research/preregistration/exp-013/evaluate.py` | `1d59421a99f3288e143139dacef4457b91d5dfdfcd7df8ba5b68715735d31e5c` |
+| `research/preregistration/exp-013/b330.json` | `974f363d7592f569a9f6a1dcd7654bf1067bcdb091c7384298b024fb39680feb` |
+| `research/preregistration/exp-013/b1320.json` | `63211cb1650172fe97985c8e5b42ad161c68e9478b5358ff9643596f70c1c6ff` |
+| `research/preregistration/exp-013/b2640.json` | `6cff6e2efdfbbef0c2079b616acdfc6253e52f33c1bb5cb43b29deec3a50575b` |
+| `crates/frontier-sched/src/lib.rs` | `5d3b8c4a00e08bc848191cce7c9e0620729cca51ed9a2a34964f10137840ebe2` |
+| `crates/frontier-sim/src/runner.rs` | `701abb87ed9689ceb835c4824af745869432f3ec24221f09d81b6ad65d2a7306` |
+| `crates/frontier-sim/src/real.rs` | `aa0e09b9bb5387ff88d5c923f4ed0ab2101a9f5745b8479737aa7ad1dff7dc03` |
+| `crates/frontier-sim/src/experiment.rs` | `81591313d9754d324a7158d7bad4625e62e14948255e0b5300648458ce66880f` |
+| `python/frontier_py/realtasks/server.py` | `72ff87cfae3a07ca7fd36136cab289f85fb753110b496d47b079280fa1f115c7` |
+| `python/frontier_py/verifiers/property_tests.py` | `7944be8850c672e4e6d84d6ec68a3ee9ba50e3620dd94fb7fd6c8dbfb7e01a39` |
+| `python/frontier_py/analysis.py` | `fbbf32e21c9cb5e9814820f7a0dc76e4ed7d1490a773256556fc6bced5661a0c` |
+| `research/realtasks/catalog-v2.json` | `cb72f7fdc87d04c8700fa6c543da98a9005af35a6645ef6623d66bfcf1fbbb47` |
 
 ## Seen before freezing (disclosed)
 
