@@ -103,6 +103,7 @@
             "ucb",
             "thompson",
             "thompson_flat",
+            "thompson_novel",
             "oracle_index"
           ]
         }
@@ -134,6 +135,20 @@
               "prior_strength": { "type": "number" },
               "use_hints": { "type": "boolean" },
               "beta": { "type": "number" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "thompson_novel" } } },
+          "then": {
+            "additionalProperties": false,
+            "required": ["prior_strength", "use_hints", "per_novel_cost", "reuse_is_failure"],
+            "properties": {
+              "kind": true,
+              "prior_strength": { "type": "number" },
+              "use_hints": { "type": "boolean" },
+              "per_novel_cost": { "type": "boolean" },
+              "reuse_is_failure": { "type": "boolean" }
             }
           }
         },
