@@ -1,0 +1,589 @@
+{
+ "M-b330": {
+  "means": {
+   "round_robin": {
+    "sim_true_solved": 9.39,
+    "sim_dead_attempts": 5.76,
+    "reused_rejections": 0.0,
+    "rejected": 15.59
+   },
+   "thompson(k=2,hints=true)": {
+    "sim_true_solved": 11.42,
+    "sim_dead_attempts": 7.29,
+    "reused_rejections": 2.01,
+    "rejected": 14.8
+   },
+   "thompson_flat(k=2,hints=true)": {
+    "sim_true_solved": 11.75,
+    "sim_dead_attempts": 6.13,
+    "reused_rejections": 1.41,
+    "rejected": 14.45
+   },
+   "thompson(k=2,hints=false)": {
+    "sim_true_solved": 8.95,
+    "sim_dead_attempts": 6.13,
+    "reused_rejections": 0.26,
+    "rejected": 16.07
+   },
+   "thompson_flat(k=2,hints=false)": {
+    "sim_true_solved": 8.94,
+    "sim_dead_attempts": 5.93,
+    "reused_rejections": 0.09,
+    "rejected": 16.07
+   }
+  },
+  "vs_rr": {
+   "thompson(k=2,hints=true)": {
+    "diff": 2.03,
+    "ci": [
+     1.68,
+     2.37
+    ]
+   },
+   "thompson_flat(k=2,hints=true)": {
+    "diff": 2.36,
+    "ci": [
+     2.0,
+     2.72
+    ]
+   },
+   "thompson(k=2,hints=false)": {
+    "diff": -0.44,
+    "ci": [
+     -0.79,
+     -0.1
+    ]
+   },
+   "thompson_flat(k=2,hints=false)": {
+    "diff": -0.45,
+    "ci": [
+     -0.79,
+     -0.11
+    ]
+   }
+  },
+  "flat_minus_observed": {
+   "hints": {
+    "diff": 0.33,
+    "ci": [
+     0.21,
+     0.45
+    ]
+   },
+   "no_hints": {
+    "diff": -0.01,
+    "ci": [
+     -0.11,
+     0.09
+    ]
+   }
+  },
+  "flat_minus_observed_dead_attempts": {
+   "hints": {
+    "diff": -1.16,
+    "ci": [
+     -1.53,
+     -0.82
+    ]
+   },
+   "no_hints": {
+    "diff": -0.2,
+    "ci": [
+     -0.37,
+     -0.05
+    ]
+   }
+  }
+ },
+ "M-b1320": {
+  "means": {
+   "round_robin": {
+    "sim_true_solved": 19.65,
+    "sim_dead_attempts": 44.47,
+    "reused_rejections": 14.93,
+    "rejected": 79.01
+   },
+   "thompson(k=2,hints=true)": {
+    "sim_true_solved": 18.79,
+    "sim_dead_attempts": 102.6,
+    "reused_rejections": 72.88,
+    "rejected": 84.86
+   },
+   "thompson_flat(k=2,hints=true)": {
+    "sim_true_solved": 18.89,
+    "sim_dead_attempts": 97.65,
+    "reused_rejections": 69.2,
+    "rejected": 84.51
+   },
+   "thompson(k=2,hints=false)": {
+    "sim_true_solved": 19.35,
+    "sim_dead_attempts": 53.22,
+    "reused_rejections": 22.06,
+    "rejected": 80.03
+   },
+   "thompson_flat(k=2,hints=false)": {
+    "sim_true_solved": 19.44,
+    "sim_dead_attempts": 45.66,
+    "reused_rejections": 15.82,
+    "rejected": 79.24
+   }
+  },
+  "vs_rr": {
+   "thompson(k=2,hints=true)": {
+    "diff": -0.86,
+    "ci": [
+     -1.18,
+     -0.5398
+    ]
+   },
+   "thompson_flat(k=2,hints=true)": {
+    "diff": -0.76,
+    "ci": [
+     -1.09,
+     -0.42
+    ]
+   },
+   "thompson(k=2,hints=false)": {
+    "diff": -0.3,
+    "ci": [
+     -0.45,
+     -0.15
+    ]
+   },
+   "thompson_flat(k=2,hints=false)": {
+    "diff": -0.21,
+    "ci": [
+     -0.33,
+     -0.1
+    ]
+   }
+  },
+  "flat_minus_observed": {
+   "hints": {
+    "diff": 0.1,
+    "ci": [
+     -0.09,
+     0.3
+    ]
+   },
+   "no_hints": {
+    "diff": 0.09,
+    "ci": [
+     -0.08,
+     0.27
+    ]
+   }
+  },
+  "flat_minus_observed_dead_attempts": {
+   "hints": {
+    "diff": -4.95,
+    "ci": [
+     -6.49,
+     -3.51
+    ]
+   },
+   "no_hints": {
+    "diff": -7.56,
+    "ci": [
+     -8.6,
+     -6.57
+    ]
+   }
+  }
+ },
+ "M-b2640": {
+  "means": {
+   "round_robin": {
+    "sim_true_solved": 23.16,
+    "sim_dead_attempts": 151.83,
+    "reused_rejections": 78.05,
+    "rejected": 170.09
+   },
+   "thompson(k=2,hints=true)": {
+    "sim_true_solved": 22.39,
+    "sim_dead_attempts": 240.03,
+    "reused_rejections": 161.75,
+    "rejected": 177.4
+   },
+   "thompson_flat(k=2,hints=true)": {
+    "sim_true_solved": 22.6,
+    "sim_dead_attempts": 232.54,
+    "reused_rejections": 157.22,
+    "rejected": 177.26
+   },
+   "thompson(k=2,hints=false)": {
+    "sim_true_solved": 22.97,
+    "sim_dead_attempts": 178.4,
+    "reused_rejections": 102.13,
+    "rejected": 171.65
+   },
+   "thompson_flat(k=2,hints=false)": {
+    "sim_true_solved": 23.09,
+    "sim_dead_attempts": 156.26,
+    "reused_rejections": 82.41,
+    "rejected": 170.38
+   }
+  },
+  "vs_rr": {
+   "thompson(k=2,hints=true)": {
+    "diff": -0.77,
+    "ci": [
+     -1.03,
+     -0.53
+    ]
+   },
+   "thompson_flat(k=2,hints=true)": {
+    "diff": -0.56,
+    "ci": [
+     -0.82,
+     -0.3
+    ]
+   },
+   "thompson(k=2,hints=false)": {
+    "diff": -0.19,
+    "ci": [
+     -0.33,
+     -0.06
+    ]
+   },
+   "thompson_flat(k=2,hints=false)": {
+    "diff": -0.07,
+    "ci": [
+     -0.14,
+     0.0
+    ]
+   }
+  },
+  "flat_minus_observed": {
+   "hints": {
+    "diff": 0.21,
+    "ci": [
+     0.04,
+     0.38
+    ]
+   },
+   "no_hints": {
+    "diff": 0.12,
+    "ci": [
+     0.0,
+     0.25
+    ]
+   }
+  },
+  "flat_minus_observed_dead_attempts": {
+   "hints": {
+    "diff": -7.49,
+    "ci": [
+     -9.57,
+     -5.4
+    ]
+   },
+   "no_hints": {
+    "diff": -22.14,
+    "ci": [
+     -24.1602,
+     -20.17
+    ]
+   }
+  }
+ },
+ "P-b60": {
+  "means": {
+   "round_robin": {
+    "sim_true_solved": 9.2,
+    "sim_dead_attempts": 5.61,
+    "reused_rejections": 0.0,
+    "rejected": 15.37
+   },
+   "thompson(k=2,hints=true)": {
+    "sim_true_solved": 12.34,
+    "sim_dead_attempts": 16.33,
+    "reused_rejections": 7.8,
+    "rejected": 22.51
+   },
+   "thompson_flat(k=2,hints=true)": {
+    "sim_true_solved": 13.03,
+    "sim_dead_attempts": 10.11,
+    "reused_rejections": 3.97,
+    "rejected": 20.28
+   },
+   "thompson(k=2,hints=false)": {
+    "sim_true_solved": 8.94,
+    "sim_dead_attempts": 7.21,
+    "reused_rejections": 0.97,
+    "rejected": 16.69
+   },
+   "thompson_flat(k=2,hints=false)": {
+    "sim_true_solved": 8.85,
+    "sim_dead_attempts": 5.76,
+    "reused_rejections": 0.04,
+    "rejected": 15.61
+   }
+  },
+  "vs_rr": {
+   "thompson(k=2,hints=true)": {
+    "diff": 3.14,
+    "ci": [
+     2.71,
+     3.55
+    ]
+   },
+   "thompson_flat(k=2,hints=true)": {
+    "diff": 3.83,
+    "ci": [
+     3.3698,
+     4.29
+    ]
+   },
+   "thompson(k=2,hints=false)": {
+    "diff": -0.26,
+    "ci": [
+     -0.74,
+     0.2
+    ]
+   },
+   "thompson_flat(k=2,hints=false)": {
+    "diff": -0.35,
+    "ci": [
+     -0.75,
+     0.05
+    ]
+   }
+  },
+  "flat_minus_observed": {
+   "hints": {
+    "diff": 0.69,
+    "ci": [
+     0.49,
+     0.89
+    ]
+   },
+   "no_hints": {
+    "diff": -0.09,
+    "ci": [
+     -0.34,
+     0.17
+    ]
+   }
+  },
+  "flat_minus_observed_dead_attempts": {
+   "hints": {
+    "diff": -6.22,
+    "ci": [
+     -6.85,
+     -5.6098
+    ]
+   },
+   "no_hints": {
+    "diff": -1.45,
+    "ci": [
+     -1.85,
+     -1.0798
+    ]
+   }
+  }
+ },
+ "P-b240": {
+  "means": {
+   "round_robin": {
+    "sim_true_solved": 18.85,
+    "sim_dead_attempts": 36.56,
+    "reused_rejections": 10.58,
+    "rejected": 69.39
+   },
+   "thompson(k=2,hints=true)": {
+    "sim_true_solved": 18.91,
+    "sim_dead_attempts": 143.59,
+    "reused_rejections": 105.45,
+    "rejected": 100.9
+   },
+   "thompson_flat(k=2,hints=true)": {
+    "sim_true_solved": 18.9,
+    "sim_dead_attempts": 133.37,
+    "reused_rejections": 97.64,
+    "rejected": 99.19
+   },
+   "thompson(k=2,hints=false)": {
+    "sim_true_solved": 18.54,
+    "sim_dead_attempts": 64.88,
+    "reused_rejections": 34.0,
+    "rejected": 80.79
+   },
+   "thompson_flat(k=2,hints=false)": {
+    "sim_true_solved": 18.87,
+    "sim_dead_attempts": 38.77,
+    "reused_rejections": 12.55,
+    "rejected": 70.49
+   }
+  },
+  "vs_rr": {
+   "thompson(k=2,hints=true)": {
+    "diff": 0.06,
+    "ci": [
+     -0.27,
+     0.39
+    ]
+   },
+   "thompson_flat(k=2,hints=true)": {
+    "diff": 0.05,
+    "ci": [
+     -0.29,
+     0.4
+    ]
+   },
+   "thompson(k=2,hints=false)": {
+    "diff": -0.31,
+    "ci": [
+     -0.55,
+     -0.08
+    ]
+   },
+   "thompson_flat(k=2,hints=false)": {
+    "diff": 0.02,
+    "ci": [
+     -0.11,
+     0.15
+    ]
+   }
+  },
+  "flat_minus_observed": {
+   "hints": {
+    "diff": -0.01,
+    "ci": [
+     -0.22,
+     0.19
+    ]
+   },
+   "no_hints": {
+    "diff": 0.33,
+    "ci": [
+     0.11,
+     0.56
+    ]
+   }
+  },
+  "flat_minus_observed_dead_attempts": {
+   "hints": {
+    "diff": -10.22,
+    "ci": [
+     -11.87,
+     -8.62
+    ]
+   },
+   "no_hints": {
+    "diff": -26.11,
+    "ci": [
+     -27.23,
+     -24.98
+    ]
+   }
+  }
+ },
+ "P-b480": {
+  "means": {
+   "round_robin": {
+    "sim_true_solved": 22.32,
+    "sim_dead_attempts": 114.22,
+    "reused_rejections": 56.95,
+    "rejected": 141.21
+   },
+   "thompson(k=2,hints=true)": {
+    "sim_true_solved": 22.23,
+    "sim_dead_attempts": 239.61,
+    "reused_rejections": 162.47,
+    "rejected": 173.79
+   },
+   "thompson_flat(k=2,hints=true)": {
+    "sim_true_solved": 22.31,
+    "sim_dead_attempts": 235.46,
+    "reused_rejections": 159.69,
+    "rejected": 173.92
+   },
+   "thompson(k=2,hints=false)": {
+    "sim_true_solved": 22.42,
+    "sim_dead_attempts": 172.75,
+    "reused_rejections": 106.09,
+    "rejected": 157.03
+   },
+   "thompson_flat(k=2,hints=false)": {
+    "sim_true_solved": 22.4,
+    "sim_dead_attempts": 118.77,
+    "reused_rejections": 61.09,
+    "rejected": 142.65
+   }
+  },
+  "vs_rr": {
+   "thompson(k=2,hints=true)": {
+    "diff": -0.09,
+    "ci": [
+     -0.3502,
+     0.17
+    ]
+   },
+   "thompson_flat(k=2,hints=true)": {
+    "diff": -0.01,
+    "ci": [
+     -0.29,
+     0.25
+    ]
+   },
+   "thompson(k=2,hints=false)": {
+    "diff": 0.1,
+    "ci": [
+     -0.07,
+     0.27
+    ]
+   },
+   "thompson_flat(k=2,hints=false)": {
+    "diff": 0.08,
+    "ci": [
+     -0.02,
+     0.18
+    ]
+   }
+  },
+  "flat_minus_observed": {
+   "hints": {
+    "diff": 0.08,
+    "ci": [
+     -0.07,
+     0.22
+    ]
+   },
+   "no_hints": {
+    "diff": -0.02,
+    "ci": [
+     -0.17,
+     0.13
+    ]
+   }
+  },
+  "flat_minus_observed_dead_attempts": {
+   "hints": {
+    "diff": -4.15,
+    "ci": [
+     -5.17,
+     -3.13
+    ]
+   },
+   "no_hints": {
+    "diff": -53.98,
+    "ci": [
+     -56.03,
+     -51.98
+    ]
+   }
+  }
+ },
+ "false_solve_runs": 0,
+ "verdicts": {
+  "R1 TH - RR at M-b1320: CI < 0": true,
+  "R2 THflat - TH at M-b1320: CI > 0": false,
+  "R3 dead attempts THflat - TH at M-b1320: CI < 0": true,
+  "R4 THflat - RR at M-b1320 >= -0.3 (point)": false,
+  "R5 THflat - RR at M-b330: CI > 0": true,
+  "R6 THflat - TH larger at M-b1320 than at P-b240 (point)": true,
+  "R7 no run with a false solve": true,
+  "Decision": "the loss replicated; the cost-bias explanation is unclear"
+ }
+}
