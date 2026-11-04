@@ -123,6 +123,13 @@ pub enum PolicyConfig {
         prior_strength: f64,
         use_hints: bool,
     },
+    /// `Thompson` with every attempt priced the same (`prior_cost`), so the
+    /// index ranks by sampled success alone. Observed costs are biased when
+    /// cheap reused rejections dominate a hopeless task's history.
+    ThompsonFlat {
+        prior_strength: f64,
+        use_hints: bool,
+    },
     /// Uses ground truth. Simulation-only diagnostic, not an upper bound.
     OracleIndex,
 }
@@ -141,8 +148,12 @@ impl PolicyConfig {
                 label: format!("ucb(k={prior_strength},hints={use_hints},beta={beta})"),
             }),
             PolicyConfig::Thompson { prior_strength, use_hints } => Box::new(IndexPolicy {
-                estimator: Estimator::Thompson { prior_strength, use_hints },
+                estimator: Estimator::Thompson { prior_strength, use_hints, flat_cost: false },
                 label: format!("thompson(k={prior_strength},hints={use_hints})"),
+            }),
+            PolicyConfig::ThompsonFlat { prior_strength, use_hints } => Box::new(IndexPolicy {
+                estimator: Estimator::Thompson { prior_strength, use_hints, flat_cost: true },
+                label: format!("thompson_flat(k={prior_strength},hints={use_hints})"),
             }),
             PolicyConfig::OracleIndex => Box::new(IndexPolicy { estimator: Estimator::Oracle, label: "oracle_index".into() }),
         }
@@ -257,7 +268,7 @@ impl Policy for HopelessElimination {
 enum Estimator {
     Prior,
     Ucb { prior_strength: f64, use_hints: bool, beta: f64 },
-    Thompson { prior_strength: f64, use_hints: bool },
+    Thompson { prior_strength: f64, use_hints: bool, flat_cost: bool },
     Oracle,
 }
 
@@ -293,9 +304,9 @@ impl IndexPolicy {
                     let sd = (a * b / (((a + b) * (a + b)) * (a + b + 1.0))).sqrt();
                     ((mean + beta * sd).min(1.0), view.cost_estimate(t))
                 }
-                Estimator::Thompson { prior_strength, use_hints } => {
+                Estimator::Thompson { prior_strength, use_hints, flat_cost } => {
                     let (a, b) = beta_params(s, *prior_strength, *use_hints);
-                    (rng.beta(a, b), view.cost_estimate(t))
+                    (rng.beta(a, b), if *flat_cost { view.prior_cost } else { view.cost_estimate(t) })
                 }
             })
             .collect()
@@ -378,6 +389,26 @@ mod tests {
     }
 
     #[test]
+    fn flat_cost_thompson_ignores_cheap_failure_history() {
+        // Task 0 failed often but cheaply (reused rejections); task 1 once, at full price.
+        let tasks = vec![
+            TaskStats { prior_hint: 0.5, attempts: 8, failures: 8, cost_sum: 4.0, cost_n: 8, ..Default::default() },
+            TaskStats { problem: 1, prior_hint: 0.5, attempts: 1, failures: 1, cost_sum: 12.0, cost_n: 1, ..Default::default() },
+        ];
+        let approaches = vec![Approach { problem: 0, tasks: vec![0] }, Approach { problem: 1, tasks: vec![1] }];
+        let problems = vec![ProblemStats::default(), ProblemStats::default()];
+        let r = [0, 1];
+        let picks = |c: PolicyConfig| {
+            let mut pol = c.build();
+            (0..200).filter(|&s| pol.select(&view(&tasks, &approaches, &problems, &r), &mut SplitMix64::new(s)) == Some(0)).count()
+        };
+        let observed = picks(PolicyConfig::Thompson { prior_strength: 2.0, use_hints: true });
+        let flat = picks(PolicyConfig::ThompsonFlat { prior_strength: 2.0, use_hints: true });
+        assert!(observed > 100 && flat < 50, "observed {observed}, flat {flat}");
+        assert_eq!(PolicyConfig::ThompsonFlat { prior_strength: 2.0, use_hints: true }.build().name(), "thompson_flat(k=2,hints=true)");
+    }
+
+    #[test]
     fn round_robin_rotates_and_fixed_slice_caps() {
         let (t, a, mut p) = view_fixture();
         let r = [0, 1];
@@ -414,6 +445,7 @@ mod tests {
             PolicyConfig::Random,
             PolicyConfig::GreedyPrior,
             PolicyConfig::Thompson { prior_strength: 2.0, use_hints: true },
+            PolicyConfig::ThompsonFlat { prior_strength: 2.0, use_hints: true },
             PolicyConfig::OracleIndex,
         ];
         for c in configs {
