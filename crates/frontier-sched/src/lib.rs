@@ -142,8 +142,8 @@ pub enum PolicyConfig {
     /// `Thompson` factored by what an attempt buys. With `per_novel_cost`, a
     /// task's cost is the expected cost of one *novel* candidate, G / q + V:
     /// G is mean generation per informative attempt, q the novelty rate
-    /// (Thompson-sampled from Beta(1 + novel, 1 + other informative
-    /// attempts)), V mean verification of a novel candidate. Otherwise it is
+    /// (Thompson-sampled from Beta(2 + novel, 1 + other informative
+    /// attempts), so E[1/q] stays finite), V mean verification of a novel candidate. Otherwise it is
     /// the observed mean charge per attempt, as in `Thompson`. With
     /// `reuse_is_failure`, a reused rejection is a failure in the success
     /// posterior, as in `Thompson`; otherwise only fresh rejections and
@@ -359,7 +359,7 @@ impl IndexPolicy {
                     let p = rng.beta(a, b);
                     let cost = if *per_novel_cost {
                         let other = s.attempts.saturating_sub(s.novel) as f64;
-                        let q = rng.beta(1.0 + s.novel as f64, 1.0 + other);
+                        let q = rng.beta(2.0 + s.novel as f64, 1.0 + other);
                         let g = task_or_pooled(view, t, |s| (s.gen_sum, s.gen_n), view.prior_cost);
                         let v = task_or_pooled(view, t, |s| (s.verify_sum, s.novel), view.prior_cost);
                         g / q + v
