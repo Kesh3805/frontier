@@ -1,0 +1,599 @@
+{
+ "b330": {
+  "means": {
+   "round_robin": {
+    "sim_true_solved": 8.79,
+    "dead_share": 0.2396,
+    "sim_dead_attempts": 5.99,
+    "reused_rejections": 0.0,
+    "rejected": 16.21,
+    "attempts": 25.0
+   },
+   "thompson(k=2,hints=true)": {
+    "sim_true_solved": 11.12,
+    "dead_share": 0.246,
+    "sim_dead_attempts": 6.96,
+    "reused_rejections": 1.77,
+    "rejected": 15.07,
+    "attempts": 27.96
+   },
+   "thompson_novel(k=2,hints=true,cost=observed,reuse=ignored)": {
+    "sim_true_solved": 11.08,
+    "dead_share": 0.2516,
+    "sim_dead_attempts": 7.2,
+    "reused_rejections": 1.96,
+    "rejected": 15.1,
+    "attempts": 28.14
+   },
+   "thompson_novel(k=2,hints=true,cost=novel,reuse=failure)": {
+    "sim_true_solved": 11.27,
+    "dead_share": 0.2277,
+    "sim_dead_attempts": 6.32,
+    "reused_rejections": 1.48,
+    "rejected": 14.91,
+    "attempts": 27.66
+   },
+   "thompson_novel(k=2,hints=true,cost=novel,reuse=ignored)": {
+    "sim_true_solved": 11.1,
+    "dead_share": 0.2435,
+    "sim_dead_attempts": 6.86,
+    "reused_rejections": 1.77,
+    "rejected": 15.09,
+    "attempts": 27.96
+   },
+   "thompson_flat(k=2,hints=true)": {
+    "sim_true_solved": 11.29,
+    "dead_share": 0.2193,
+    "sim_dead_attempts": 6.03,
+    "reused_rejections": 1.22,
+    "rejected": 14.89,
+    "attempts": 27.4
+   }
+  },
+  "vs_rr": {
+   "thompson(k=2,hints=true)": {
+    "diff": 2.33,
+    "ci": [
+     1.9898,
+     2.68
+    ]
+   },
+   "thompson_novel(k=2,hints=true,cost=observed,reuse=ignored)": {
+    "diff": 2.29,
+    "ci": [
+     1.95,
+     2.63
+    ]
+   },
+   "thompson_novel(k=2,hints=true,cost=novel,reuse=failure)": {
+    "diff": 2.48,
+    "ci": [
+     2.14,
+     2.82
+    ]
+   },
+   "thompson_novel(k=2,hints=true,cost=novel,reuse=ignored)": {
+    "diff": 2.31,
+    "ci": [
+     1.97,
+     2.65
+    ]
+   },
+   "thompson_flat(k=2,hints=true)": {
+    "diff": 2.5,
+    "ci": [
+     2.12,
+     2.87
+    ]
+   }
+  },
+  "vs_thompson": {
+   "thompson_novel(k=2,hints=true,cost=observed,reuse=ignored)": {
+    "diff": -0.04,
+    "ci": [
+     -0.13,
+     0.04
+    ]
+   },
+   "thompson_novel(k=2,hints=true,cost=novel,reuse=failure)": {
+    "diff": 0.15,
+    "ci": [
+     0.01,
+     0.29
+    ]
+   },
+   "thompson_novel(k=2,hints=true,cost=novel,reuse=ignored)": {
+    "diff": -0.02,
+    "ci": [
+     -0.15,
+     0.11
+    ]
+   },
+   "thompson_flat(k=2,hints=true)": {
+    "diff": 0.17,
+    "ci": [
+     0.05,
+     0.29
+    ]
+   }
+  },
+  "dead_share_vs_thompson": {
+   "thompson_novel(k=2,hints=true,cost=observed,reuse=ignored)": {
+    "diff": 0.0056,
+    "ci": [
+     -0.002,
+     0.0144
+    ]
+   },
+   "thompson_novel(k=2,hints=true,cost=novel,reuse=failure)": {
+    "diff": -0.0184,
+    "ci": [
+     -0.0289,
+     -0.0079
+    ]
+   },
+   "thompson_novel(k=2,hints=true,cost=novel,reuse=ignored)": {
+    "diff": -0.0026,
+    "ci": [
+     -0.0125,
+     0.0076
+    ]
+   },
+   "thompson_flat(k=2,hints=true)": {
+    "diff": -0.0267,
+    "ci": [
+     -0.036,
+     -0.0178
+    ]
+   }
+  },
+  "dead_attempts_vs_thompson": {
+   "thompson_novel(k=2,hints=true,cost=observed,reuse=ignored)": {
+    "diff": 0.24,
+    "ci": [
+     -0.07,
+     0.64
+    ]
+   },
+   "thompson_novel(k=2,hints=true,cost=novel,reuse=failure)": {
+    "diff": -0.64,
+    "ci": [
+     -1.0,
+     -0.29
+    ]
+   },
+   "thompson_novel(k=2,hints=true,cost=novel,reuse=ignored)": {
+    "diff": -0.1,
+    "ci": [
+     -0.44,
+     0.25
+    ]
+   },
+   "thompson_flat(k=2,hints=true)": {
+    "diff": -0.93,
+    "ci": [
+     -1.26,
+     -0.62
+    ]
+   }
+  },
+  "cost_effect": {
+   "reuse_ignored": {
+    "diff": 0.02,
+    "ci": [
+     -0.13,
+     0.18
+    ]
+   },
+   "reuse_failure": {
+    "diff": 0.15,
+    "ci": [
+     0.01,
+     0.29
+    ]
+   }
+  }
+ },
+ "b1320": {
+  "means": {
+   "round_robin": {
+    "sim_true_solved": 19.41,
+    "dead_share": 0.3883,
+    "sim_dead_attempts": 43.9,
+    "reused_rejections": 14.09,
+    "rejected": 79.4,
+    "attempts": 112.9
+   },
+   "thompson(k=2,hints=true)": {
+    "sim_true_solved": 18.71,
+    "dead_share": 0.5753,
+    "sim_dead_attempts": 102.2,
+    "reused_rejections": 73.61,
+    "rejected": 85.12,
+    "attempts": 177.44
+   },
+   "thompson_novel(k=2,hints=true,cost=observed,reuse=ignored)": {
+    "sim_true_solved": 18.59,
+    "dead_share": 0.5831,
+    "sim_dead_attempts": 104.47,
+    "reused_rejections": 75.18,
+    "rejected": 85.28,
+    "attempts": 179.05
+   },
+   "thompson_novel(k=2,hints=true,cost=novel,reuse=failure)": {
+    "sim_true_solved": 18.76,
+    "dead_share": 0.5638,
+    "sim_dead_attempts": 97.76,
+    "reused_rejections": 69.43,
+    "rejected": 84.96,
+    "attempts": 173.15
+   },
+   "thompson_novel(k=2,hints=true,cost=novel,reuse=ignored)": {
+    "sim_true_solved": 18.67,
+    "dead_share": 0.5733,
+    "sim_dead_attempts": 101.47,
+    "reused_rejections": 72.89,
+    "rejected": 85.14,
+    "attempts": 176.7
+   },
+   "thompson_flat(k=2,hints=true)": {
+    "sim_true_solved": 18.7,
+    "dead_share": 0.5613,
+    "sim_dead_attempts": 97.11,
+    "reused_rejections": 69.11,
+    "rejected": 84.86,
+    "attempts": 172.67
+   }
+  },
+  "vs_rr": {
+   "thompson(k=2,hints=true)": {
+    "diff": -0.7,
+    "ci": [
+     -1.03,
+     -0.36
+    ]
+   },
+   "thompson_novel(k=2,hints=true,cost=observed,reuse=ignored)": {
+    "diff": -0.82,
+    "ci": [
+     -1.16,
+     -0.46
+    ]
+   },
+   "thompson_novel(k=2,hints=true,cost=novel,reuse=failure)": {
+    "diff": -0.65,
+    "ci": [
+     -1.0,
+     -0.29
+    ]
+   },
+   "thompson_novel(k=2,hints=true,cost=novel,reuse=ignored)": {
+    "diff": -0.74,
+    "ci": [
+     -1.1,
+     -0.37
+    ]
+   },
+   "thompson_flat(k=2,hints=true)": {
+    "diff": -0.71,
+    "ci": [
+     -1.05,
+     -0.37
+    ]
+   }
+  },
+  "vs_thompson": {
+   "thompson_novel(k=2,hints=true,cost=observed,reuse=ignored)": {
+    "diff": -0.12,
+    "ci": [
+     -0.24,
+     0.0
+    ]
+   },
+   "thompson_novel(k=2,hints=true,cost=novel,reuse=failure)": {
+    "diff": 0.05,
+    "ci": [
+     -0.11,
+     0.22
+    ]
+   },
+   "thompson_novel(k=2,hints=true,cost=novel,reuse=ignored)": {
+    "diff": -0.04,
+    "ci": [
+     -0.2,
+     0.12
+    ]
+   },
+   "thompson_flat(k=2,hints=true)": {
+    "diff": -0.01,
+    "ci": [
+     -0.23,
+     0.21
+    ]
+   }
+  },
+  "dead_share_vs_thompson": {
+   "thompson_novel(k=2,hints=true,cost=observed,reuse=ignored)": {
+    "diff": 0.0078,
+    "ci": [
+     0.005,
+     0.0106
+    ]
+   },
+   "thompson_novel(k=2,hints=true,cost=novel,reuse=failure)": {
+    "diff": -0.0115,
+    "ci": [
+     -0.0156,
+     -0.0075
+    ]
+   },
+   "thompson_novel(k=2,hints=true,cost=novel,reuse=ignored)": {
+    "diff": -0.002,
+    "ci": [
+     -0.0062,
+     0.0021
+    ]
+   },
+   "thompson_flat(k=2,hints=true)": {
+    "diff": -0.014,
+    "ci": [
+     -0.019,
+     -0.0092
+    ]
+   }
+  },
+  "dead_attempts_vs_thompson": {
+   "thompson_novel(k=2,hints=true,cost=observed,reuse=ignored)": {
+    "diff": 2.27,
+    "ci": [
+     1.38,
+     3.1802
+    ]
+   },
+   "thompson_novel(k=2,hints=true,cost=novel,reuse=failure)": {
+    "diff": -4.44,
+    "ci": [
+     -5.79,
+     -3.11
+    ]
+   },
+   "thompson_novel(k=2,hints=true,cost=novel,reuse=ignored)": {
+    "diff": -0.73,
+    "ci": [
+     -2.02,
+     0.55
+    ]
+   },
+   "thompson_flat(k=2,hints=true)": {
+    "diff": -5.09,
+    "ci": [
+     -6.46,
+     -3.78
+    ]
+   }
+  },
+  "cost_effect": {
+   "reuse_ignored": {
+    "diff": 0.08,
+    "ci": [
+     -0.1,
+     0.25
+    ]
+   },
+   "reuse_failure": {
+    "diff": 0.05,
+    "ci": [
+     -0.11,
+     0.22
+    ]
+   }
+  }
+ },
+ "b2640": {
+  "means": {
+   "round_robin": {
+    "sim_true_solved": 22.95,
+    "dead_share": 0.5525,
+    "sim_dead_attempts": 150.91,
+    "reused_rejections": 78.5,
+    "rejected": 170.34,
+    "attempts": 271.79
+   },
+   "thompson(k=2,hints=true)": {
+    "sim_true_solved": 22.29,
+    "dead_share": 0.6515,
+    "sim_dead_attempts": 236.57,
+    "reused_rejections": 163.8,
+    "rejected": 177.84,
+    "attempts": 363.93
+   },
+   "thompson_novel(k=2,hints=true,cost=observed,reuse=ignored)": {
+    "sim_true_solved": 22.25,
+    "dead_share": 0.6537,
+    "sim_dead_attempts": 237.69,
+    "reused_rejections": 164.14,
+    "rejected": 178.0,
+    "attempts": 364.39
+   },
+   "thompson_novel(k=2,hints=true,cost=novel,reuse=failure)": {
+    "sim_true_solved": 22.67,
+    "dead_share": 0.6413,
+    "sim_dead_attempts": 230.8,
+    "reused_rejections": 160.03,
+    "rejected": 178.04,
+    "attempts": 360.74
+   },
+   "thompson_novel(k=2,hints=true,cost=novel,reuse=ignored)": {
+    "sim_true_solved": 22.6,
+    "dead_share": 0.6424,
+    "sim_dead_attempts": 231.44,
+    "reused_rejections": 160.34,
+    "rejected": 178.11,
+    "attempts": 361.05
+   },
+   "thompson_flat(k=2,hints=true)": {
+    "sim_true_solved": 22.39,
+    "dead_share": 0.6405,
+    "sim_dead_attempts": 229.63,
+    "reused_rejections": 159.09,
+    "rejected": 177.84,
+    "attempts": 359.32
+   }
+  },
+  "vs_rr": {
+   "thompson(k=2,hints=true)": {
+    "diff": -0.66,
+    "ci": [
+     -0.9,
+     -0.43
+    ]
+   },
+   "thompson_novel(k=2,hints=true,cost=observed,reuse=ignored)": {
+    "diff": -0.7,
+    "ci": [
+     -0.95,
+     -0.46
+    ]
+   },
+   "thompson_novel(k=2,hints=true,cost=novel,reuse=failure)": {
+    "diff": -0.28,
+    "ci": [
+     -0.49,
+     -0.07
+    ]
+   },
+   "thompson_novel(k=2,hints=true,cost=novel,reuse=ignored)": {
+    "diff": -0.35,
+    "ci": [
+     -0.56,
+     -0.14
+    ]
+   },
+   "thompson_flat(k=2,hints=true)": {
+    "diff": -0.56,
+    "ci": [
+     -0.81,
+     -0.3
+    ]
+   }
+  },
+  "vs_thompson": {
+   "thompson_novel(k=2,hints=true,cost=observed,reuse=ignored)": {
+    "diff": -0.04,
+    "ci": [
+     -0.19,
+     0.11
+    ]
+   },
+   "thompson_novel(k=2,hints=true,cost=novel,reuse=failure)": {
+    "diff": 0.38,
+    "ci": [
+     0.18,
+     0.59
+    ]
+   },
+   "thompson_novel(k=2,hints=true,cost=novel,reuse=ignored)": {
+    "diff": 0.31,
+    "ci": [
+     0.13,
+     0.5
+    ]
+   },
+   "thompson_flat(k=2,hints=true)": {
+    "diff": 0.1,
+    "ci": [
+     -0.07,
+     0.28
+    ]
+   }
+  },
+  "dead_share_vs_thompson": {
+   "thompson_novel(k=2,hints=true,cost=observed,reuse=ignored)": {
+    "diff": 0.0022,
+    "ci": [
+     -0.0,
+     0.0044
+    ]
+   },
+   "thompson_novel(k=2,hints=true,cost=novel,reuse=failure)": {
+    "diff": -0.0102,
+    "ci": [
+     -0.0141,
+     -0.0063
+    ]
+   },
+   "thompson_novel(k=2,hints=true,cost=novel,reuse=ignored)": {
+    "diff": -0.0091,
+    "ci": [
+     -0.0128,
+     -0.0054
+    ]
+   },
+   "thompson_flat(k=2,hints=true)": {
+    "diff": -0.011,
+    "ci": [
+     -0.0148,
+     -0.0073
+    ]
+   }
+  },
+  "dead_attempts_vs_thompson": {
+   "thompson_novel(k=2,hints=true,cost=observed,reuse=ignored)": {
+    "diff": 1.12,
+    "ci": [
+     -0.1502,
+     2.34
+    ]
+   },
+   "thompson_novel(k=2,hints=true,cost=novel,reuse=failure)": {
+    "diff": -5.77,
+    "ci": [
+     -7.53,
+     -3.96
+    ]
+   },
+   "thompson_novel(k=2,hints=true,cost=novel,reuse=ignored)": {
+    "diff": -5.13,
+    "ci": [
+     -6.8302,
+     -3.41
+    ]
+   },
+   "thompson_flat(k=2,hints=true)": {
+    "diff": -6.94,
+    "ci": [
+     -8.95,
+     -4.9298
+    ]
+   }
+  },
+  "cost_effect": {
+   "reuse_ignored": {
+    "diff": 0.35,
+    "ci": [
+     0.18,
+     0.53
+    ]
+   },
+   "reuse_failure": {
+    "diff": 0.38,
+    "ci": [
+     0.18,
+     0.59
+    ]
+   }
+  }
+ },
+ "false_solve_runs": 0,
+ "verdicts": {
+  "N0 TH - RR at b1320: CI < 0 (the loss replicates)": true,
+  "N1 NF - TH at b1320: CI > 0": false,
+  "N2 NF - RR at b1320 >= -0.3 (point)": false,
+  "N3 NF - RR at b330: CI > 0": true,
+  "N4 OI - TH at b1320: CI < 0": false,
+  "N5 cost effect larger with reuse ignored at b1320 (point)": true,
+  "N6 dead-task share of attempts NF - TH at b1320: CI < 0": true,
+  "N7 no run with a false solve": true,
+  "Decision": "unclear"
+ }
+}
